@@ -8,13 +8,37 @@ export type BioView =
   | { type: "taxon"; id: string; focus?: string }
   | { type: "search"; q: string }
   | { type: "compare"; ids: string[] }
-  | { type: "browse"; iucn?: string | null; kingdom?: string | null; tag?: string | null };
+  | { type: "browse" };
 
 export interface BrowseFilter {
   iucn?: string | null;
   kingdom?: string | null;
   tag?: string | null;
+  q?: string;
+  sort?: string;
+  hasImage?: boolean;
 }
+
+/** 目录视图的完整筛选状态(跨导航持久化) */
+export interface BrowseState {
+  kingdom: string | null;
+  iucn: string | null;
+  tag: string | null;
+  hasImage: boolean;
+  q: string;
+  sort: string;
+}
+
+const DEFAULT_BROWSE: BrowseState = {
+  kingdom: null,
+  iucn: null,
+  tag: null,
+  hasImage: false,
+  q: "",
+  sort: "default",
+};
+
+const VALID_SORTS = ["default", "iucn", "name", "image"];
 
 export const MAX_COMPARE = 3;
 
@@ -25,12 +49,22 @@ interface BioState {
   agentUnread: number;
   /** 对比托盘中的物种 id(最多 3) */
   compareIds: string[];
+  /** 图鉴目录筛选(跨导航保留,含关键词/排序/配图开关) */
+  browseFilter: BrowseState;
+  /** 目录展示密度:卡片网格 / 紧凑列表 */
+  browseDensity: "grid" | "list";
+  /** 快捷键帮助面板 */
+  shortcutsOpen: boolean;
   goHome: () => void;
   explore: (taxonId?: string | null) => void;
   openTaxon: (id: string) => void;
   openSearch: (q: string) => void;
   openCompare: () => void;
   openBrowse: (filter?: BrowseFilter) => void;
+  /** 目录内筛选变更(不压入历史栈) */
+  patchBrowseFilter: (patch: Partial<BrowseState>) => void;
+  setBrowseDensity: (d: "grid" | "list") => void;
+  setShortcutsOpen: (open: boolean) => void;
   goBack: () => void;
   setAgentOpen: (open: boolean) => void;
   bumpUnread: () => void;
@@ -48,6 +82,9 @@ export const useBioStore = create<BioState>((set, get) => ({
   agentOpen: false,
   agentUnread: 0,
   compareIds: [],
+  browseFilter: { ...DEFAULT_BROWSE },
+  browseDensity: "grid",
+  shortcutsOpen: false,
   goHome: () =>
     set((s) => ({ view: { type: "home" }, historyStack: [...s.historyStack, s.view].slice(-30) })),
   explore: (taxonId = null) =>
@@ -63,9 +100,18 @@ export const useBioStore = create<BioState>((set, get) => ({
     })),
   openBrowse: (filter = {}) =>
     set((s) => ({
-      view: { type: "browse", iucn: filter.iucn ?? null, kingdom: filter.kingdom ?? null, tag: filter.tag ?? null },
+      view: { type: "browse" },
+      // 传入具体筛选则整组应用(其余重置);空参数仅进入目录,保留上次筛选
+      browseFilter: Object.keys(filter).length > 0 ? { ...DEFAULT_BROWSE, ...filter } : s.browseFilter,
       historyStack: [...s.historyStack, s.view].slice(-30),
     })),
+  patchBrowseFilter: (patch) =>
+    set((s) => ({
+      browseFilter: { ...s.browseFilter, ...patch },
+      // 若当前即目录视图,保持 view 引用不变(仅筛选变化不重新挂载组件)
+    })),
+  setBrowseDensity: (d) => set({ browseDensity: d }),
+  setShortcutsOpen: (open) => set({ shortcutsOpen: open }),
   goBack: () => {
     const s = get();
     const prev = s.historyStack[s.historyStack.length - 1];
@@ -114,16 +160,20 @@ export const useBioStore = create<BioState>((set, get) => ({
       }
       return false;
     }
-    // 目录筛选分享链接: #browse?kingdom=Fungi&iucn=CR
+    // 目录筛选分享链接: #browse?kingdom=Fungi&iucn=CR&q=..&sort=..&hasImage=1
     if (/^#browse(\?.*)?$/.test(h)) {
       const qs = h.split("?")[1] || "";
       const sp = new URLSearchParams(qs);
+      const hs = sp.get("sort");
       set({
-        view: {
-          type: "browse",
+        view: { type: "browse" },
+        browseFilter: {
           kingdom: sp.get("kingdom") || null,
           iucn: sp.get("iucn") || null,
           tag: sp.get("tag") || null,
+          q: sp.get("q") || "",
+          sort: hs && VALID_SORTS.includes(hs) ? hs : "default",
+          hasImage: sp.get("hasImage") === "1",
         },
         historyStack: [],
       });

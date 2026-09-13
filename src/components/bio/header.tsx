@@ -7,13 +7,13 @@ import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  Search, Sun, Moon, Dna, MapPin, ChevronRight, Sparkles, Command, LayoutGrid,
+  Search, Sun, Moon, Dna, MapPin, ChevronRight, Sparkles, Command, LayoutGrid, Keyboard,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { KingdomIcon, kingdomTheme, RankBadge } from "./taxa-icon";
 
 export function BioHeader() {
-  const { view, goHome, explore, openTaxon, openSearch, openBrowse, setAgentOpen } = useBioStore();
+  const { view, goHome, explore, openTaxon, openSearch, openBrowse, setAgentOpen, setShortcutsOpen } = useBioStore();
   const { theme, setTheme } = useTheme();
   const [q, setQ] = useState("");
   const [focus, setFocus] = useState(false);
@@ -205,6 +205,18 @@ export function BioHeader() {
         >
           <Sparkles className="h-4 w-4" />
           助手
+        </Button>
+
+        {/* 快捷键帮助 */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="hidden h-9 w-9 shrink-0 sm:flex"
+          onClick={() => setShortcutsOpen(true)}
+          aria-label="查看键盘快捷键(按 ? 键也可打开)"
+          title="键盘快捷键 (?)"
+        >
+          <Keyboard className="h-4 w-4" />
         </Button>
 
         {/* 主题切换 */}

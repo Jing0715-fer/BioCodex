@@ -271,3 +271,34 @@ Stage Summary(当前项目状态):
   2. Agent 回答实测(429恢复后):验证规范8新功能指引与引用卡加对比按钮
   3. 备选新功能:对比视图列hover高亮;探索视图面包屑显示物种计数;首页 hero 数据徽章;VLM 抽查最近配图质量
   4. 已知边界:hashchange 恢复会重置浏览历史栈(设计取舍);browse 内部筛选在导航离开再返回时 q/sort/hasImage 重置(kingdom/iucn/tag 由store保留)
+
+---
+Task ID: R5(cron 第4轮巡检, 2026-09-13 15:30)
+Agent: main
+Task: QA回归 + 7项新功能(筛选持久化/列hover高亮/面包屑计数/数据徽章墙/快捷键面板/搜索高亮/密度切换)
+
+Work Log:
+- 【环境判断】dev server 一度进程死亡(非代码问题),以 `setsid nohup bun run dev >> dev.log` 重启后稳定;z-ai 全部 API(image/LLM)整轮仍账户级 429,P0 补图继续搁置;image-search 未再探测
+- 【QA回归】agent-browser 全链路实测:首页/目录筛选(真菌21)/对比托盘+对比视图12行表/对比→详情跳转/搜索建议→详情/暗色切换/Agent 429优雅降级("暂时失联"提示)/Enter提交Agent消息(需先聚焦textarea,属测试脚本问题非bug)/零console错误/零dev overlay
+- 【修复已知边界】browse 筛选状态(q/sort/hasImage)导航丢失 → store 重构:
+  - bio-store.ts:BioView.browse 改为纯标记 `{type:"browse"}`;新增 BrowseState{kingdom,iucn,tag,hasImage,q,sort} 存于 store.browseFilter;patchBrowseFilter(不压历史栈);openBrowse(filter) 语义改为"有键=整组应用,空=保留上次筛选";browseDensity("grid"/"list")+shortcutsOpen 新增
+  - hydrateFromHash 解析 #browse? 完整 6 参数(含 q/sort/hasImage,sort 白名单校验)
+  - page.tsx:hash 同步集中到 store.subscribe(compare/browse 双分支均由 page 统一写,用 browseFilterToParams);BrowseView 无 props 挂载;挂载 ShortcutsDialog
+  - 实测:设"真菌界+关键词芝+列表密度"→回首页→再进目录,三项全部保留 ✓;粘贴 #browse?kingdom=Fungi&iucn=CR&hasImage=1 恢复 ✓(CR真菌=0为数据事实,空态+重置按钮正常)
+- 【新功能1:对比视图列hover高亮】hoverCol state;列头卡 onMouseEnter/Leave + ring-1/border-primary 类;表格 td 双向联动(列头hover→12单元格高亮;td hover→列头卡ring);native hover 实测双向均 12 格+1 卡 ✓
+- 【新功能2:面包屑物种计数徽章】id→sc Map(从 tree DTO 递归构建);explore-view 与 taxon-detail 两处面包屑均加(名后小圆徽章+title提示"·N物种");实测详情页"细菌域24→变形菌门8→…→埃希菌属1" ✓。注:探索视图卡片点击进的是详情视图,故详情页面包屑必须同步加,两处样式一致
+- 【新功能3:首页数据完备度徽章墙】hero 统计带下方新卡片:头行(旗舰84/NCBI锚定47/21+科学库徽章)+三列 SVG 环形进度(物种配图46% 绿/IUCN评估20% 琥珀/NCBI锚定15% 青,useCountUp 数字动画+stroke-dashoffset 过渡)
+- 【新功能4:键盘快捷键帮助面板】新组件 shortcuts-dialog.tsx:4分组(全局/详情页/AI助手/指针)kbd 速查表+博物馆风"Claves Breves"标题;`?` 键全局开关(input/textarea 聚焦时忽略)+header Keyboard 图标按钮;实测两种打开方式+Esc 关闭 ✓
+- 【新功能5:搜索关键词高亮】src/lib/highlight.tsx(escapeRegExp+双遍正则重组+<mark> amber 亮标,暗色模式适配);SearchView 中文名/拉丁名/描述三处应用;实测搜"灵芝"6 处 mark ✓
+- 【新功能6:目录密度切换】卡片网格/紧凑列表双模式(SpeciesRow 行组件:48px缩略图+名称+拉丁+标签+界徽章+IUCN+hover对比按钮,斑马纹+reveal动画);密度存 store 跨导航保留;实测切换+筛选持久化联动 ✓
+- 【Agent提示词】规范9:教阿博新功能(密度切换/筛选保留/?快捷键面板/面包屑计数)
+- 【验证】lint 零错误;tsc 零错误(仅 skills/examples 固有);390px 移动端无横向溢出;暗色截图合格;全新加载零 dev issue
+
+Stage Summary(当前项目状态):
+- 【稳定】7 项新功能上线并全部浏览器实测通过;本轮无新增 bug(仅修复上轮遗留的筛选丢失边界)
+- 配图仍 142/311;z-ai image/LLM 整轮 429,Agent 新提示词(规范9)未做端到端实测(限流恢复后验证)
+- 下一轮优先:
+  1. P0 补图(429恢复后):`timeout 90 z-ai image -p test -o /tmp/t.png` 探测,恢复则 `BATCH=999 SCOPE=all CONCURRENCY=2 timeout 580 bun scripts/generate-images.ts` 连跑
+  2. Agent 回答实测(限流恢复后):验证规范9新功能指引
+  3. 备选新功能:物种详情页"演化谱系时间轴"可视化;图鉴轮盘改桌面摇号动效;首页六界卡加迷你条形图(各门物种数);对比视图导出 CSV 格式
+  4. 已知取舍:hashchange 恢复仍会重置浏览历史栈;browse hash 由 page.tsx subscribe 同步(无防抖,replaceState 逐键触发,实测无性能问题)

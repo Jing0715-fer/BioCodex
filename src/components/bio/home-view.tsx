@@ -46,6 +46,41 @@ function StatCounter({ value, label, suffix }: { value: number; label: string; s
   );
 }
 
+/** 环形进度指示(数据完备度徽章墙用) */
+function DataRing({
+  value, total, label, hint, color,
+}: { value: number; total: number; label: string; hint: string; color: string }) {
+  const pct = total > 0 ? value / total : 0;
+  const v = useCountUp(Math.round(pct * 100));
+  const R = 30;
+  const C = 2 * Math.PI * R;
+  return (
+    <div className="flex flex-col items-center gap-2.5 px-2 py-4 text-center">
+      <div className="relative h-[76px] w-[76px]">
+        <svg viewBox="0 0 76 76" className="h-full w-full -rotate-90">
+          <circle cx="38" cy="38" r={R} fill="none" strokeWidth="7" className="stroke-foreground/10" />
+          <circle
+            cx="38" cy="38" r={R} fill="none" strokeWidth="7" strokeLinecap="round"
+            stroke={color}
+            strokeDasharray={C}
+            strokeDashoffset={C * (1 - pct)}
+            style={{ transition: "stroke-dashoffset 1.1s cubic-bezier(.25,.1,.25,1)" }}
+          />
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <span className="font-display text-lg font-bold tabular-nums leading-none text-foreground">{v}%</span>
+        </div>
+      </div>
+      <div>
+        <p className="text-xs font-bold tracking-wide text-foreground">{label}</p>
+        <p className="mt-0.5 text-[10px] tabular-nums text-muted-foreground">
+          {value} / {total} · {hint}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export function HomeView() {
   const { explore, openTaxon, setAgentOpen, openBrowse } = useBioStore();
   const { data: stats } = useStats();
@@ -173,6 +208,52 @@ export function HomeView() {
               </div>
             ))}
           </div>
+
+          {/* 数据完备度徽章墙 */}
+          {stats && (
+            <div className="mt-4 overflow-hidden rounded-xl border border-foreground/10 bg-card shadow-sm">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-foreground/10 bg-muted/30 px-4 py-2.5">
+                <p className="flex items-center gap-1.5 text-[11px] font-bold tracking-widest text-muted-foreground">
+                  <Database className="h-3.5 w-3.5 text-primary/70" />
+                  数据完备度 · DATA COMPLETENESS
+                </p>
+                <div className="flex flex-wrap items-center gap-1.5 text-[10px] text-muted-foreground">
+                  <span className="flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 font-semibold text-amber-700 dark:text-amber-400">
+                    <Shield className="h-3 w-3" />旗舰 {stats.flagship}
+                  </span>
+                  <span className="flex items-center gap-1 rounded-full border border-primary/25 bg-primary/5 px-2 py-0.5 font-semibold text-primary">
+                    <Dna className="h-3 w-3" />NCBI 锚定 {stats.ncbiLinked}
+                  </span>
+                  <span className="flex items-center gap-1 rounded-full border border-foreground/15 bg-muted/40 px-2 py-0.5 font-semibold">
+                    <Database className="h-3 w-3" />21+ 科学库直连
+                  </span>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 divide-y divide-foreground/8 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+                <DataRing
+                  value={stats.images}
+                  total={stats.species}
+                  label="物种配图"
+                  hint="复古博物学插画"
+                  color="var(--ring, #2f6b4f)"
+                />
+                <DataRing
+                  value={stats.iucn.reduce((a, x) => a + x.count, 0)}
+                  total={stats.species}
+                  label="IUCN 评估"
+                  hint="红色名录等级覆盖"
+                  color="#b45309"
+                />
+                <DataRing
+                  value={stats.ncbiLinked}
+                  total={stats.species}
+                  label="NCBI 锚定"
+                  hint="直连分类学数据库"
+                  color="#0d7a6b"
+                />
+              </div>
+            </div>
+          )}
         </div>
         <div className="dna-divider" />
       </section>

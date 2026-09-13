@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useBioStore } from "@/lib/bio-store";
-import { useSpeciesBrowse, useStats } from "@/hooks/use-bio";
+import { useSpeciesBrowse, useStats, type SpeciesItem } from "@/hooks/use-bio";
 import { KINGDOM_THEME, IUCN_INFO } from "@/lib/bio-domain";
 import { SpeciesCard } from "./species-card";
 import { ShareDialog } from "./share-dialog";
@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import {
   ChevronRight, LayoutGrid, Search, Loader2, Info, SlidersHorizontal,
   Star, Microscope, TriangleAlert, Image as ImageIcon, ArrowDown, Link2, Check,
+  Rows3, GitCompareArrows, ArrowRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -31,53 +32,22 @@ const SORTS = [
   { key: "image", label: "有图优先" },
 ] as const;
 
-export function BrowseView({
-  initialIucn,
-  initialKingdom,
-  initialTag,
-}: {
-  initialIucn?: string | null;
-  initialKingdom?: string | null;
-  initialTag?: string | null;
-}) {
-  const { goHome, openCompare, compareIds } = useBioStore();
+export function BrowseView() {
+  const { goHome, openCompare, compareIds, browseFilter, patchBrowseFilter, browseDensity, setBrowseDensity } =
+    useBioStore();
   const { data: stats } = useStats();
 
-  // 从 #browse?... 恢复完整筛选(仅在客户端首挂载时读取;hash 不会发送到服务端,无 hydration 风险)
-  const readHashParams = () => {
-    if (typeof window === "undefined" || !/^#browse(\?|$)/.test(window.location.hash)) {
-      return { q: "", sort: "default", hasImage: false };
-    }
-    const sp = new URLSearchParams(window.location.hash.split("?")[1] || "");
-    const hs = sp.get("sort");
-    return {
-      q: sp.get("q") || "",
-      sort: hs && SORTS.some((s) => s.key === hs) ? hs : "default",
-      hasImage: sp.get("hasImage") === "1",
-    };
-  };
-  const hashInit = readHashParams();
+  // 筛选状态全部由 store 承载:导航离开再返回不丢失(含关键词/排序/配图开关)
+  const { kingdom, iucn, tag, hasImage, q, sort } = browseFilter;
+  const setKingdom = (v: string | null) => patchBrowseFilter({ kingdom: v });
+  const setIucn = (v: string | null) => patchBrowseFilter({ iucn: v });
+  const setTag = (v: string | null) => patchBrowseFilter({ tag: v });
+  const setHasImage = (v: boolean) => patchBrowseFilter({ hasImage: v });
+  const setQ = (v: string) => patchBrowseFilter({ q: v });
+  const setSort = (v: string) => patchBrowseFilter({ sort: v });
 
-  const [kingdom, setKingdom] = useState<string | null>(initialKingdom ?? null);
-  const [iucn, setIucn] = useState<string | null>(initialIucn ?? null);
-  const [tag, setTag] = useState<string | null>(initialTag ?? null);
-  const [hasImage, setHasImage] = useState<boolean>(hashInit.hasImage);
-  const [q, setQ] = useState<string>(hashInit.q);
-  const [sort, setSort] = useState<string>(hashInit.sort);
   const [shareFallback, setShareFallback] = useState<string | null>(null);
   const [linkCopied, setLinkCopied] = useState(false);
-
-  // 筛选变化 → 同步 URL hash(可分享/收藏;q 防抖 300ms)
-  useEffect(() => {
-    const t = setTimeout(() => {
-      const sp = browseFilterToParams({ kingdom, iucn, tag, hasImage, q, sort });
-      const target = `#browse${sp.toString() ? `?${sp.toString()}` : ""}`;
-      if (window.location.hash !== target) {
-        window.history.replaceState(null, "", window.location.pathname + window.location.search + target);
-      }
-    }, 300);
-    return () => clearTimeout(t);
-  }, [kingdom, iucn, tag, hasImage, q, sort]);
 
   const shareFilterLink = async () => {
     const sp = browseFilterToParams({ kingdom, iucn, tag, hasImage, q, sort });
@@ -101,14 +71,8 @@ export function BrowseView({
 
   const activeFilters =
     (kingdom ? 1 : 0) + (iucn ? 1 : 0) + (tag ? 1 : 0) + (hasImage ? 1 : 0) + (q.trim() ? 1 : 0);
-  const clearAll = () => {
-    setKingdom(null);
-    setIucn(null);
-    setTag(null);
-    setHasImage(false);
-    setQ("");
-    setSort("default");
-  };
+  const clearAll = () =>
+    patchBrowseFilter({ kingdom: null, iucn: null, tag: null, hasImage: false, q: "", sort: "default" });
 
   return (
     <div className="mx-auto w-full max-w-[1400px] px-4 pb-16 pt-4 sm:px-6">
@@ -134,6 +98,35 @@ export function BrowseView({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {/* 密度切换:卡片 / 紧凑列表 */}
+          <div
+            className="flex items-center rounded-full border border-foreground/15 bg-muted/30 p-0.5"
+            role="group"
+            aria-label="目录展示密度"
+          >
+            <Button
+              variant={browseDensity === "grid" ? "secondary" : "ghost"}
+              size="sm"
+              className="h-7 gap-1 rounded-full px-2.5 text-xs"
+              onClick={() => setBrowseDensity("grid")}
+              aria-pressed={browseDensity === "grid"}
+              title="卡片网格视图"
+            >
+              <LayoutGrid className="h-3.5 w-3.5" />
+              卡片
+            </Button>
+            <Button
+              variant={browseDensity === "list" ? "secondary" : "ghost"}
+              size="sm"
+              className="h-7 gap-1 rounded-full px-2.5 text-xs"
+              onClick={() => setBrowseDensity("list")}
+              aria-pressed={browseDensity === "list"}
+              title="紧凑列表视图(同屏更多物种)"
+            >
+              <Rows3 className="h-3.5 w-3.5" />
+              列表
+            </Button>
+          </div>
           <Button
             variant="outline"
             size="sm"
@@ -282,20 +275,36 @@ export function BrowseView({
         </p>
       </div>
 
-      {/* 卡片网格 */}
+      {/* 物种网格 / 紧凑列表 */}
       {isLoading ? (
-        <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <Skeleton key={i} className="aspect-[5/4] rounded-xl" />
-          ))}
-        </div>
-      ) : items.length > 0 ? (
-        <>
+        browseDensity === "grid" ? (
           <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-            {items.map((s, i) => (
-              <SpeciesCard key={s.id} species={s} index={i % 12} />
+            {Array.from({ length: 8 }).map((_, i) => (
+              <Skeleton key={i} className="aspect-[5/4] rounded-xl" />
             ))}
           </div>
+        ) : (
+          <div className="mt-3 space-y-2">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <Skeleton key={i} className="h-16 rounded-xl" />
+            ))}
+          </div>
+        )
+      ) : items.length > 0 ? (
+        <>
+          {browseDensity === "grid" ? (
+            <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+              {items.map((s, i) => (
+                <SpeciesCard key={s.id} species={s} index={i % 12} />
+              ))}
+            </div>
+          ) : (
+            <div className="reveal-up mt-3 overflow-hidden rounded-xl border border-foreground/10 bg-card shadow-sm">
+              {items.map((s, i) => (
+                <SpeciesRow key={s.id} species={s} index={i} />
+              ))}
+            </div>
+          )}
           {hasNextPage && (
             <div className="mt-6 flex justify-center">
               <Button
@@ -332,6 +341,127 @@ export function BrowseView({
         title="分享筛选链接"
         text={shareFallback || ""}
       />
+    </div>
+  );
+}
+
+/** 紧凑列表行:同屏容纳更多物种,信息密度优先 */
+function SpeciesRow({ species, index = 0 }: { species: SpeciesItem; index?: number }) {
+  const { openTaxon, compareIds, toggleCompare } = useBioStore();
+  const theme = KINGDOM_THEME[species.kingdom] || KINGDOM_THEME.Animalia;
+  const inCompare = compareIds.includes(species.id);
+  const full = !inCompare && compareIds.length >= 3;
+  const tags = species.tags || [];
+
+  const onCardActivate = () => openTaxon(species.id);
+
+  const onCompareClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const res = toggleCompare(species.id);
+    if (res === "added")
+      toast.success(`已加入对比:${species.chineseName}`, { description: `托盘 ${compareIds.length + 1}/3` });
+    else if (res === "removed") toast.info(`已移出对比:${species.chineseName}`);
+    else toast.warning("对比托盘已满(最多 3 个)", { description: "请先移除一个物种,或直接开始对比" });
+  };
+
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onCardActivate}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onCardActivate();
+        }
+      }}
+      className={cn(
+        "group flex cursor-pointer items-center gap-3 border-foreground/8 px-3 py-2.5 text-left transition-colors hover:bg-primary/5 focus-visible:bg-primary/5 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-forest",
+        index % 2 === 1 && "bg-muted/25"
+      )}
+      style={{ animationDelay: `${Math.min(index, 20) * 25}ms` }}
+      aria-label={`查看${species.chineseName}(${species.latinName})`}
+    >
+      {/* 缩略图 */}
+      {species.image ? (
+        <img
+          src={species.image}
+          alt={`${species.chineseName}复古博物学插图`}
+          className="h-11 w-11 shrink-0 rounded-lg border border-foreground/10 object-cover"
+          loading="lazy"
+        />
+      ) : (
+        <span
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-foreground/10 font-display text-sm font-bold text-white"
+          style={{ background: `linear-gradient(135deg, ${theme.color}, ${theme.color}aa)` }}
+          aria-hidden
+        >
+          {species.latinName.charAt(0)}
+        </span>
+      )}
+
+      {/* 名称与描述 */}
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+          <span className="font-display text-sm font-bold text-foreground group-hover:text-primary">
+            {species.chineseName}
+          </span>
+          <span className="latin truncate text-xs text-muted-foreground italic">{species.latinName}</span>
+          {tags.includes("flagship") && (
+            <span className="rounded-sm bg-amber-500/15 px-1 py-px text-[9px] font-semibold text-amber-700 dark:text-amber-400">
+              旗舰
+            </span>
+          )}
+          {tags.includes("模式生物") && (
+            <span className="rounded-sm bg-teal-500/15 px-1 py-px text-[9px] font-semibold text-teal-700 dark:text-teal-400">
+              模式
+            </span>
+          )}
+        </div>
+        {species.description && (
+          <p className="mt-0.5 hidden truncate text-xs text-muted-foreground/75 sm:block">
+            {species.description}
+          </p>
+        )}
+      </div>
+
+      {/* 界徽章 */}
+      <span
+        className="hidden shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold md:flex"
+        style={{ background: `${theme.color}15`, color: theme.color }}
+      >
+        {theme.name}
+      </span>
+
+      {/* IUCN */}
+      {species.conservation && IUCN_INFO[species.conservation] && (
+        <span
+          className={cn(
+            "shrink-0 rounded-sm px-1.5 py-0.5 text-[10px] font-bold text-white",
+            IUCN_INFO[species.conservation]?.bg
+          )}
+        >
+          {species.conservation}
+        </span>
+      )}
+
+      {/* 对比按钮 */}
+      <button
+        onClick={onCompareClick}
+        disabled={full}
+        aria-label={inCompare ? `移出对比:${species.chineseName}` : `加入对比:${species.chineseName}`}
+        className={cn(
+          "flex h-7 shrink-0 items-center gap-1 rounded-full border px-2 text-[11px] font-semibold transition-all",
+          inCompare
+            ? "border-primary bg-primary text-primary-foreground"
+            : "border-foreground/15 text-muted-foreground opacity-0 hover:border-primary/50 hover:text-primary focus-visible:opacity-100 group-hover:opacity-100",
+          full && "cursor-not-allowed opacity-40"
+        )}
+      >
+        {inCompare ? <Check className="h-3 w-3" /> : <GitCompareArrows className="h-3 w-3" />}
+      </button>
+
+      <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/30 transition-all group-hover:translate-x-0.5 group-hover:text-primary" />
     </div>
   );
 }

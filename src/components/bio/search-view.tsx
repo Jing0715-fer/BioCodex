@@ -3,6 +3,7 @@
 import { useSearch } from "@/hooks/use-bio";
 import { useBioStore, MAX_COMPARE } from "@/lib/bio-store";
 import { rankLabel, IUCN_INFO, KINGDOM_THEME } from "@/lib/bio-domain";
+import { highlightText } from "@/lib/highlight";
 import { TaxaPlaceholder, RankBadge, KingdomIcon } from "./taxa-icon";
 import { Loader2, SearchX, ChevronRight, GitCompareArrows, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -76,7 +77,7 @@ export function SearchView({ q }: { q: string }) {
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-display text-base font-bold text-foreground group-hover:text-primary">
-                    {r.chineseName}
+                    {highlightText(r.chineseName, q)}
                   </span>
                   <RankBadge rank={r.rank} />
                   {r.conservation && (
@@ -90,10 +91,10 @@ export function SearchView({ q }: { q: string }) {
                     </span>
                   )}
                 </div>
-                <p className="latin truncate text-sm text-muted-foreground">{r.latinName}</p>
+                <p className="latin truncate text-sm text-muted-foreground">{highlightText(r.latinName, q)}</p>
                 {r.description && (
                   <p className="mt-0.5 line-clamp-1 text-xs leading-5 text-muted-foreground/80">
-                    {r.description}
+                    {highlightText(r.description, q)}
                   </p>
                 )}
               </div>

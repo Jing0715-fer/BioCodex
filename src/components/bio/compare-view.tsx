@@ -36,6 +36,8 @@ export function CompareView({ ids }: { ids: string[] }) {
   const [copied, setCopied] = useState<"md" | "link" | null>(null);
   /** 剪贴板不可用时的手动复制兑底 */
   const [fallback, setFallback] = useState<{ kind: "md" | "link"; text: string } | null>(null);
+  /** hover 高亮的物种列 id(列头卡与表格列联动) */
+  const [hoverCol, setHoverCol] = useState<string | null>(null);
 
   const taxa = data || [];
 
@@ -264,10 +266,16 @@ export function CompareView({ ids }: { ids: string[] }) {
             const t = d.taxon;
             const theme = KINGDOM_THEME[t.kingdom] || KINGDOM_THEME.Animalia;
             const inTray = compareIds.includes(t.id);
+            const hovered = hoverCol === t.id;
             return (
               <div
                 key={t.id}
-                className="reveal-up group relative overflow-hidden rounded-xl border border-foreground/10 bg-card shadow-sm"
+                onMouseEnter={() => setHoverCol(t.id)}
+                onMouseLeave={() => setHoverCol((c) => (c === t.id ? null : c))}
+                className={cn(
+                  "reveal-up group relative overflow-hidden rounded-xl border bg-card shadow-sm transition-all duration-300",
+                  hovered ? "border-primary/60 shadow-md ring-1 ring-primary/30" : "border-foreground/10"
+                )}
               >
                 <div className="relative h-40 overflow-hidden sm:h-44">
                   <button
@@ -416,7 +424,14 @@ export function CompareView({ ids }: { ids: string[] }) {
                   )}
                 </th>
                 {taxa.map((t, ti) => (
-                  <td key={t.taxon.id} className="min-w-[180px] px-3.5 py-3 align-top text-[13px]">
+                  <td
+                    key={t.taxon.id}
+                    onMouseEnter={() => setHoverCol(t.taxon.id)}
+                    className={cn(
+                      "min-w-[180px] border-l border-transparent px-3.5 py-3 align-top text-[13px] transition-colors duration-200",
+                      hoverCol === t.taxon.id && "border-l-primary/40 bg-primary/[0.07]"
+                    )}
+                  >
                     {row.render ? (
                       row.render(t)
                     ) : (
@@ -438,7 +453,14 @@ export function CompareView({ ids }: { ids: string[] }) {
                 </span>
               </th>
               {taxa.map((t) => (
-                <td key={t.taxon.id} className="min-w-[200px] px-3.5 py-3 align-top">
+                <td
+                  key={t.taxon.id}
+                  onMouseEnter={() => setHoverCol(t.taxon.id)}
+                  className={cn(
+                    "min-w-[200px] border-l border-transparent px-3.5 py-3 align-top transition-colors duration-200",
+                    hoverCol === t.taxon.id && "border-l-primary/40 bg-primary/[0.07]"
+                  )}
+                >
                   <p className="text-[13px] leading-6 text-foreground/85">
                     {(t.taxon.description || "").slice(0, 160)}
                     {(t.taxon.description || "").length > 160 ? "…" : ""}

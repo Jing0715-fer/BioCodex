@@ -32,6 +32,19 @@ export function ExploreView({ taxonId }: { taxonId: string | null }) {
     return s;
   }, [tree]);
 
+  // 面包屑物种计数:从树 DTO 递归建 id → 物种数映射
+  const speciesCountById = useMemo(() => {
+    const m = new Map<string, number>();
+    const walk = (nodes: TreeNodeDTO[]) => {
+      for (const n of nodes) {
+        if (!m.has(n.id)) m.set(n.id, n.sc);
+        if (n.ch?.length) walk(n.ch);
+      }
+    };
+    if (tree) walk(tree);
+    return m;
+  }, [tree]);
+
   useEffect(() => {
     if (!tree) return;
     if (!taxonId) {
@@ -124,14 +137,26 @@ export function ExploreView({ taxonId }: { taxonId: string | null }) {
           <button className="hover:text-primary" onClick={() => useBioStore.getState().explore(null)}>
             生命之树
           </button>
-          {lineage.map((l) => (
-            <span key={l.id} className="flex items-center gap-1">
-              <ChevronRight className="h-3 w-3 text-muted-foreground/50" />
-              <button className="max-w-32 truncate hover:text-primary" onClick={() => onSelect(l.id)}>
-                {l.chineseName}
-              </button>
-            </span>
-          ))}
+          {lineage.map((l) => {
+            const sc = speciesCountById.get(l.id);
+            return (
+              <span key={l.id} className="flex items-center gap-1">
+                <ChevronRight className="h-3 w-3 text-muted-foreground/50" />
+                <button
+                  className="flex max-w-32 items-center gap-1 truncate hover:text-primary"
+                  onClick={() => onSelect(l.id)}
+                  title={`${l.chineseName}${sc ? ` · ${sc} 物种` : ""}`}
+                >
+                  <span className="truncate">{l.chineseName}</span>
+                  {sc != null && sc > 0 && (
+                    <span className="shrink-0 rounded-full bg-foreground/8 px-1.5 text-[9px] font-semibold tabular-nums text-muted-foreground/80 dark:bg-foreground/15">
+                      {sc}
+                    </span>
+                  )}
+                </button>
+              </span>
+            );
+          })}
         </div>
 
         {/* 节点标题卡 */}

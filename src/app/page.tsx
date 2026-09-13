@@ -12,7 +12,9 @@ import { BrowseView } from "@/components/bio/browse-view";
 import { CompareView } from "@/components/bio/compare-view";
 import { CompareTray } from "@/components/bio/compare-tray";
 import { AgentPanel } from "@/components/bio/agent-panel";
+import { ShortcutsDialog } from "@/components/bio/shortcuts-dialog";
 import { BioFooter } from "@/components/bio/footer";
+import { browseFilterToParams } from "@/lib/clipboard";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -47,10 +49,14 @@ function AppShell() {
       if (s.view.type === "compare" && s.view.ids.length >= 2) {
         h = `#compare=${s.view.ids.join(",")}`;
       } else if (s.view.type === "browse") {
-        const sp = new URLSearchParams();
-        if (s.view.kingdom) sp.set("kingdom", s.view.kingdom);
-        if (s.view.iucn) sp.set("iucn", s.view.iucn);
-        if (s.view.tag) sp.set("tag", s.view.tag);
+        const sp = browseFilterToParams({
+          kingdom: s.browseFilter.kingdom,
+          iucn: s.browseFilter.iucn,
+          tag: s.browseFilter.tag,
+          hasImage: s.browseFilter.hasImage,
+          q: s.browseFilter.q,
+          sort: s.browseFilter.sort,
+        });
         h = `#browse${sp.toString() ? `?${sp.toString()}` : ""}`;
       }
       if (window.location.hash !== h) {
@@ -71,14 +77,13 @@ function AppShell() {
         {view.type === "explore" && <ExploreView taxonId={view.taxonId} />}
         {view.type === "taxon" && <TaxonDetail id={view.id} />}
         {view.type === "search" && <SearchView q={view.q} />}
-        {view.type === "browse" && (
-          <BrowseView initialIucn={view.iucn} initialKingdom={view.kingdom} initialTag={view.tag} />
-        )}
+        {view.type === "browse" && <BrowseView />}
         {view.type === "compare" && <CompareView ids={view.ids} />}
       </div>
       <BioFooter />
       <AgentPanel />
       <CompareTray />
+      <ShortcutsDialog />
     </div>
   );
 }
