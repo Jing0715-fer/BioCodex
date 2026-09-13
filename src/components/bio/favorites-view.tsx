@@ -1,6 +1,6 @@
 "use client";
 
-import { useFavorites, clearFavorites, FAVORITES_MAX, type FavoriteEntry } from "@/lib/favorites";
+import { useFavorites, clearFavorites, FAVORITES_MAX, exportFavoritesData, importFavoritesData, type FavoriteEntry } from "@/lib/favorites";
 import { useBioStore, MAX_COMPARE } from "@/lib/bio-store";
 import type { SpeciesItem } from "@/hooks/use-bio";
 import { KINGDOM_THEME } from "@/lib/bio-domain";
@@ -8,11 +8,12 @@ import { KingdomIcon } from "./taxa-icon";
 import { KingdomOrnament } from "./kingdom-ornament";
 import { SpeciesCard } from "./species-card";
 import { SpeciesRow } from "./species-row";
-import { Bookmark, BookmarkCheck, GitCompareArrows, Trash2, ArrowRight, Sparkles, LayoutGrid, Rows3 } from "lucide-react";
+import { Bookmark, BookmarkCheck, GitCompareArrows, Trash2, ArrowRight, Sparkles, LayoutGrid, Rows3, Download, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import { useRef } from "react";
 
 /** 收藏条目 → 物种卡数据(离线渲染,无需请求) */
 function toSpeciesItem(f: FavoriteEntry): SpeciesItem {
@@ -33,9 +34,54 @@ function toSpeciesItem(f: FavoriteEntry): SpeciesItem {
 export function FavoritesView() {
   const favorites = useFavorites();
   const { openBrowse, openCompare, compareIds, toggleCompare, browseDensity, setBrowseDensity } = useBioStore();
+  const fileRef = useRef<HTMLInputElement>(null);
 
   // 收藏中已在对比托盘里的数量
   const inTray = favorites.filter((f) => compareIds.includes(f.id)).length;
+
+  const onExport = () => {
+    if (favorites.length === 0) {
+      toast.info("标本夹还是空的,没有可导出的内容");
+      return;
+    }
+    try {
+      const json = exportFavoritesData();
+      const blob = new Blob([json], { type: "application/json;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `biocodex-标本夹备份-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success(`已导出 ${favorites.length} 件标本的备份文件`, { description: "JSON 文件可留存或导入到其它设备/浏览器" });
+    } catch {
+      toast.error("导出失败:浏览器阻止了文件下载");
+    }
+  };
+
+  const onImportFile = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const res = importFavoritesData(String(reader.result ?? ""));
+        if (res.added > 0) {
+          toast.success(`导入成功:新增 ${res.added} 件标本`, {
+            description: `跳过重复 ${res.skipped} 件 · 当前共 ${res.total}/${FAVORITES_MAX} 件`,
+          });
+        } else {
+          toast.info("备份中的标本都已在本机收藏夹里", { description: `跳过 ${res.skipped} 件重复条目` });
+        }
+      } catch (err) {
+        toast.error("导入失败:不是有效的 BioCodex 标本夹备份文件", {
+          description: err instanceof Error ? err.message : undefined,
+        });
+      }
+    };
+    reader.onerror = () => toast.error("读取文件失败,请重试");
+    reader.readAsText(file, "utf-8");
+  };
 
   const onCompareAll = () => {
     if (favorites.length < 2) return;
@@ -137,6 +183,41 @@ export function FavoritesView() {
             <Button
               size="sm"
               variant="outline"
+              className="h-9 gap-1.5 rounded-full"
+              onClick={onExport}
+              title="把当前收藏导出为 JSON 备份文件"
+            >
+              <Download className="h-3.5 w-3.5" />
+              导出备份
+            </Button>
+          )}
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-9 gap-1.5 rounded-full"
+            onClick={() => fileRef.current?.click()}
+            title="从备份 JSON 恢复/合并标本收藏(不覆盖已有)"
+          >
+            <Upload className="h-3.5 w-3.5" />
+            导入备份
+          </Button>
+          {/* 隐藏的文件选择器(仅接受 .json) */}
+          <input
+            ref={fileRef}
+            type="file"
+            accept="application/json,.json"
+            className="hidden"
+            aria-label="选择备份 JSON 文件"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) onImportFile(f);
+              e.target.value = ""; // 允许重复选择同一文件
+            }}
+          />
+          {favorites.length > 0 && (
+            <Button
+              size="sm"
+              variant="outline"
               className="h-9 gap-1.5 rounded-full border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
               onClick={onClear}
             >
@@ -232,7 +313,7 @@ export function FavoritesView() {
             )}
             <p className="mt-6 flex items-center justify-center gap-1.5 text-xs text-muted-foreground/70">
               <Sparkles className="h-3 w-3" />
-              收藏按时间倒序排列 · 上限 {FAVORITES_MAX} 件 · 存储于本机浏览器
+              收藏按时间倒序排列 · 上限 {FAVORITES_MAX} 件 · 存储于本机浏览器 · 可用「导出/导入备份」跨设备迁移
             </p>
           </motion.div>
         )}

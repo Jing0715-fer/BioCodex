@@ -88,3 +88,64 @@ export function useFavorites() {
 
   return entries;
 }
+
+// ===== 备份导出 / 导入 =====
+
+export interface FavoritesBackup {
+  format: "biocodex.favorites.backup";
+  version: 1;
+  exportedAt: string;
+  count: number;
+  entries: FavoriteEntry[];
+}
+
+/** 导出备份 JSON 字符串(含格式头与导出时间) */
+export function exportFavoritesData(): string {
+  const entries = read();
+  const backup: FavoritesBackup = {
+    format: "biocodex.favorites.backup",
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    count: entries.length,
+    entries,
+  };
+  return JSON.stringify(backup, null, 2);
+}
+
+export interface ImportResult {
+  added: number;
+  skipped: number;
+  total: number;
+}
+
+/**
+ * 导入备份:与现有收藏按 id 合并去重(不覆盖,新条目按备份内时间排序插入),
+ * 超出上限的条目截断。解析失败抛错由调用方 toast 提示。
+ */
+export function importFavoritesData(raw: string): ImportResult {
+  const data = JSON.parse(raw) as Partial<FavoritesBackup>;
+  if (!data || !Array.isArray(data.entries)) {
+    throw new Error("格式不正确:缺少 entries 数组");
+  }
+  const incoming = data.entries
+    .filter((x) => x && typeof x.id === "string" && typeof x.chineseName === "string")
+    .map((x) => ({
+      id: x.id,
+      chineseName: x.chineseName,
+      latinName: typeof x.latinName === "string" ? x.latinName : "",
+      kingdom: typeof x.kingdom === "string" ? x.kingdom : "Animalia",
+      image: x.image ?? null,
+      conservation: x.conservation ?? null,
+      ncbiTaxId: typeof x.ncbiTaxId === "number" ? x.ncbiTaxId : null,
+      description: x.description ?? null,
+      ts: typeof x.ts === "number" ? x.ts : Date.now(),
+    })) as FavoriteEntry[];
+
+  const prev = read();
+  const existingIds = new Set(prev.map((x) => x.id));
+  const fresh = incoming.filter((x) => !existingIds.has(x.id));
+  // 合并:新导入的按时间正序追加在旧收藏之后(保留旧条目的置顶次序)
+  const merged = [...prev, ...fresh].slice(0, MAX);
+  write(merged);
+  return { added: fresh.length, skipped: incoming.length - fresh.length, total: merged.length };
+}
