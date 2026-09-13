@@ -1329,3 +1329,15 @@ Stage Summary(当前项目状态):
   1. P0:配额窗口开后补图主战役(cron 接管;新图全部过 VLM 闸门;8 新 flagship 物种优先出图)
   2. P1:Agent 在线模式实测(门级问句+对比指令 LLM 语境)
   3. P2:expansion6 候选(甲壳十足类深扩/软体头足纲深扩/昆虫目级补全/植物兰科豆科);详情页"同科近缘物种"区块;目录门筛选加"按门排序"选项
+
+---
+Task ID: E7-supplement(cron 巡检根因修复补充)
+Agent: main
+Task: cron 巡检任务消失根因定位与重建
+
+Work Log:
+- 发现 job 383203 状态"Disabled due to exec limits exceeded"——历次巡检任务消失(381986/381699/382461 均失踪)的根因即执行限额禁用,15 分钟高频率完整 agent 会话(含浏览器自动化)超限
+- 已删除禁用任务,重建 job 383254(priority=1 低优先级降低限额压力,任务描述含补图/重生成续跑/一致性核验指令不变)
+
+Stage Summary:
+- cron 巡检机制恢复;后续若再遇 exec limits 禁用,属环境限额非 bug,删后重建即可
