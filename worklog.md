@@ -1183,3 +1183,53 @@ Stage Summary(当前项目状态):
   1. P0:z-ai vision 恢复后立即 `APPLY=1 LIMIT=999 bun scripts/audit-images-vlm.ts`(VLM 审计+fail 下架)
   2. P1:补图恢复 `BATCH=999 SCOPE=all CONCURRENCY=2 timeout 580 bun scripts/generate-images.ts`
   3. P2:新审计出的空缺位与 expansion5 物种扩充(环节/多毛、蜘蛛深扩、等足目)并行推进
+
+---
+Task ID: E6-inprogress(VLM 审计执行中·中期记录,防进度丢失)
+Agent: main
+Task: VLM 恢复后执行 142 张 AI 插图科学性审计(断点续跑中)
+
+Work Log:
+- 探测 VLM 恢复(glm-5v-turbo 响应正常);修复审计脚本两处 bug:Bun.write 覆盖写→appendFileSync 追加(避免并发/断批丢记录)、串行→3 并发 worker 池(限流后降 2)
+- 逐批执行(每批 15-18 张,LIMIT 控制,429 三连自动中止保护):已审计 77/142
+- cron 巡检已重建:job 382461(15 分钟 webDevReview,含 VLM 审计续跑+补图探测指令)
+
+Stage Summary(中期):
+- 审计发现(截至 77 张):fail 13+ 张科学性硬伤——蓝鲸画成座头鲸、秀丽隐杆线虫画成鼠妇、白氏文昌鱼画成硬骨鱼、拟南芥画错花序、钝顶螺旋藻画出真核细胞核、黑曲霉/蛙壶菌画成大蘑菇、仿刺参画成海胆、偕老同穴玻璃海绵画成节肢动物、纤细眼虫画成纤毛虫、皱纹盘鲍画成峨螺、巨藻画成维管植物、水杉画成羽状复叶、毕克卷转虫画成蜗牛、盐杆菌画成宏观多孔实体
+- warn 级(保留):拼写错误(大黄鱼 Larimichttys/海月水母 AUREEIA)、乱码文字、菌丝画成根系(多张)、麋鹿特征缺失等
+- 下一步:继续断点续跑至 142 张全审 → 分析完整报告 → APPLY=1 下架全部 fail 图(回退雕版占位图)→ 重新生成被下架物种的图(带更严格 prompt)
+
+---
+Task ID: E6(VLM 恢复:图片科学性审计执行+闭环重生成, 2026-09-15)
+Agent: main
+Task: 执行 142 张 AI 插图全量 VLM 科学性审计 → 下架 fail 图 → 改进 prompt 闭环重生成
+
+Work Log:
+- 【VLM 恢复确认】z-ai vision 响应正常(glm-5v-turbo);探测通过后立即投入审计
+- 【脚本修复】审计脚本两处 bug:Bun.write 覆盖写→appendFileSync 追加(断批/并发不丢记录);串行→3 并发 worker 池(限流后降 2);修复 vision API model 必填参数与 ?? 不可达类型错误
+- 【全量审计 142/142】分 10 批执行(429 间歇限流,每批 12-18 张,批间等待 3-5 分钟),全程约 100 分钟;JSONL 断点续跑保障零重复零丢失
+- 【审计结论】ok 35 / warn 60 / fail 47(33%)——用户反馈的"问题图片"坐实:
+  旗舰级错误:蓝鲸画成座头鲸、朱鹮画成红鹮、川金丝猴画成猕猴、楔齿蜥画成鬃狮蜥、秀丽隐杆线虫画成鼠妇(模式生物!)、白氏文昌鱼画成硬骨鱼
+  系统性重灾:微生物 13 张(奈瑟菌/链球菌/纳古菌等画成宏观多孔球体)、真菌 6 张(青霉/曲霉/脉孢菌/块菌/虫草画成大蘑菇)、藻类 6 张(海带/紫菜/石莼/羊栖菜画成显花植物!微观/水生类是 AI 图像模型盲区)
+  warn 纚:学名拼写错误(大黄鱼/海月水母/葡萄球菌)、乱码文字、菌丝画成根系、特征缺失(长江江豚画了背鳍)
+- 【下架执行】scripts/apply-vlm-rejects.ts:47 张 fail 全部下架(DB image 清除回退雕版占位图+文件隔离 rejected/ 入 .gitignore);agent-browser 验证蓝鲸详情页正确回退占位图
+- 【prompt 工程迭代】酵母 3 轮实验:通用模板 fail→视觉类比 fail→「显微镜视野+多细胞+光滑类比(pebbles/grapes)」构图 PASS;规律:通过的显微图均为"视野里许多小细胞"构图,fail 的多为"单个巨大物体特写"
+- 【generate-images.ts prompt 全面强化】六界模板加 NOT 约束(细菌:NOT a mushroom/plant、原生:NOT an insect/worm)+「absolutely no text or lettering」(杜绝乱码)+ featureHints() 注入中文鉴别特征(取 morphology/description 前 110 字)
+- 【闭环重生成 scripts/regenerate-rejected.ts】生成→VLM 即时审计(match 且无解剖硬伤才入库,fail 重试,RETRY=2 后放弃保持占位图);断点续跑+429 退避;结果:37/47 处理完毕——10 张新图通过审计入库(蓝鲸✓毕克卷转虫✓大腹园蛛✓脑膜炎奈瑟菌✓粗糙脉孢菌✓盐杆菌✓夜光藻✓珊瑚藻✓冬虫夏草✓螺旋藻✓),27 张 2 轮仍 fail 保持占位图(宁缺毋滥),10 个未处理(限流中断,cron 续跑)
+- 【修 bug】重生成入库路径双斜杠(//generated/ → 浏览器解析为协议相对 URL 图裂):DB 10 条记录修正+脚本修复;蓝鲸修复后 loaded:true
+- 【内容过滤】麦角菌 Claviceps purpurea 触发生成内容过滤(400)直接跳过保占位图
+- 【cron】382461(15 分钟巡检)已建;本轮更新任务描述纳入 regenerate-rejected 断点续跑
+- 【校验】tsc 过滤后零错误;lint 零输出;首页 20 img 零破损;蓝鲸/牛肝菌/大肠杆菌详情页实测正常
+
+Stage Summary(当前项目状态):
+- 【稳定】789 物种/2432 分类单元/105 张经审有效配图(原 142-47 fail+10 重生通过);配图科学性闭环:生成→VLM 审计→fail 下架→重生成→复审
+- 本轮交付:①142 张全量 VLM 科学性审计(完整报告 /tmp/vlm-audit.jsonl)②47 张 fail 图下架+隔离 ③prompt 工程强化(六界 NOT 约束+特征注入+no-text)④闭环重生成基础设施+10 张高质量新图 ⑤双斜杠路径 bug 修复
+- 关键认知:AI 图像模型对微观世界(细菌/真菌孢子/藻类)与物种鉴别特征(鲸种间差异/猴种毛色)掌控薄弱,Warn 33%/Fail 33% 的原始合格率说明"生成即上架"不可行,VLM 审计闸门必须保留
+- 未解决/风险:
+  1. 重生成剩 10 个未处理(Sequoia sempervirens 等,生成限流中断):LIMIT=3 bun scripts/regenerate-rejected.ts 续跑(cron 巡检也会尝试)
+  2. 补图主任务(679 无图物种)未动:prompt 已强化,等配额窗口 BATCH=999 SCOPE=all CONCURRENCY=2 跑 generate-images.ts,但**新图必须走 VLM 审计**——建议给 generate-images.ts 也加 VLM 复审闸门(或生成后统一跑 audit-images-vlm)
+  3. 27 张 2 轮 fail 物种保持占位图(占位图科学性零风险,可接受长期保持)
+- 下一阶段优先:
+  1. P0:generate-images.ts 集成 VLM 复审闸门(生即审,不合格不入库)→ 大规模补 679 缺图
+  2. P1:重生成续跑 10 个 + 首页/目录卡片对新入库图渲染回归
+  3. P2:expansion5 物种扩充(环节/多毛、蜘蛛深扩、等足目)

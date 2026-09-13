@@ -19,12 +19,13 @@
  */
 import { db } from "../src/lib/db";
 import ZAI from "z-ai-web-dev-sdk";
-import { existsSync, mkdirSync, renameSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, renameSync, readFileSync, appendFileSync } from "node:fs";
 import { join } from "node:path";
 
 const OUT = "/tmp/vlm-audit.jsonl";
 const LIMIT = parseInt(process.env.LIMIT || "999", 10);
 const APPLY = process.env.APPLY === "1";
+const CONCURRENCY = parseInt(process.env.CONCURRENCY || "3", 10);
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 interface Verdict {
@@ -77,13 +78,14 @@ async function main() {
   const zai = await ZAI.create();
   let consecutive429 = 0;
   let audited = 0, fails = 0, warns = 0;
+  const log = (...a: any[]) => console.log(...a);
+  const queue = [...pending];
 
-  for (const t of pending) {
+  async function auditOne(t: (typeof pending)[number]) {
     const file = "public" + t.image!;
     if (!existsSync(file)) {
-      const row = { id: t.id, latin: t.latinName, chinese: t.chineseName, verdict: "fail", reason: "本地文件缺失", ts: Date.now() };
-      await Bun.write(OUT, JSON.stringify(row) + "\n");
-      continue;
+      appendFileSync(OUT, JSON.stringify({ id: t.id, latin: t.latinName, chinese: t.chineseName, verdict: "fail", reason: "本地文件缺失", ts: Date.now() }) + "\n");
+      return;
     }
     const b64 = Buffer.from(readFileSync(file)).toString("base64");
     const profile = [t.description, t.morphology].filter(Boolean).join(" ").slice(0, 220);
@@ -117,26 +119,26 @@ async function main() {
       const msg = String(e?.message || e);
       if (msg.includes("429") || msg.toLowerCase().includes("too many")) {
         consecutive429++;
-        console.log(`[429] 连续第 ${consecutive429} 次,退避 ${45 * consecutive429}s`);
-        if (consecutive429 >= 3) { console.log("[stop] 限流持续,本轮中止,进度已保存,可稍后续跑"); break; }
+        log(`[429] 连续第 ${consecutive429} 次,退避 ${45 * consecutive429}s (${t.latinName})`);
+        if (consecutive429 >= 3) { log("[stop] 限流持续,本轮中止,进度已保存,可稍后续跑"); process.exitCode = 0; return false; }
         await sleep(45000 * consecutive429);
-        continue; // 不标 done,下轮重试
+        queue.push(t); // 放回队尾下轮重试
+        return true;
       }
-      console.log(`[err] ${t.latinName}: ${msg.slice(0, 120)}`);
+      log(`[err] ${t.latinName}: ${msg.slice(0, 120)}`);
     }
 
     if (!verdict) {
-      // 解析失败也记录(标记 unknown,下轮不重复,避免死循环)
-      await Bun.write(OUT, JSON.stringify({ id: t.id, latin: t.latinName, chinese: t.chineseName, verdict: "unknown", reason: "VLM 输出无法解析", ts: Date.now() }) + "\n");
-      continue;
+      appendFileSync(OUT, JSON.stringify({ id: t.id, latin: t.latinName, chinese: t.chineseName, verdict: "unknown", reason: "VLM 输出无法解析", ts: Date.now() }) + "\n");
+      return true;
     }
 
     const row = { id: t.id, latin: t.latinName, chinese: t.chineseName, file: t.image, ...verdict, ts: Date.now() };
-    await Bun.write(OUT, JSON.stringify(row) + "\n");
+    appendFileSync(OUT, JSON.stringify(row) + "\n");
     audited++;
     if (verdict.verdict === "fail") fails++;
     if (verdict.verdict === "warn") warns++;
-    console.log(`[${verdict.verdict}] ${t.latinName}(${t.chineseName}) ${verdict.reason}`);
+    log(`[${verdict.verdict}] ${t.latinName}(${t.chineseName}) ${verdict.reason}`);
 
     // APPLY 模式:fail 下架(回退雕版占位图),warn 仅提示
     if (APPLY && verdict.verdict === "fail") {
@@ -146,18 +148,29 @@ async function main() {
       try {
         await db.taxon.update({ where: { id: t.id }, data: { image: null, imageCaption: null } });
         if (existsSync(file)) renameSync(file, dest);
-        console.log(`  [下架] DB 引用已清除,文件移入 rejected/`);
+        log(`  [下架] DB 引用已清除,文件移入 rejected/`);
       } catch (e: any) {
-        console.log(`  [下架失败] ${e.message?.slice(0, 80)}`);
+        log(`  [下架失败] ${e.message?.slice(0, 80)}`);
       }
     }
-    await sleep(1500 + Math.random() * 2500);
+    await sleep(1000 + Math.random() * 2000);
+    return true;
   }
+
+  let stopped = false;
+  async function worker() {
+    while (queue.length > 0 && !stopped) {
+      const t = queue.shift();
+      if (!t) return;
+      const cont = await auditOne(t);
+      if (!cont) { stopped = true; return; }
+    }
+  }
+  await Promise.all(Array.from({ length: CONCURRENCY }, () => worker()));
 
   console.log(`\n[summary] 本轮审计 ${audited}(fail ${fails} / warn ${warns}),报告: ${OUT}`);
   console.log(fails > 0 && !APPLY ? "存在 fail 图:运行 APPLY=1 bun scripts/audit-images-vlm.ts 可自动下架(回退占位图)" : "");
 }
-
 main()
   .catch((e) => { console.error("FATAL", e); process.exit(1); })
   .finally(async () => { await db.$disconnect(); });

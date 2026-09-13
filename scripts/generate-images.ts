@@ -22,18 +22,27 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 const KINGDOM_STYLE: Record<string, (cn: string, la: string) => string> = {
   Bacteria: (cn, la) =>
-    `vintage microbiology lithograph illustration of ${la} (${cn}) bacteria cells and colony morphology as seen under microscope, copperplate engraving style with subtle watercolor tinting, aged parchment background, scientific plate aesthetic`,
+    `vintage microbiology lithograph of ${la} (${cn}), strictly a microscopic single-celled prokaryote bacterium under high magnification, NOT a mushroom, NOT a plant, NO fruiting body, NO flowers or roots, vintage copperplate engraving with watercolor tinting on aged parchment, natural history plate, absolutely no text or lettering in the image`,
   Archaea: (cn, la) =>
-    `vintage microbiology lithograph illustration of ${la} (${cn}) archaeal cells, extreme environment hint of hot spring or salt lake, copperplate engraving style with watercolor tinting, aged parchment background`,
+    `vintage microbiology lithograph of ${la} (${cn}), strictly a microscopic single-celled archaeon under high magnification with hint of hot spring or salt lake environment, NOT a mushroom, NOT a plant, NO fruiting body, copperplate engraving with watercolor tinting on aged parchment, absolutely no text or lettering in the image`,
   Protista: (cn, la) =>
-    `vintage scientific lithograph illustration of ${la} (${cn}) microorganism under microscope, delicate ink stippling with watercolor tinting, aged parchment background, natural history plate`,
+    `vintage scientific lithograph of ${la} (${cn}), strictly a microscopic single-celled protist under microscope (cell outline, cilia/flagella/pseudopodia as appropriate), NOT an insect, NOT a worm, NOT a mushroom, NO legs or wings, delicate ink stippling with watercolor tinting on aged parchment, absolutely no text or lettering in the image`,
   Fungi: (cn, la) =>
-    `vintage botanical illustration of ${la} (${cn}) mushroom showing cap, gills, stem and mycelium, copperplate engraving style with watercolor tinting, aged parchment background, natural history plate`,
+    `vintage botanical plate of ${la} (${cn}) showing its scientifically correct form: cap/gills/stem only if it is a macro-mushroom, OR microscopic hyphae and spores if it is a micro-fungus, OR a subterranean truffle-like body if it is a truffle — follow the species description strictly, with mycelium threads (NOT plant roots) at the base, copperplate engraving with watercolor tinting on aged parchment, absolutely no text or lettering in the image`,
   Plantae: (cn, la) =>
-    `vintage botanical illustration of ${la} (${cn}) with detailed leaves, flowers and fruit, copperplate engraving style with hand-tinted watercolor, aged parchment background, natural history plate`,
+    `vintage botanical illustration of ${la} (${cn}) with botanically accurate leaves, flowers/fruit/cones exactly as described for this species, NOT a generic flower, copperplate engraving with hand-tinted watercolor on aged parchment, natural history plate, absolutely no text or lettering in the image`,
   Animalia: (cn, la) =>
-    `vintage natural history illustration of ${la} (${cn}) in natural posture, copperplate engraving style with watercolor tinting, aged parchment background, classic zoological plate`,
+    `vintage natural history illustration of ${la} (${cn}) in natural posture with the diagnostic anatomical features of this exact species (body proportions, fins/limbs/head shape per species description), NOT a related species, copperplate engraving with watercolor tinting on aged parchment, classic zoological plate, absolutely no text or lettering in the image`,
 };
+
+/** 从中文形态/描述档案提炼关键特征注入 prompt(强化物种鉴别特征,防止张冠李戴) */
+function featureHints(morphology?: string | null, description?: string | null): string {
+  const src = [morphology, description].filter(Boolean).join(" ");
+  if (!src) return "";
+  // 截取前 90 字核心特征描述(体长/体型/结构/颜色等鉴别信息集中在前段)
+  const hint = src.replace(/\s+/g, " ").slice(0, 90);
+  return ` Critical diagnostic features of this exact species (must follow): ${hint}`;
+}
 
 async function getKingdoms(): Promise<Map<string, string>> {
   const all = await db.taxon.findMany({
@@ -86,7 +95,7 @@ async function main() {
   const species = await db.taxon.findMany({
     where,
     orderBy: { sortOrder: "asc" },
-    select: { id: true, latinName: true, chineseName: true },
+    select: { id: true, latinName: true, chineseName: true, morphology: true, description: true },
   });
 
   // 跳过已有文件但未入库的(直接补录),统计待生成
@@ -110,7 +119,10 @@ async function main() {
       const style = KINGDOM_STYLE[kingdom] || KINGDOM_STYLE.Animalia;
       let done = t.exists;
       if (!done) {
-        done = await generate(style(t.chineseName, t.latinName), t.file);
+        done = await generate(
+          style(t.chineseName, t.latinName) + featureHints((t as any).morphology, (t as any).description),
+          t.file,
+        );
       }
       if (done) {
         await db.taxon.update({
