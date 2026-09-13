@@ -9,7 +9,8 @@ export type BioView =
   | { type: "search"; q: string }
   | { type: "compare"; ids: string[] }
   | { type: "browse" }
-  | { type: "favorites" };
+  | { type: "favorites" }
+  | { type: "redlist" };
 
 export interface BrowseFilter {
   iucn?: string | null;
@@ -63,6 +64,7 @@ interface BioState {
   openCompare: () => void;
   openBrowse: (filter?: BrowseFilter) => void;
   openFavorites: () => void;
+  openRedlist: () => void;
   /** 目录内筛选变更(不压入历史栈) */
   patchBrowseFilter: (patch: Partial<BrowseState>) => void;
   setBrowseDensity: (d: "grid" | "list") => void;
@@ -112,6 +114,11 @@ export const useBioStore = create<BioState>((set, get) => ({
       view: { type: "favorites" },
       historyStack: [...s.historyStack, s.view].slice(-30),
     })),
+  openRedlist: () =>
+    set((s) => ({
+      view: { type: "redlist" },
+      historyStack: [...s.historyStack, s.view].slice(-30),
+    })),
   patchBrowseFilter: (patch) =>
     set((s) => ({
       browseFilter: { ...s.browseFilter, ...patch },
@@ -159,6 +166,12 @@ export const useBioStore = create<BioState>((set, get) => ({
     if (h === "#favorites" || h.startsWith("#favorites?")) {
       set({ view: { type: "favorites" }, historyStack: [] });
       window.history.replaceState(null, "", window.location.pathname + window.location.search + "#favorites");
+      return true;
+    }
+    // 红色名录专题: #redlist
+    if (h === "#redlist" || h.startsWith("#redlist?")) {
+      set({ view: { type: "redlist" }, historyStack: [] });
+      window.history.replaceState(null, "", window.location.pathname + window.location.search + "#redlist");
       return true;
     }
     // 对比分享链接: #compare=id1,id2

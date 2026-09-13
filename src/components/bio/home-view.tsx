@@ -86,7 +86,7 @@ function DataRing({
 }
 
 export function HomeView() {
-  const { explore, openTaxon, setAgentOpen, openBrowse, openFavorites } = useBioStore();
+  const { explore, openTaxon, setAgentOpen, openBrowse, openFavorites, openRedlist } = useBioStore();
   const { data: stats } = useStats();
   const { data: featured, refetch: refetchFeatured } = useFeatured();
   const { data: tree } = useTree();
@@ -729,6 +729,25 @@ export function HomeView() {
                     );
                   })}
               </div>
+              {/* 红色名录专题入口 */}
+              <button
+                onClick={openRedlist}
+                className="group mt-4 flex w-full items-center justify-between gap-2 rounded-lg border border-red-200/60 bg-gradient-to-r from-red-50 to-transparent px-3 py-2.5 text-left transition-all hover:border-red-300 hover:shadow-sm dark:border-red-900/40 dark:from-red-950/30"
+                aria-label="进入红色名录专题页"
+              >
+                <span className="flex items-center gap-2">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-md bg-red-600/90 text-white shadow-sm">
+                    <Shield className="h-3.5 w-3.5" />
+                  </span>
+                  <span>
+                    <span className="block text-xs font-bold text-foreground">红色名录专题 Rubrum Index</span>
+                    <span className="block text-[10px] text-muted-foreground">
+                      {stats?.iucn?.filter((x) => ["EW", "CR", "EN", "VU"].includes(x.code)).reduce((s, x) => s + x.count, 0) ?? 39} 个受威胁物种按等级归集
+                    </span>
+                  </span>
+                </span>
+                <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/50 transition-transform group-hover:translate-x-0.5 group-hover:text-red-600" />
+              </button>
             </CardContent>
           </Card>
 

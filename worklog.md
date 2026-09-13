@@ -357,3 +357,34 @@ Stage Summary(当前项目状态):
   2. Agent 实测(限流恢复后):验证规范11收藏指引
   3. 备选新功能:收藏视图列表密度(复用 SpeciesRow);详情页收藏时跨页同步动画;对比导出 JSON 格式;IUCN 红色名录专题聚合页;首页「足迹接续」增加同属近亲推荐(需 API)
   4. 已知取舍:收藏数据仅存本机 localStorage(换设备/清缓存不随行,已在 UI 说明);标本夹上限 60 件
+
+---
+Task ID: R8(cron 第7轮巡检, 2026-09-13 16:55)
+Agent: main
+Task: QA回归(零bug) + 3项新功能(红色名录专题页/收藏夹密度切换/对比导出JSON) + SpeciesRow组件化
+
+Work Log:
+- 【环境判断】z-ai 全部 API(image/LLM)轮初探测仍账户级 429,P0 补图继续搁置;dev server 全程稳定
+- 【QA回归】agent-browser:首页/足迹接续+hero收藏夹(数据驱动渲染✓)/收藏夹视图→详情→F键双向切换(1→0→1)/Agent 429优雅降级(发消息后显示"暂时失联")/console 零错误——本轮 QA 零新 bug
+- 【重构:SpeciesRow 组件化】从 browse-view 提取紧凑列表行为共享组件 src/components/bio/species-row.tsx,与 SpeciesCard 功能对齐(新增收藏书签按钮+已收藏「标本」徽标);browse-view 改为 import(删内部 ~100 行)
+- 【新功能A:红色名录专题页 RedlistView】(本轮主体)
+  - 新视图 redlist-view.tsx:RUBRUM INDEX 标题区 + 危机统计带(受威胁总数/已评估/CR/EW 四格 + 等级占比纹章条)+ 受威胁分组(EW→CR→EN→VU 按危机程度降序,每组等级徽章+计数+说明+卡片网格)+ 低危折叠区(NT/LC,AnimatePresence 展开)+ 底部说明与目录跳转
+  - 六个固定顺序 useSpeciesBrowse({iucn}) hook(避免 map 内 hook 违规)
+  - store 新增 redlist 视图 + openRedlist;hash 路由 #redlist(mount+hashchange 恢复,正则已含 redlist);page.tsx 挂载+hash 同步
+  - 入口:首页 IUCN 保护状况卡下方「红色名录专题 Rubrum Index」渐变红按钮(显示受威胁物种数)
+  - 实测:入口点击→#redlist→EW/CR/EN/VU 四组 39 卡→展开低危→62 卡;390px 无溢出;暗色合格;hash 直达恢复
+- 【新功能B:收藏夹密度切换】favorites-view 新增网格/紧凑列表切换(与图鉴目录共用 store.browseDensity 偏好);列表模式含「最新收藏于」时间行;实测双向切换
+- 【新功能C:对比导出 JSON】compare-view 新增「导出 JSON」按钮:结构化格式(biocodex.compare.export v1:species 含完整谱系 lineage 对象/形态/生境/分布/IUCN/NCBI/速览 + fields uniform 状态 + diffCount + shareUrl),Blob 文件下载;实测落地 3294 字节,python 解析验证结构完整(虎 lineage 猫科→豹属,diffCount 7)
+- 【修复lint】react-compiler "memoization could not be preserved":buildJson 在 rows useMemo 定义之前引用 rows → 移到 rows 之后(python 脚本移动代码块)
+- 【集成更新】Agent 提示词规范12(红色名录专题指引+密度切换+JSON导出);footer 功能清单更新
+- 【验证】lint/tsc 零错误;dev.log 全 200;console 全新加载零错误
+
+Stage Summary(当前项目状态):
+- 【稳定】3 项新功能全部浏览器实测通过;本轮零 bug(仅 lint 时序问题)
+- 视图清单:home/explore/taxon/search/browse/compare/favorites/redlist(8 个,4 个有 hash 路由)
+- 配图仍 142/311;z-ai 全 API 本轮仍 429,Agent 规范12未做 LLM 端到端实测(限流恢复后验证)
+- 下一轮优先:
+  1. P0 补图(429恢复后):`timeout 90 z-ai image -p "test" -o /tmp/t.png` 探测,恢复则 `BATCH=999 SCOPE=all CONCURRENCY=2 timeout 580 bun scripts/generate-images.ts` 连跑(勿用并发4)
+  2. Agent 实测(限流恢复后):验证规范12红色名录指引
+  3. 备选新功能:红色名录页每组加"全部加入对比"按钮;物种详情页 IUCN 徽章点击跳红色名录对应分组;红色名录支持按界过滤;收藏夹导出(备份 JSON 下载/导入);详情页"引用格式"一键复制(学名+权威缩写)
+  4. 已知取舍:redlist 六组各发一次 /api/species 请求(无分页全量,数据量小可接受);收藏密度与目录密度共用同一偏好(设计取舍:用户偏好跨视图一致)

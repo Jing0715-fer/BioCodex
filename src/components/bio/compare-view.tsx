@@ -13,7 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import {
   ChevronRight, ArrowLeft, X, Microscope, Leaf, MapPin, Shield, GitCompareArrows,
-  Dna, Database, Plus, Star, Sparkles, Columns2, ClipboardCopy, Link2, Check, FileSpreadsheet,
+  Dna, Database, Plus, Star, Sparkles, Columns2, ClipboardCopy, Link2, Check, FileSpreadsheet, Braces,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -247,6 +247,59 @@ export function CompareView({ ids }: { ids: string[] }) {
     }));
   }, [taxa]);
 
+  /** 导出:结构化 JSON(供程序分析/数据管道使用,含谱系与元数据) */
+  const buildJson = () =>
+    JSON.stringify(
+      {
+        format: "biocodex.compare.export",
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        shareUrl: `${window.location.origin}${window.location.pathname}#compare=${taxa.map((t) => t.taxon.id).join(",")}`,
+        species: taxa.map((t) => ({
+          id: t.taxon.id,
+          chineseName: t.taxon.chineseName,
+          latinName: t.taxon.latinName,
+          kingdom: kingdomOrDomain(t),
+          lineage: Object.fromEntries(
+            LINEAGE_KEYS.map((k) => [k, t.lineage.find((l) => l.rank === k)?.chineseName ?? null])
+          ),
+          morphology: t.taxon.morphology,
+          habitat: t.taxon.habitat,
+          distribution: t.taxon.distribution,
+          conservation: t.taxon.conservation,
+          ncbiTaxId: t.taxon.ncbiTaxId,
+          summary: t.taxon.description,
+        })),
+        fields: rows.map((r) => ({ key: r.key, label: r.label, uniform: r.uniform })),
+        diffCount: rows.filter((r) => !r.uniform).length,
+      },
+      null,
+      2
+    );
+
+  const exportJson = async () => {
+    const js = buildJson();
+    try {
+      const blob = new Blob([js], { type: "application/json;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `biocodex-对比-${taxa.map((t) => t.taxon.chineseName).join("-")}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast({ title: "已导出 JSON 文件", description: "结构化数据可直接喂给脚本或数据分析管道" });
+    } catch {
+      const ok = await copyText(js);
+      if (ok) {
+        toast({ title: "已复制 JSON 文本", description: "下载不可用时已改为复制到剪贴板" });
+      } else {
+        setFallback({ kind: "md", text: js });
+      }
+    }
+  };
+
   const diffCount = rows.filter((r) => !r.uniform).length;
   const shownRows = diffOnly ? rows.filter((r) => !r.uniform) : rows;
 
@@ -324,6 +377,10 @@ export function CompareView({ ids }: { ids: string[] }) {
           <Button variant="outline" size="sm" className="gap-1.5 rounded-full" onClick={exportCsv}>
             <FileSpreadsheet className="h-4 w-4" />
             导出 CSV
+          </Button>
+          <Button variant="outline" size="sm" className="gap-1.5 rounded-full" onClick={exportJson} title="结构化数据,可供程序分析">
+            <Braces className="h-4 w-4" />
+            导出 JSON
           </Button>
           <Button variant="outline" size="sm" className="gap-1.5 rounded-full" onClick={shareLink}>
             {copied === "link" ? <Check className="h-4 w-4 text-emerald-600" /> : <Link2 className="h-4 w-4" />}

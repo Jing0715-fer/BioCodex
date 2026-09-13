@@ -7,9 +7,11 @@ import { KINGDOM_THEME } from "@/lib/bio-domain";
 import { KingdomIcon } from "./taxa-icon";
 import { KingdomOrnament } from "./kingdom-ornament";
 import { SpeciesCard } from "./species-card";
-import { Bookmark, BookmarkCheck, GitCompareArrows, Trash2, ArrowRight, Sparkles } from "lucide-react";
+import { SpeciesRow } from "./species-row";
+import { Bookmark, BookmarkCheck, GitCompareArrows, Trash2, ArrowRight, Sparkles, LayoutGrid, Rows3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 
 /** 收藏条目 → 物种卡数据(离线渲染,无需请求) */
@@ -30,7 +32,7 @@ function toSpeciesItem(f: FavoriteEntry): SpeciesItem {
 
 export function FavoritesView() {
   const favorites = useFavorites();
-  const { openBrowse, openCompare, compareIds, toggleCompare } = useBioStore();
+  const { openBrowse, openCompare, compareIds, toggleCompare, browseDensity, setBrowseDensity } = useBioStore();
 
   // 收藏中已在对比托盘里的数量
   const inTray = favorites.filter((f) => compareIds.includes(f.id)).length;
@@ -93,6 +95,33 @@ export function FavoritesView() {
             <BookmarkCheck className="h-3.5 w-3.5" />
             {favorites.length} / {FAVORITES_MAX} 件标本
           </span>
+          {/* 密度切换(与图鉴目录共用偏好) */}
+          <div className="flex items-center rounded-full border border-foreground/15 bg-card p-0.5" role="group" aria-label="切换展示密度">
+            <button
+              onClick={() => setBrowseDensity("grid")}
+              aria-pressed={browseDensity === "grid"}
+              aria-label="卡片网格视图"
+              title="卡片网格视图"
+              className={cn(
+                "flex h-7 w-7 items-center justify-center rounded-full transition-all",
+                browseDensity === "grid" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <LayoutGrid className="h-3.5 w-3.5" />
+            </button>
+            <button
+              onClick={() => setBrowseDensity("list")}
+              aria-pressed={browseDensity === "list"}
+              aria-label="紧凑列表视图"
+              title="紧凑列表视图"
+              className={cn(
+                "flex h-7 w-7 items-center justify-center rounded-full transition-all",
+                browseDensity === "list" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Rows3 className="h-3.5 w-3.5" />
+            </button>
+          </div>
           {favorites.length >= 2 && (
             <Button
               size="sm"
@@ -175,21 +204,32 @@ export function FavoritesView() {
           </motion.div>
         ) : (
           <motion.div
-            key="grid"
+            key={browseDensity === "grid" ? "grid" : "list"}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             className="mt-6"
           >
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {favorites.map((f, i) => (
-                <div key={f.id} className="flex flex-col gap-1">
-                  <SpeciesCard species={toSpeciesItem(f)} index={i} />
-                  <p className="px-1 text-right text-[10px] tabular-nums text-muted-foreground/60">
-                    收藏于 {formatFavoriteDate(f.ts)}
-                  </p>
-                </div>
-              ))}
-            </div>
+            {browseDensity === "grid" ? (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {favorites.map((f, i) => (
+                  <div key={f.id} className="flex flex-col gap-1">
+                    <SpeciesCard species={toSpeciesItem(f)} index={i} />
+                    <p className="px-1 text-right text-[10px] tabular-nums text-muted-foreground/60">
+                      收藏于 {formatFavoriteDate(f.ts)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="overflow-hidden rounded-xl border border-foreground/10 bg-card shadow-sm">
+                {favorites.map((f, i) => (
+                  <SpeciesRow key={f.id} species={toSpeciesItem(f)} index={i} />
+                ))}
+                <p className="border-t border-foreground/8 px-3 py-2 text-right text-[10px] tabular-nums text-muted-foreground/60">
+                  最新收藏于 {formatFavoriteDate(favorites[0].ts)}
+                </p>
+              </div>
+            )}
             <p className="mt-6 flex items-center justify-center gap-1.5 text-xs text-muted-foreground/70">
               <Sparkles className="h-3 w-3" />
               收藏按时间倒序排列 · 上限 {FAVORITES_MAX} 件 · 存储于本机浏览器
