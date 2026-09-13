@@ -48,6 +48,7 @@ interface ContextTaxon {
 const SUGGESTIONS = [
   "帮我对比老虎和狮子",
   "帮我找老虎",
+  "环节动物门有哪些物种?",
   "带我去红色名录专题",
   "随机来一个物种",
   "图鉴里收录了多少物种?",
@@ -267,7 +268,15 @@ export function AgentPanel() {
     if (t === "home") goHome();
     else if (t === "explore") explore();
     else if (t === "browse") openBrowse();
-    else if (t === "compare") openCompare();
+    else if (t.startsWith("browse:")) {
+      // 直达目录筛选:browse:phylum=Annelida / browse:kingdom=Plantae / browse:q=鲸
+      const sp = new URLSearchParams(t.slice(7));
+      openBrowse({
+        kingdom: sp.get("kingdom") || null,
+        phylum: sp.get("phylum") || null,
+        q: sp.get("q") || "",
+      });
+    } else if (t === "compare") openCompare();
     else if (t === "favorites") openFavorites();
     else if (t.startsWith("redlist")) {
       const iucn = t.split(":")[1] || null;

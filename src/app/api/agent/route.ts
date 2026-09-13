@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import ZAI from "z-ai-web-dev-sdk";
 import { db } from "@/lib/db";
-import { getKingdomPaths, getTree } from "@/lib/bio-server";
+import { getKingdomPaths, getTree, getPhylumPaths } from "@/lib/bio-server";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -187,6 +187,10 @@ interface Intents {
   kingdom: string | null; // 界/域拉丁名
   kingdomZh: string | null;
   kingdomCount: number | null;
+  /** 门级浏览意图:门拉丁名(如 Annelida) */
+  phylum: string | null;
+  phylumZh: string | null;
+  phylumCount: number | null;
   faq: boolean;
   compareHow: boolean;
   favHow: boolean;
@@ -278,6 +282,9 @@ function detectIntents(msg: string, ctx: ContextTaxon | null): Intents {
     kingdom: null,
     kingdomZh: null,
     kingdomCount: null,
+    phylum: null,
+    phylumZh: null,
+    phylumCount: null,
     faq: /怎么用|如何使用|有什么功能|功能介绍|使用指南|使用帮助|操作指南|怎么操作|有哪些功能|快捷键|帮助/.test(m),
     compareHow: /(怎么|如何|怎样).*(对比|比较)/.test(m),
     favHow: /(怎么|如何|怎样).*(收藏|书签|标本夹|保存)/.test(m),
@@ -414,7 +421,7 @@ async function buildFallbackReply(
   const mentionsSpecies = cands
     .slice(0, 3)
     .some((c) => m.includes(c.chineseName) || m.toLowerCase().includes(c.latinName.toLowerCase()));
-  if (intents.stats && !mentionsSpecies && !intents.kingdom) {
+  if (intents.stats && !mentionsSpecies && !intents.kingdom && !intents.phylum) {
     const phyla = await db.taxon.count({ where: { rank: "phylum" } });
     const families = await db.taxon.count({ where: { rank: "family" } });
     const genera = await db.taxon.count({ where: { rank: "genus" } });
@@ -426,6 +433,21 @@ async function buildFallbackReply(
     lines.push(`- 配图:${images} 种(复古博物学插画)`);
     lines.push(`- 科学档案:词源/发现史/基因组/生态位/科研价值已全覆盖`);
     followUps.push("各界的物种数量分别是多少?", "随机来一个物种");
+    return lines.join("\n");
+  }
+
+  // ---- 门级概览 ----
+  if (intents.phylum && intents.phylumZh) {
+    lines.push(`**${intents.phylumZh}速览** — 图鉴共收录该门 **${intents.phylumCount ?? "?"}** 个物种,代表条目:`);
+    for (const c of cands.slice(0, 6)) {
+      const cons = c.conservation ? ` · IUCN ${c.conservation}` : "";
+      lines.push(`- [[${c.id}]] **${c.chineseName}**(*${c.latinName}*)${cons}`);
+    }
+    lines.push("目录现已支持**按门筛选**(48 门可搜索下拉),点下方按钮直达:");
+    if (!actions.some((a) => a.target === `browse:phylum=${intents.phylum}`)) {
+      actions.push({ label: `📖 目录筛选:${intents.phylumZh}(${intents.phylumCount ?? ""} 种)`, kind: "navigate", target: `browse:phylum=${intents.phylum}` });
+    }
+    followUps.push(`详细介绍${cands[0]?.chineseName || "大熊猫"}`);
     return lines.join("\n");
   }
 
@@ -636,6 +658,48 @@ export async function POST(req: NextRequest) {
       candidates = inKingdom.slice(0, 8);
     }
 
+    // ===== 门级浏览意图:命中某门中文名(带或不带「门」字)+ 浏览/列举语气 =====
+    const phylumCue = /有哪些|有什么|都有什么|种类|多少|清单|一览|代表|看看|浏览|列出|过一遍|目录|带我去|打开/;
+    if (phylumCue.test(lowerMsg) && !intents.kingdom) {
+      const phylaRows = await db.taxon.findMany({
+        where: { rank: "phylum" },
+        select: { latinName: true, chineseName: true },
+        orderBy: { latinName: "asc" },
+      });
+      // 优先全名匹配(环节动物门),再短名(环节动物,至少 4 字防误伤)
+      let phylumHit: { latinName: string; chineseName: string } | null = null;
+      for (const p of phylaRows) {
+        if (lowerMsg.includes(p.chineseName)) { phylumHit = p; break; }
+      }
+      if (!phylumHit) {
+        for (const p of phylaRows) {
+          const short = p.chineseName.replace(/门$/, "");
+          if (short.length >= 4 && lowerMsg.includes(short)) { phylumHit = p; break; }
+        }
+      }
+      if (phylumHit) {
+        const ppaths = await getPhylumPaths();
+        const speciesIds = await db.taxon.findMany({ where: { rank: "species" }, select: { id: true } });
+        intents.phylum = phylumHit.latinName;
+        intents.phylumZh = phylumHit.chineseName;
+        intents.phylumCount = speciesIds.filter((s) => (ppaths.get(s.id) || [])[0] === phylumHit!.latinName).length;
+        // 门内代表物种:flagship 优先,不足补前排
+        const allSp = await db.taxon.findMany({
+          where: { rank: "species" },
+          orderBy: { sortOrder: "asc" },
+          select: {
+            id: true, latinName: true, chineseName: true, rank: true,
+            description: true, image: true, conservation: true, parentId: true, tags: true,
+          },
+        });
+        const inPhylum = allSp.filter((s) => (ppaths.get(s.id) || [])[0] === phylumHit!.latinName);
+        const flagged = inPhylum.filter((s) => (s.tags || "").includes("flagship"));
+        const repsPhylum = (flagged.length >= 4 ? flagged : inPhylum).slice(0, 8);
+        if (repsPhylum.length) candidates = repsPhylum.map(({ tags: _tags, ...rest }) => rest);
+        followUps.push(`${phylumHit.chineseName}里最出名的物种是?`);
+      }
+    }
+
     const paths = await getKingdomPaths();
 
     // ===== 检索候选补全科学档案字段(LLM 与降级回答均可用) =====
@@ -721,7 +785,7 @@ ${flagshipList}
 4. 适当使用要点列表让回答更清晰;长度控制在 300 字以内,除非用户要求详细展开。
 5. 若用户想找某类生物,推荐 2-5 个库内条目并附 [[id]] 引用标记,邀请用户点击查看图鉴页面。
 6. 涉及保护等级时使用 IUCN 代码并解释。诚实为本:不确定的就说不确定,不编造数据。
-7. 介绍网站功能时:除分类树探索外,还有「图鉴目录」(顶栏,可按界/IUCN 等级/标签过滤全部物种)与「物种对比」(在物种卡片或详情页点「对比」,把 2-3 个物种加入底部托盘后即可并排比较分类、形态、生境与保护等级)。用户想比较物种时,引导其使用对比功能;若用户说「帮我对比 A 和 B」,系统会自动解析两个物种并附上一键装载对比托盘的按钮,你可以顺带预览两者的关键差异。
+7. 介绍网站功能时:除分类树探索外,还有「图鉴目录」(顶栏,可按界、门(48 门可搜索下拉)、IUCN 等级、标签过滤全部物种,物种卡片附门级徽标)与「物种对比」(在物种卡片或详情页点「对比」,把 2-3 个物种加入底部托盘后即可并排比较分类、形态、生境与保护等级)。用户问某门物种(如「环节动物门有哪些」「看看棘皮动物」)时,系统会自动附上直达目录门级筛选的按钮。用户想比较物种时,引导其使用对比功能;若用户说「帮我对比 A 和 B」,系统会自动解析两个物种并附上一键装载对比托盘的按钮,你可以顺带预览两者的关键差异。
 8. 对比视图还支持「导出 Markdown」(一键复制对比表)与「复制分享链接」;聊天回答下方与我消息里的引用条目卡片旁有对比小按钮,可直接把物种加入托盘。首页「新页速递」展示最近配图的物种。
 9. 更多功能提示:图鉴目录有「卡片/列表」两种密度切换与「分享筛选」;目录筛选在离开再返回后会自动保留;按键盘 ? 键可随时查看快捷键速查表(⌘K 聚焦搜索、Esc 关闭弹窗、详情页 ←/→ 切换同属物种);物种详情页与探索页的面包屑上标有各级类群的物种计数。
 10. 最新功能:物种详情页右栏有「演化谱系」竖向时间轴(域→…→种的完整下潜路径,每个节点可点击上溯,末端标"你在此处");首页六大家族卡片内有各门物种数迷你条形图;首页「图鉴轮盘」是摇号动效抽取物种;对比视图支持「导出 CSV」;头栏有「浏览足迹」按钮(时钟图标,记录你最近翻过的页面,可一键回到刚才看过的物种)。介绍功能时优先提及这些。
@@ -767,6 +831,7 @@ ${flagshipList}
     // 意图动作在 LLM 模式下同样生效(如「带我去红色名录」仍给出按钮)
     if (!degraded && intents.redlist) actions.push({ label: intents.iucnLevel ? `前往红色名录 · ${intents.iucnLevel}` : "前往红色名录专题", kind: "navigate", target: intents.iucnLevel ? `redlist:${intents.iucnLevel}` : "redlist" });
     if (!degraded && intents.catalog) actions.push({ label: "打开图鉴目录", kind: "navigate", target: "browse" });
+    if (!degraded && intents.phylum) actions.push({ label: `📖 目录筛选:${intents.phylumZh}(${intents.phylumCount ?? ""} 种)`, kind: "navigate", target: `browse:phylum=${intents.phylum}` });
     if (!degraded && intents.random) actions.push({ label: "🎲 再抽一个", kind: "random", target: "random" });
 
     // ===== 附带可跳转的匹配条目(供前端渲染卡片) =====

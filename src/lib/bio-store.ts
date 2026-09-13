@@ -15,6 +15,7 @@ export type BioView =
 export interface BrowseFilter {
   iucn?: string | null;
   kingdom?: string | null;
+  phylum?: string | null;
   tag?: string | null;
   q?: string;
   sort?: string;
