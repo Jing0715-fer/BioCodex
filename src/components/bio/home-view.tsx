@@ -731,7 +731,7 @@ export function HomeView() {
               </div>
               {/* 红色名录专题入口 */}
               <button
-                onClick={openRedlist}
+                onClick={() => openRedlist()}
                 className="group mt-4 flex w-full items-center justify-between gap-2 rounded-lg border border-red-200/60 bg-gradient-to-r from-red-50 to-transparent px-3 py-2.5 text-left transition-all hover:border-red-300 hover:shadow-sm dark:border-red-900/40 dark:from-red-950/30"
                 aria-label="进入红色名录专题页"
               >

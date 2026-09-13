@@ -54,9 +54,9 @@ export function BioFooter() {
           <ul className="mt-3 space-y-1.5 text-xs leading-5 text-muted-foreground">
             <li>分类树探索 · 全局搜索(⌘K)</li>
             <li>图鉴目录:按界/等级/标签筛选</li>
-            <li>物种对比:并排比较 · 导出 MD/CSV/JSON · 分享链接</li>
-            <li>红色名录专题 · 标本收藏夹 · 浏览足迹</li>
-            <li>AI 博物学家助手 · 新页速递 · 灯箱浏览</li>
+            <li>物种对比:并排比较 · 导出 MD/CSV/JSON · 分享链接 · 视图内快搜添加</li>
+            <li>红色名录专题(按界筛选/等级聚焦)· 标本收藏夹(备份导出)· 浏览足迹</li>
+            <li>引用格式一键复制 · AI 博物学家助手 · 新页速递 · 灯箱浏览</li>
           </ul>
         </div>
       </div>

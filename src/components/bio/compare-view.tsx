@@ -7,6 +7,7 @@ import { useTaxaBatch, type TaxonDetailResponse } from "@/hooks/use-bio";
 import { buildDbLinks, IUCN_INFO, KINGDOM_THEME, rankLabel } from "@/lib/bio-domain";
 import { TaxaPlaceholder, KingdomIcon } from "./taxa-icon";
 import { ShareDialog } from "./share-dialog";
+import { SpeciesPickerDialog } from "./species-picker-dialog";
 import { copyText } from "@/lib/clipboard";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -31,7 +32,7 @@ interface CompareRow {
 const LINEAGE_KEYS = ["kingdom", "phylum", "class", "order", "family", "genus"];
 
 export function CompareView({ ids }: { ids: string[] }) {
-  const { goBack, explore, removeCompare, openBrowse, openTaxon, compareIds } = useBioStore();
+  const { goBack, explore, removeCompare, openBrowse, openTaxon, compareIds, toggleCompare } = useBioStore();
   const { data, isLoading } = useTaxaBatch(ids);
   const { toast } = useToast();
   const [copied, setCopied] = useState<"md" | "link" | null>(null);
@@ -41,6 +42,8 @@ export function CompareView({ ids }: { ids: string[] }) {
   const [hoverCol, setHoverCol] = useState<string | null>(null);
   /** 「只看差异」聚焦模式:隐藏所有物种完全一致的行 */
   const [diffOnly, setDiffOnly] = useState(false);
+  /** 物种快速选择器(视图内直接搜索添加) */
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   const taxa = data || [];
 
@@ -505,16 +508,27 @@ export function CompareView({ ids }: { ids: string[] }) {
           {/* 添加更多 */}
           {taxa.length < MAX_COMPARE ? (
             <button
-              onClick={() => openBrowse({})}
+              onClick={() => setPickerOpen(true)}
               className="reveal-up group flex min-h-[220px] flex-col items-center justify-center gap-2.5 rounded-xl border-2 border-dashed border-foreground/15 bg-muted/20 text-muted-foreground transition-colors hover:border-primary/50 hover:bg-primary/5 hover:text-primary"
               aria-label="继续添加物种到对比"
             >
-              <span className="flex h-11 w-11 items-center justify-center rounded-full border border-current/30">
+              <span className="flex h-11 w-11 items-center justify-center rounded-full border border-current/30 transition-transform group-hover:scale-110">
                 <Plus className="h-5 w-5" />
               </span>
-              <span className="text-xs font-medium">再挑一个物种</span>
+              <span className="text-xs font-medium">搜索添加一个物种</span>
               <span className="max-w-36 text-center text-[10px] leading-4 text-muted-foreground/60">
-                去图鉴目录,把物种卡加入托盘({compareIds.length}/{MAX_COMPARE})
+                直接搜索加入,无需离开对比({compareIds.length}/{MAX_COMPARE});也可
+                <span
+                  role="link"
+                  tabIndex={0}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openBrowse({});
+                  }}
+                  className="font-semibold text-primary/70 underline decoration-dotted underline-offset-2 hover:text-primary"
+                >
+                  去图鉴目录逛逛
+                </span>
               </span>
             </button>
           ) : (
@@ -525,6 +539,14 @@ export function CompareView({ ids }: { ids: string[] }) {
           )}
         </div>
       </div>
+
+      {/* 物种快速选择器 */}
+      <SpeciesPickerDialog
+        open={pickerOpen}
+        onOpenChange={setPickerOpen}
+        trayIds={compareIds}
+        onToggle={(id) => toggleCompare(id)}
+      />
 
       {/* ====== 对比表 ====== */}
       <div className="nh-scroll mt-4 overflow-x-auto rounded-xl border border-foreground/10 bg-card shadow-sm">

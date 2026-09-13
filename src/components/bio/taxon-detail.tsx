@@ -8,15 +8,17 @@ import { TaxaPlaceholder, KingdomIcon } from "./taxa-icon";
 import { KingdomOrnament } from "./kingdom-ornament";
 import { TaxonCard } from "./taxon-card";
 import { LineageTimeline } from "./lineage-timeline";
+import { ShareDialog } from "./share-dialog";
 import { pushHistory } from "@/lib/view-history";
 import { useFavorites, toggleFavorite, FAVORITES_MAX } from "@/lib/favorites";
+import { copyText } from "@/lib/clipboard";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import {
   ChevronRight, ArrowLeft, ArrowRight, ExternalLink, Database, Dna, Shield,
-  MapPin, Leaf, FlaskConical, BookOpen, Star, Sparkles, Microscope, GitCompareArrows, GitBranch, Check, X, ZoomIn, Bookmark,
+  MapPin, Leaf, FlaskConical, BookOpen, Star, Sparkles, Microscope, GitCompareArrows, GitBranch, Check, X, ZoomIn, Bookmark, Quote, Copy,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -52,11 +54,13 @@ function SectionCard({
 }
 
 export function TaxonDetail({ id }: { id: string }) {
-  const { openTaxon, explore, goBack, compareIds, toggleCompare, openCompare } = useBioStore();
+  const { openTaxon, explore, goBack, compareIds, toggleCompare, openCompare, openRedlist } = useBioStore();
   const favorites = useFavorites();
   const { data, isLoading } = useTaxon(id);
   const { data: tree } = useTree();
   const [lightbox, setLightbox] = useState(false);
+  /** 引用复制失败时手动复制兑底文本 */
+  const [citeFallback, setCiteFallback] = useState<string | null>(null);
 
   // 面包屑物种计数:从树 DTO 递归建 id → 物种数映射(与探索视图一致)
   const speciesCountById = useMemo(() => {
@@ -321,9 +325,17 @@ export function TaxonDetail({ id }: { id: string }) {
               {rankLabel(taxon.rank)}
             </span>
             {iucn && (
-              <span className={cn("rounded-sm px-2 py-0.5 text-xs font-bold text-white shadow", iucn.bg)}>
-                IUCN {iucn.label}
-              </span>
+              <button
+                onClick={() => openRedlist({ iucn: taxon.conservation })}
+                title={`查看红色名录 ${taxon.conservation} 等级全部物种`}
+                className={cn(
+                  "rounded-sm px-2 py-0.5 text-xs font-bold text-white shadow transition-transform hover:scale-105 active:scale-95",
+                  iucn.bg
+                )}
+              >
+                IUCN {iucn.label} ·
+                <span className="font-medium">看同类</span>
+              </button>
             )}
             {tags.includes("flagship") && (
               <span className="flex items-center gap-1 rounded-sm bg-amber-500/85 px-2 py-0.5 text-xs font-bold text-white shadow">
@@ -401,15 +413,28 @@ export function TaxonDetail({ id }: { id: string }) {
           {iucn && taxon.conservation && (
             <SectionCard title="保护状况" icon={Shield}>
               <div className="flex flex-wrap items-center gap-3">
-                <span className={cn("rounded-md px-3 py-1.5 font-display text-lg font-bold text-white", iucn.bg)}>
+                <button
+                  onClick={() => openRedlist({ iucn: taxon.conservation })}
+                  title="跳转到红色名录专题,查看该等级全部物种"
+                  className={cn(
+                    "rounded-md px-3 py-1.5 font-display text-lg font-bold text-white shadow-sm transition-transform hover:scale-[1.03] active:scale-95",
+                    iucn.bg
+                  )}
+                >
                   {taxon.conservation}
-                </span>
+                </button>
                 <div>
                   <p className="font-semibold text-foreground">{iucn.full}</p>
                   <p className="mt-0.5 text-xs leading-5 text-muted-foreground">
                     依据 IUCN 红色名录等级:极危(CR)与濒危(EN)物种面临野外灭绝的高风险;
                     图鉴中 {data.counts.speciesCount >= 0 && "收录的该等级物种均附红色名录直链,可查最新评估。"}
                   </p>
+                  <button
+                    onClick={() => openRedlist({ iucn: taxon.conservation })}
+                    className="mt-1.5 flex items-center gap-1 text-xs font-semibold text-red-700 transition-colors hover:text-red-600 hover:underline dark:text-red-400 dark:hover:text-red-300"
+                  >
+                    查看红色名录中该等级的全部物种 →
+                  </button>
                 </div>
               </div>
             </SectionCard>
@@ -618,6 +643,71 @@ export function TaxonDetail({ id }: { id: string }) {
             </p>
           </section>
 
+          {/* 引用格式(物种) */}
+          {isSpecies && (
+            <section className="rounded-xl border border-foreground/10 bg-card p-5 shadow-sm">
+              <h2 className="flex items-center gap-2 font-display text-lg font-bold">
+                <Quote className="h-4.5 w-4.5 text-primary" />
+                引用格式
+                <span className="ml-auto rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
+                  CITATIO
+                </span>
+              </h2>
+              <Separator className="my-3.5" />
+              <div className="space-y-3">
+                {(() => {
+                  const retrieveDate = new Date().toLocaleDateString("zh-CN", { year: "numeric", month: "long", day: "numeric" });
+                  const taxoCite = `${taxon.latinName}${taxon.authority ? ` ${taxon.authority}` : ""}`;
+                  const fullCite = `${taxon.chineseName} ${taxoCite}. 载于: BioCodex 生物图鉴[在线图鉴]. 检索于 ${retrieveDate}.`;
+                  const onCopy = async (text: string, label: string) => {
+                    const ok = await copyText(text);
+                    if (ok) toast.success(`已复制${label}`, { description: text.length > 60 ? text.slice(0, 60) + "…" : text });
+                    else setCiteFallback(text);
+                  };
+                  return (
+                    <>
+                      <div>
+                        <p className="mb-1 flex items-center gap-1 text-[10px] font-bold tracking-widest text-muted-foreground">
+                          分类学引用 · 学名+命名人
+                        </p>
+                        <div className="flex items-center justify-between gap-2 rounded-lg border border-foreground/10 bg-muted/30 px-3 py-2">
+                          <p className="latin min-w-0 truncate text-sm italic text-foreground/90">{taxoCite}</p>
+                          <button
+                            onClick={() => onCopy(taxoCite, "学名引用")}
+                            aria-label="复制学名引用"
+                            className="flex h-7 shrink-0 items-center gap-1 rounded-full border border-foreground/15 bg-card px-2 text-[11px] font-semibold text-muted-foreground transition-all hover:border-primary/40 hover:text-primary"
+                          >
+                            <Copy className="h-3 w-3" />
+                            复制
+                          </button>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="mb-1 flex items-center gap-1 text-[10px] font-bold tracking-widest text-muted-foreground">
+                          图鉴条目引用 · 引用本页
+                        </p>
+                        <div className="rounded-lg border border-foreground/10 bg-muted/30 px-3 py-2">
+                          <p className="text-[13px] leading-6 text-foreground/85">
+                            {taxon.chineseName} <span className="latin italic">{taxon.latinName}</span>
+                            {taxon.authority ? ` ${taxon.authority}. ` : ". "}
+                            载于: BioCodex 生物图鉴[在线图鉴]. 检索于 {retrieveDate}.
+                          </p>
+                          <button
+                            onClick={() => onCopy(fullCite, "完整引用")}
+                            className="mt-2 flex h-7 items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-3 text-[11px] font-semibold text-primary transition-all hover:bg-primary/20"
+                          >
+                            <Copy className="h-3 w-3" />
+                            复制完整引用
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+            </section>
+          )}
+
           {/* 提示卡 */}
           <section className="rounded-xl border border-primary/25 bg-primary/5 p-5">
             <p className="flex items-start gap-2.5 text-sm leading-6 text-foreground/85">
@@ -633,6 +723,16 @@ export function TaxonDetail({ id }: { id: string }) {
           </Button>
         </aside>
       </div>
+
+      {/* 引用复制失败的手动复制兜底 */}
+      <ShareDialog
+        open={citeFallback !== null}
+        onOpenChange={(o) => {
+          if (!o) setCiteFallback(null);
+        }}
+        title="手动复制引用"
+        text={citeFallback ?? ""}
+      />
 
       {/* ====== 插图灯箱(点击主图放大) ====== */}
       {lightbox && taxon.image && (

@@ -63,7 +63,10 @@ function AppShell() {
       } else if (s.view.type === "favorites") {
         h = "#favorites";
       } else if (s.view.type === "redlist") {
-        h = "#redlist";
+        const sp = new URLSearchParams();
+        if (s.redlistKingdom) sp.set("kingdom", s.redlistKingdom);
+        if (s.redlistFocus) sp.set("iucn", s.redlistFocus);
+        h = `#redlist${sp.toString() ? `?${sp.toString()}` : ""}`;
       }
       if (window.location.hash !== h) {
         window.history.replaceState(null, "", window.location.pathname + window.location.search + h);

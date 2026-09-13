@@ -1,0 +1,671 @@
+     1→"use client";
+     2→
+     3→import { useEffect, useMemo, useState } from "react";
+     4→import { useBioStore, MAX_COMPARE } from "@/lib/bio-store";
+     5→import { useTaxon, useTree, type TreeNodeDTO } from "@/hooks/use-bio";
+     6→import { buildDbLinks, IUCN_INFO, KINGDOM_THEME, rankLabel } from "@/lib/bio-domain";
+     7→import { TaxaPlaceholder, KingdomIcon } from "./taxa-icon";
+     8→import { KingdomOrnament } from "./kingdom-ornament";
+     9→import { TaxonCard } from "./taxon-card";
+    10→import { LineageTimeline } from "./lineage-timeline";
+    11→import { pushHistory } from "@/lib/view-history";
+    12→import { useFavorites, toggleFavorite, FAVORITES_MAX } from "@/lib/favorites";
+    13→import { Button } from "@/components/ui/button";
+    14→import { Skeleton } from "@/components/ui/skeleton";
+    15→import { Separator } from "@/components/ui/separator";
+    16→import { toast } from "sonner";
+    17→import {
+    18→  ChevronRight, ArrowLeft, ArrowRight, ExternalLink, Database, Dna, Shield,
+    19→  MapPin, Leaf, FlaskConical, BookOpen, Star, Sparkles, Microscope, GitCompareArrows, GitBranch, Check, X, ZoomIn, Bookmark,
+    20→} from "lucide-react";
+    21→import { cn } from "@/lib/utils";
+    22→
+    23→const GROUP_META: Record<string, { label: string; icon: any }> = {
+    24→  "分类学": { label: "分类学数据库", icon: Database },
+    25→  "基因组": { label: "基因组与序列", icon: Dna },
+    26→  "生态观察": { label: "生态与观察", icon: MapPin },
+    27→  "百科文献": { label: "百科与文献", icon: BookOpen },
+    28→  "类群专属": { label: "类群专属数据库", icon: FlaskConical },
+    29→};
+    30→
+    31→function SectionCard({
+    32→  title,
+    33→  icon: Icon,
+    34→  children,
+    35→  className,
+    36→}: {
+    37→  title: string;
+    38→  icon?: any;
+    39→  children: React.ReactNode;
+    40→  className?: string;
+    41→}) {
+    42→  return (
+    43→    <section className={cn("rounded-xl border border-foreground/10 bg-card p-5 shadow-sm", className)}>
+    44→      <h2 className="flex items-center gap-2 font-display text-lg font-bold text-foreground">
+    45→        {Icon && <Icon className="h-4.5 w-4.5 text-primary" />}
+    46→        {title}
+    47→      </h2>
+    48→      <Separator className="my-3.5" />
+    49→      <div className="text-sm leading-7 text-foreground/85">{children}</div>
+    50→    </section>
+    51→  );
+    52→}
+    53→
+    54→export function TaxonDetail({ id }: { id: string }) {
+    55→  const { openTaxon, explore, goBack, compareIds, toggleCompare, openCompare } = useBioStore();
+    56→  const favorites = useFavorites();
+    57→  const { data, isLoading } = useTaxon(id);
+    58→  const { data: tree } = useTree();
+    59→  const [lightbox, setLightbox] = useState(false);
+    60→
+    61→  // 面包屑物种计数:从树 DTO 递归建 id → 物种数映射(与探索视图一致)
+    62→  const speciesCountById = useMemo(() => {
+    63→    const m = new Map<string, number>();
+    64→    const walk = (nodes: TreeNodeDTO[]) => {
+    65→      for (const n of nodes) {
+    66→        if (!m.has(n.id)) m.set(n.id, n.sc);
+    67→        if (n.ch?.length) walk(n.ch);
+    68→      }
+    69→    };
+    70→    if (tree) walk(tree);
+    71→    return m;
+    72→  }, [tree]);
+    73→
+    74→  const links = useMemo(
+    75→    () =>
+    76→      data
+    77→        ? buildDbLinks({
+    78→            latinName: data.taxon.latinName,
+    79→            chineseName: data.taxon.chineseName,
+    80→            ncbiTaxId: data.taxon.ncbiTaxId,
+    81→            rank: data.taxon.rank,
+    82→            kingdomPath: data.taxon.kingdomPath,
+    83→          })
+    84→        : [],
+    85→    [data]
+    86→  );
+    87→
+    88→  const grouped = useMemo(() => {
+    89→    const g = new Map<string, typeof links>();
+    90→    for (const l of links) {
+    91→      if (!g.has(l.group)) g.set(l.group, []);
+    92→      g.get(l.group)!.push(l);
+    93→    }
+    94→    return g;
+    95→  }, [links]);
+    96→
+    97→  // 上一/下一物种(hooks 必须在 early return 之前计算)
+    98→  const siblings = data?.siblings || [];
+    99→  const idx = siblings.findIndex((s) => s.id === id);
+   100→  const prev = idx > 0 ? siblings[idx - 1] : null;
+   101→  const next = idx >= 0 && idx < siblings.length - 1 ? siblings[idx + 1] : null;
+   102→
+   103→  // 键盘导航:←/→ 切换同属上/下一物种(输入框聚焦时忽略);Esc 关灯箱
+   104→  useEffect(() => {
+   105→    const onKey = (e: KeyboardEvent) => {
+   106→      const tag = (e.target as HTMLElement)?.tagName;
+   107→      if (tag === "INPUT" || tag === "TEXTAREA" || (e.target as HTMLElement)?.isContentEditable) return;
+   108→      if (e.key === "Escape") setLightbox(false);
+   109→      if (e.key === "ArrowLeft" && prev) openTaxon(prev.id);
+   110→      if (e.key === "ArrowRight" && next) openTaxon(next.id);
+   111→      // F 键快捷收藏当前物种(仅物种阶元)
+   112→      if (e.key.toLowerCase() === "f" && data?.success && data.taxon.rank === "species") {
+   113→        const t = data.taxon;
+   114→        const res = toggleFavorite({
+   115→          id: t.id,
+   116→          chineseName: t.chineseName,
+   117→          latinName: t.latinName,
+   118→          kingdom: t.kingdom,
+   119→          image: t.image,
+   120→          conservation: t.conservation,
+   121→          ncbiTaxId: t.ncbiTaxId,
+   122→          description: t.description,
+   123→        });
+   124→        if (res === "added") toast.success(`已收进标本夹:${t.chineseName}`, { description: "头栏书签图标可查看全部收藏" });
+   125→        else if (res === "removed") toast.info(`已从标本夹取出:${t.chineseName}`);
+   126→        else toast.warning(`标本夹已满(上限 ${FAVORITES_MAX} 件)`);
+   127→      }
+   128→    };
+   129→    window.addEventListener("keydown", onKey);
+   130→    return () => window.removeEventListener("keydown", onKey);
+   131→  }, [prev, next, openTaxon, data]);
+   132→
+   133→  // 浏览足迹:查看任意条目时记录(localStorage 持久化,头栏「足迹」下拉可回溯)
+   134→  useEffect(() => {
+   135→    if (data?.success && data.taxon) {
+   136→      pushHistory({
+   137→        id: data.taxon.id,
+   138→        chineseName: data.taxon.chineseName,
+   139→        latinName: data.taxon.latinName,
+   140→        kingdom: data.taxon.kingdom,
+   141→        image: data.taxon.image,
+   142→      });
+   143→    }
+   144→  }, [data]);
+   145→
+   146→  if (isLoading || !data?.success) {
+   147→    return (
+   148→      <div className="mx-auto max-w-[1400px] px-4 py-8 sm:px-6">
+   149→        <div className="flex flex-col gap-4">
+   150→          <Skeleton className="h-5 w-64" />
+   151→          <Skeleton className="h-72 w-full rounded-xl" />
+   152→          <div className="grid gap-4 lg:grid-cols-3">
+   153→            <div className="space-y-4 lg:col-span-2">
+   154→              <Skeleton className="h-40 w-full rounded-xl" />
+   155→            </div>
+   156→            <Skeleton className="h-40 rounded-xl" />
+   157→          </div>
+   158→        </div>
+   159→      </div>
+   160→    );
+   161→  }
+   162→
+   163→  const { taxon, lineage, children, counts } = data;
+   164→  const theme = KINGDOM_THEME[taxon.kingdom] || KINGDOM_THEME.Animalia;
+   165→  const isSpecies = taxon.rank === "species";
+   166→  const iucn = taxon.conservation ? IUCN_INFO[taxon.conservation] : null;
+   167→  const tags = taxon.tags || [];
+   168→  // 同属近亲(排除自身)
+   169→  const relatedSpecies = siblings.filter(
+   170→    (s) => s.rank === "species" && s.id !== taxon.id
+   171→  );
+   172→  const genusName = lineage[lineage.length - 1]?.chineseName;
+   173→
+   174→  return (
+   175→    <div className="mx-auto w-full max-w-[1400px] px-4 pb-8 pt-4 sm:px-6">
+   176→      {/* 面包屑 */}
+   177→      <nav className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground" aria-label="分类路径">
+   178→        <button className="hover:text-primary" onClick={() => explore(null)}>
+   179→          生命之树
+   180→        </button>
+   181→        {lineage.map((l) => {
+   182→          const sc = speciesCountById.get(l.id);
+   183→          return (
+   184→            <span key={l.id} className="flex items-center gap-1">
+   185→              <ChevronRight className="h-3 w-3 text-muted-foreground/50" />
+   186→              <button
+   187→                className="flex max-w-32 items-center gap-1 truncate hover:text-primary"
+   188→                onClick={() => explore(l.id)}
+   189→                title={`${l.chineseName}${sc ? ` · ${sc} 物种` : ""}`}
+   190→              >
+   191→                <span className="truncate">{l.chineseName}</span>
+   192→                {sc != null && sc > 0 && (
+   193→                  <span className="shrink-0 rounded-full bg-foreground/8 px-1.5 text-[9px] font-semibold tabular-nums text-muted-foreground/80 dark:bg-foreground/15">
+   194→                    {sc}
+   195→                  </span>
+   196→                )}
+   197→              </button>
+   198→            </span>
+   199→          );
+   200→        })}
+   201→        <ChevronRight className="h-3 w-3 text-muted-foreground/50" />
+   202→        <span className="font-medium text-foreground">{taxon.chineseName}</span>
+   203→      </nav>
+   204→
+   205→      {/* ====== 主图区 ====== */}
+   206→      <div className="reveal-up relative mt-3 overflow-hidden rounded-2xl border border-foreground/10 shadow-md">
+   207→        {taxon.image ? (
+   208→          <button
+   209→            onClick={() => setLightbox(true)}
+   210→            aria-label="放大查看物种插图"
+   211→            className="group/img absolute inset-0 h-full w-full cursor-zoom-in"
+   212→          >
+   213→            <img
+   214→              src={taxon.image}
+   215→              alt={`${taxon.chineseName}(${taxon.latinName})博物学插图`}
+   216→              className="img-fade-in h-[320px] w-full object-cover transition-transform duration-500 group-hover/img:scale-[1.02] sm:h-[420px]"
+   217→            />
+   218→          </button>
+   219→        ) : (
+   220→          <TaxaPlaceholder latinName={taxon.latinName} kingdom={taxon.kingdom} big className="h-[320px] w-full sm:h-[420px]" />
+   221→        )}
+   222→        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-black/15 to-transparent" />
+   223→        {/* 界主题装饰纹样(博物馆钢印式,叠加于顶部左侧) */}
+   224→        <KingdomOrnament
+   225→          kingdom={taxon.kingdom}
+   226→          className="absolute left-4 top-3 hidden h-8 w-36 text-white/40 drop-shadow-sm sm:block"
+   227→        />
+   228→        {/* 放大提示角标(有图时) */}
+   229→        {taxon.image && (
+   230→          <span className="pointer-events-none absolute bottom-3 right-3 flex items-center gap-1 rounded-full bg-black/50 px-2.5 py-1 text-[11px] font-medium text-white/90 opacity-0 backdrop-blur-sm transition-opacity duration-300 group-hover/img:opacity-100 sm:bottom-5 sm:right-5">
+   231→            <ZoomIn className="h-3 w-3" />
+   232→            点击放大
+   233→          </span>
+   234→        )}
+   235→        {/* 右上角操作:加入对比 + 收藏(仅物种) */}
+   236→        {isSpecies && (
+   237→          <div className="absolute right-3 top-3 flex items-center gap-2">
+   238→            {(() => {
+   239→              const inCompare = compareIds.includes(taxon.id);
+   240→              const full = !inCompare && compareIds.length >= MAX_COMPARE;
+   241→              const isFav = favorites.some((x) => x.id === taxon.id);
+   242→              return (
+   243→                <>
+   244→                  <button
+   245→                    onClick={() => {
+   246→                      const res = toggleFavorite({
+   247→                        id: taxon.id,
+   248→                        chineseName: taxon.chineseName,
+   249→                        latinName: taxon.latinName,
+   250→                        kingdom: taxon.kingdom,
+   251→                        image: taxon.image,
+   252→                        conservation: taxon.conservation,
+   253→                        ncbiTaxId: taxon.ncbiTaxId,
+   254→                        description: taxon.description,
+   255→                      });
+   256→                      if (res === "added")
+   257→                        toast.success(`已收进标本夹:${taxon.chineseName}`, {
+   258→                          description: `快捷键 F 也可随时收藏 · 头栏书签图标查看全部`,
+   259→                        });
+   260→                      else if (res === "removed") toast.info(`已从标本夹取出:${taxon.chineseName}`);
+   261→                      else toast.warning(`标本夹已满(上限 ${FAVORITES_MAX} 件)`, { description: "可先清理一些不再需要的标本" });
+   262→                    }}
+   263→                    aria-label={isFav ? `从标本夹移除:${taxon.chineseName}` : `收藏到标本夹:${taxon.chineseName}`}
+   264→                    className={cn(
+   265→                      "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold shadow transition-all",
+   266→                      isFav
+   267→                        ? "bg-amber-500 text-white"
+   268→                        : "bg-black/50 text-white backdrop-blur-sm hover:bg-black/70"
+   269→                    )}
+   270→                  >
+   271→                    <Bookmark className={cn("h-3.5 w-3.5", isFav && "fill-current")} />
+   272→                    {isFav ? "已收藏" : "收藏"}
+   273→                  </button>
+   274→                  <button
+   275→                    onClick={() => {
+   276→                      const res = toggleCompare(taxon.id);
+   277→                      if (res === "added")
+   278→                        toast.success(`已加入对比:${taxon.chineseName}`, {
+   279→                          description: `托盘 ${compareIds.length + 1}/${MAX_COMPARE},选满 2 个即可开始`,
+   280→                        });
+   281→                      else if (res === "removed") toast.info(`已移出对比:${taxon.chineseName}`);
+   282→                      else toast.warning("对比托盘已满(最多 3 个)", { description: "可先开始对比或移除一个物种" });
+   283→                    }}
+   284→                    disabled={full}
+   285→                    aria-label={inCompare ? `移出对比:${taxon.chineseName}` : `加入对比:${taxon.chineseName}`}
+   286→                    className={cn(
+   287→                      "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold shadow transition-all",
+   288→                      inCompare
+   289→                        ? "bg-primary text-primary-foreground"
+   290→                        : "bg-black/50 text-white backdrop-blur-sm hover:bg-black/70",
+   291→                      full && "cursor-not-allowed opacity-50"
+   292→                    )}
+   293→                  >
+   294→                    {inCompare ? <Check className="h-3.5 w-3.5" /> : <GitCompareArrows className="h-3.5 w-3.5" />}
+   295→                    {inCompare ? "已加入对比" : "加入对比"}
+   296→                  </button>
+   297→                  {compareIds.length >= 2 && (
+   298→                    <button
+   299→                      onClick={openCompare}
+   300→                      className="hidden items-center gap-1.5 rounded-full bg-white/20 px-3 py-1.5 text-xs font-bold text-white shadow backdrop-blur-sm transition-colors hover:bg-white/35 sm:flex"
+   301→                    >
+   302→                      对比 {compareIds.length} 个物种
+   303→                    </button>
+   304→                  )}
+   305→                </>
+   306→              );
+   307→            })()}
+   308→          </div>
+   309→        )}
+   310→        {/* 标题叠层 */}
+   311→        <div className="absolute bottom-0 left-0 right-0 p-5 sm:p-8">
+   312→          <div className="flex flex-wrap items-center gap-2">
+   313→            <span
+   314→              className="flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold text-white shadow"
+   315→              style={{ background: theme.color }}
+   316→            >
+   317→              <KingdomIcon kingdom={taxon.kingdom} className="h-3.5 w-3.5" />
+   318→              {theme.name}
+   319→            </span>
+   320→            <span className="rounded-sm bg-white/20 px-2 py-0.5 text-xs font-medium text-white backdrop-blur-sm">
+   321→              {rankLabel(taxon.rank)}
+   322→            </span>
+   323→            {iucn && (
+   324→              <span className={cn("rounded-sm px-2 py-0.5 text-xs font-bold text-white shadow", iucn.bg)}>
+   325→                IUCN {iucn.label}
+   326→              </span>
+   327→            )}
+   328→            {tags.includes("flagship") && (
+   329→              <span className="flex items-center gap-1 rounded-sm bg-amber-500/85 px-2 py-0.5 text-xs font-bold text-white shadow">
+   330→                <Star className="h-3 w-3" />
+   331→                旗舰物种
+   332→              </span>
+   333→            )}
+   334→            {tags.includes("模式生物") && (
+   335→              <span className="flex items-center gap-1 rounded-sm bg-teal-600/85 px-2 py-0.5 text-xs font-bold text-white shadow">
+   336→                <Microscope className="h-3 w-3" />
+   337→                模式生物
+   338→              </span>
+   339→            )}
+   340→            {tags.includes("入侵物种") && (
+   341→              <span className="rounded-sm bg-zinc-700/85 px-2 py-0.5 text-xs font-bold text-white shadow">
+   342→                入侵物种
+   343→              </span>
+   344→            )}
+   345→          </div>
+   346→          <h1 className="mt-3 font-display text-3xl font-bold text-white drop-shadow-md sm:text-5xl">
+   347→            {taxon.chineseName}
+   348→          </h1>
+   349→          <div className="mt-1.5 flex flex-wrap items-baseline gap-3">
+   350→            <span className="latin text-lg text-white/95 drop-shadow sm:text-2xl">{taxon.latinName}</span>
+   351→            {taxon.authority && (
+   352→              <span className="text-sm text-white/75 drop-shadow">{taxon.authority}</span>
+   353→            )}
+   354→            {taxon.ncbiTaxId && (
+   355→              <span className="latin rounded-sm bg-white/15 px-2 py-0.5 text-xs text-white/90 backdrop-blur-sm">
+   356→                NCBI txid{taxon.ncbiTaxId}
+   357→              </span>
+   358→            )}
+   359→          </div>
+   360→        </div>
+   361→      </div>
+   362→
+   363→      {/* ====== 内容 + 侧栏 ====== */}
+   364→      <div className="mt-5 grid gap-5 lg:grid-cols-[1fr_360px]">
+   365→        {/* 左列:正文 */}
+   366→        <div className="min-w-0 space-y-5">
+   367→          {taxon.description && (
+   368→            <SectionCard title={isSpecies ? "物种描述" : "类群概述"} icon={BookOpen}>
+   369→              {taxon.description}
+   370→            </SectionCard>
+   371→          )}
+   372→
+   373→          {(taxon.morphology || taxon.habitat || taxon.distribution) && (
+   374→            <SectionCard title="形态、生境与分布" icon={Leaf}>
+   375→              <dl className="space-y-4">
+   376→                {taxon.morphology && (
+   377→                  <div>
+   378→                    <dt className="mb-1 text-xs font-bold tracking-widest text-muted-foreground">形态识别</dt>
+   379→                    <dd>{taxon.morphology}</dd>
+   380→                  </div>
+   381→                )}
+   382→                {taxon.habitat && (
+   383→                  <div>
+   384→                    <dt className="mb-1 text-xs font-bold tracking-widest text-muted-foreground">生境</dt>
+   385→                    <dd>{taxon.habitat}</dd>
+   386→                  </div>
+   387→                )}
+   388→                {taxon.distribution && (
+   389→                  <div>
+   390→                    <dt className="mb-1 text-xs font-bold tracking-widest text-muted-foreground">分布</dt>
+   391→                    <dd className="flex items-start gap-2">
+   392→                      <MapPin className="mt-1.5 h-4 w-4 shrink-0 text-primary/70" />
+   393→                      {taxon.distribution}
+   394→                    </dd>
+   395→                  </div>
+   396→                )}
+   397→              </dl>
+   398→            </SectionCard>
+   399→          )}
+   400→
+   401→          {iucn && taxon.conservation && (
+   402→            <SectionCard title="保护状况" icon={Shield}>
+   403→              <div className="flex flex-wrap items-center gap-3">
+   404→                <span className={cn("rounded-md px-3 py-1.5 font-display text-lg font-bold text-white", iucn.bg)}>
+   405→                  {taxon.conservation}
+   406→                </span>
+   407→                <div>
+   408→                  <p className="font-semibold text-foreground">{iucn.full}</p>
+   409→                  <p className="mt-0.5 text-xs leading-5 text-muted-foreground">
+   410→                    依据 IUCN 红色名录等级:极危(CR)与濒危(EN)物种面临野外灭绝的高风险;
+   411→                    图鉴中 {data.counts.speciesCount >= 0 && "收录的该等级物种均附红色名录直链,可查最新评估。"}
+   412→                  </p>
+   413→                </div>
+   414→              </div>
+   415→            </SectionCard>
+   416→          )}
+   417→
+   418→          {/* 同属近亲 */}
+   419→          {isSpecies && relatedSpecies.length > 0 && (
+   420→            <SectionCard
+   421→              title={`${genusName || "同属"}的其它成员(${relatedSpecies.length})`}
+   422→              icon={Sparkles}
+   423→            >
+   424→              <div className="nh-scroll -mx-1 flex gap-3 overflow-x-auto px-1 pb-2">
+   425→                {relatedSpecies.map((r) => (
+   426→                  <button
+   427→                    key={r.id}
+   428→                    onClick={() => openTaxon(r.id)}
+   429→                    className="group relative w-40 shrink-0 overflow-hidden rounded-lg border border-foreground/10 bg-muted/30 text-left transition-all hover:border-primary/40 hover:shadow-md"
+   430→                  >
+   431→                    <div className="relative h-24 w-full overflow-hidden">
+   432→                      {r.image ? (
+   433→                        <img
+   434→                          src={r.image}
+   435→                          alt={r.chineseName}
+   436→                          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+   437→                          loading="lazy"
+   438→                        />
+   439→                      ) : (
+   440→                        <TaxaPlaceholder latinName={r.latinName} kingdom={taxon.kingdom} className="h-full w-full" />
+   441→                      )}
+   442→                      {r.conservation && (
+   443→                        <span
+   444→                          className={cn(
+   445→                            "absolute right-1.5 top-1.5 rounded-sm px-1 py-0.5 text-[9px] font-bold text-white",
+   446→                            IUCN_INFO[r.conservation]?.bg
+   447→                          )}
+   448→                        >
+   449→                          {r.conservation}
+   450→                        </span>
+   451→                      )}
+   452→                    </div>
+   453→                    <div className="p-2">
+   454→                      <p className="truncate text-[13px] font-semibold text-foreground group-hover:text-primary">
+   455→                        {r.chineseName}
+   456→                      </p>
+   457→                      <p className="latin truncate text-[10px] text-muted-foreground">{r.latinName}</p>
+   458→                    </div>
+   459→                  </button>
+   460→                ))}
+   461→              </div>
+   462→            </SectionCard>
+   463→          )}
+   464→
+   465→          {/* 子单元 */}
+   466→          {children.length > 0 && (
+   467→            <SectionCard
+   468→              title={
+   469→                taxon.rank === "genus"
+   470→                  ? `本属物种(${children.length})`
+   471→                  : `下属阶元(${children.length})`
+   472→              }
+   473→              icon={Sparkles}
+   474→            >
+   475→              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+   476→                {children.map((c, i) => (
+   477→                  <TaxonCard key={c.id} taxon={c} kingdom={taxon.kingdom} index={i} />
+   478→                ))}
+   479→              </div>
+   480→            </SectionCard>
+   481→          )}
+   482→
+   483→          {/* 上一/下一物种 */}
+   484→          {(prev || next) && (
+   485→            <div>
+   486→              <p className="mb-2 flex items-center justify-between text-[11px] text-muted-foreground/70">
+   487→                <span>同属相邻条目</span>
+   488→                <span className="hidden items-center gap-1 sm:flex">
+   489→                  <kbd className="rounded border border-foreground/15 bg-muted px-1.5 py-0.5 font-mono text-[10px]">←</kbd>
+   490→                  <kbd className="rounded border border-foreground/15 bg-muted px-1.5 py-0.5 font-mono text-[10px]">→</kbd>
+   491→                  键盘切换
+   492→                </span>
+   493→              </p>
+   494→              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+   495→              {prev ? (
+   496→                <button
+   497→                  onClick={() => openTaxon(prev.id)}
+   498→                  className="group flex items-center gap-3 rounded-xl border border-foreground/10 bg-card p-3.5 text-left shadow-sm transition-colors hover:border-primary/40"
+   499→                >
+   500→                  <ArrowLeft className="h-4 w-4 shrink-0 text-muted-foreground" />
+   501→                  <span className="min-w-0">
+   502→                    <span className="block text-[11px] text-muted-foreground">上一条</span>
+   503→                    <span className="block truncate text-sm font-semibold text-foreground group-hover:text-primary">
+   504→                      {prev.chineseName}
+   505→                    </span>
+   506→                    <span className="latin block truncate text-xs text-muted-foreground">{prev.latinName}</span>
+   507→                  </span>
+   508→                </button>
+   509→              ) : (
+   510→                <span />
+   511→              )}
+   512→              {next && (
+   513→                <button
+   514→                  onClick={() => openTaxon(next.id)}
+   515→                  className="group flex items-center justify-end gap-3 rounded-xl border border-foreground/10 bg-card p-3.5 text-right shadow-sm transition-colors hover:border-primary/40"
+   516→                >
+   517→                  <span className="min-w-0">
+   518→                    <span className="block text-[11px] text-muted-foreground">下一条</span>
+   519→                    <span className="block truncate text-sm font-semibold text-foreground group-hover:text-primary">
+   520→                      {next.chineseName}
+   521→                    </span>
+   522→                    <span className="latin block truncate text-xs text-muted-foreground">{next.latinName}</span>
+   523→                  </span>
+   524→                  <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+   525→                </button>
+   526→              )}
+   527→              </div>
+   528→            </div>
+   529→          )}
+   530→        </div>
+   531→
+   532→        {/* 右列:侧栏 */}
+   533→        <aside className="space-y-5">
+   534→          {/* 分类地位卡:演化谱系时间轴 */}
+   535→          <section className="rounded-xl border border-foreground/10 bg-card p-5 shadow-sm">
+   536→            <h2 className="flex items-center gap-2 font-display text-lg font-bold">
+   537→              <GitBranch className="h-4.5 w-4.5 text-primary" />
+   538→              演化谱系
+   539→              <span className="ml-auto rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
+   540→                {lineage.length + 1} 级
+   541→              </span>
+   542→            </h2>
+   543→            <p className="mt-1 mb-3.5 text-[11px] leading-4 text-muted-foreground">
+   544→              从域到种的分类下潜路径——每一步都是一次演化分岔
+   545→            </p>
+   546→            <Separator className="mb-4" />
+   547→            <LineageTimeline
+   548→              lineage={lineage}
+   549→              current={{ id: taxon.id, rank: taxon.rank, latinName: taxon.latinName, chineseName: taxon.chineseName }}
+   550→              kingdom={taxon.kingdom}
+   551→              speciesCountById={speciesCountById}
+   552→              onNavigate={explore}
+   553→            />
+   554→            <div className="mt-4 grid grid-cols-3 gap-2 border-t border-foreground/10 pt-3.5 text-center">
+   555→              <div>
+   556→                <p className="font-display text-xl font-bold tabular-nums text-foreground">
+   557→                  {counts.speciesCount}
+   558→                </p>
+   559→                <p className="text-[10px] text-muted-foreground">库内物种</p>
+   560→              </div>
+   561→              <div>
+   562→                <p className="font-display text-xl font-bold tabular-nums text-foreground">
+   563→                  {counts.children}
+   564→                </p>
+   565→                <p className="text-[10px] text-muted-foreground">直接子阶元</p>
+   566→              </div>
+   567→              <div>
+   568→                <p className="font-display text-xl font-bold tabular-nums text-foreground">
+   569→                  {counts.totalCount}
+   570→                </p>
+   571→                <p className="text-[10px] text-muted-foreground">全部条目</p>
+   572→              </div>
+   573→            </div>
+   574→          </section>
+   575→
+   576→          {/* 数据库链接 */}
+   577→          <section className="rounded-xl border border-foreground/10 bg-card p-5 shadow-sm">
+   578→            <h2 className="flex items-center gap-2 font-display text-lg font-bold">
+   579→              <ExternalLink className="h-4.5 w-4.5 text-primary" />
+   580→              科学数据库
+   581→              <span className="ml-auto rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
+   582→                {links.length} 个链接
+   583→              </span>
+   584→            </h2>
+   585→            <Separator className="my-3.5" />
+   586→            <div className="space-y-4">
+   587→              {[...grouped.entries()].map(([group, ls]) => {
+   588→                const meta = GROUP_META[group] || GROUP_META["百科文献"];
+   589→                return (
+   590→                  <div key={group}>
+   591→                    <p className="mb-1.5 flex items-center gap-1.5 text-xs font-bold tracking-wider text-muted-foreground">
+   592→                      <meta.icon className="h-3.5 w-3.5 text-primary/70" />
+   593→                      {meta.label}
+   594→                    </p>
+   595→                    <div className="grid grid-cols-1 gap-1.5">
+   596→                      {ls.map((l) => (
+   597→                        <a
+   598→                          key={l.name}
+   599→                          href={l.url}
+   600→                          target="_blank"
+   601→                          rel="noopener noreferrer"
+   602→                          className="group flex items-center justify-between gap-2 rounded-lg border border-foreground/10 bg-muted/30 px-3 py-2 text-[13px] text-foreground/85 transition-all hover:border-primary/40 hover:bg-primary/5 hover:text-primary"
+   603→                        >
+   604→                          <span className="truncate">{l.name}</span>
+   605→                          <ExternalLink className="h-3.5 w-3.5 shrink-0 text-muted-foreground/40 group-hover:text-primary" />
+   606→                        </a>
+   607→                      ))}
+   608→                    </div>
+   609→                  </div>
+   610→                );
+   611→              })}
+   612→            </div>
+   613→            <p className="mt-4 border-t border-foreground/10 pt-3 text-[11px] leading-4 text-muted-foreground">
+   614→              点击直达权威数据库页面:物种分类、基因组序列、观察记录与文献一站式溯源。
+   615→              {taxon.ncbiTaxId
+   616→                ? " 本条目已锚定 NCBI Taxonomy ID。"
+   617→                : " 本条目以学名检索方式跳转。"}
+   618→            </p>
+   619→          </section>
+   620→
+   621→          {/* 提示卡 */}
+   622→          <section className="rounded-xl border border-primary/25 bg-primary/5 p-5">
+   623→            <p className="flex items-start gap-2.5 text-sm leading-6 text-foreground/85">
+   624→              <Sparkles className="mt-1 h-4 w-4 shrink-0 text-primary" />
+   625→              想了解它的近亲、演化故事或保护现状?问右侧悬浮的
+   626→              <strong> AI 博物学家阿博</strong>,它能直接为你翻到相关图鉴页面。
+   627→            </p>
+   628→          </section>
+   629→
+   630→          <Button variant="outline" className="w-full gap-2 rounded-full" onClick={goBack}>
+   631→            <ArrowLeft className="h-4 w-4" />
+   632→            返回上一页
+   633→          </Button>
+   634→        </aside>
+   635→      </div>
+   636→
+   637→      {/* ====== 插图灯箱(点击主图放大) ====== */}
+   638→      {lightbox && taxon.image && (
+   639→        <div
+   640→          role="dialog"
+   641→          aria-modal="true"
+   642→          aria-label={`${taxon.chineseName}插图放大视图`}
+   643→          onClick={() => setLightbox(false)}
+   644→          className="fixed inset-0 z-[70] flex cursor-zoom-out flex-col items-center justify-center gap-4 bg-black/92 p-4 backdrop-blur-sm sm:p-8"
+   645→        >
+   646→          <button
+   647→            onClick={() => setLightbox(false)}
+   648→            aria-label="关闭放大视图"
+   649→            className="absolute right-4 top-4 rounded-full bg-white/10 p-2.5 text-white transition-colors hover:bg-white/25"
+   650→          >
+   651→            <X className="h-5 w-5" />
+   652→          </button>
+   653→          <img
+   654→            src={taxon.image}
+   655→            alt={`${taxon.chineseName}(${taxon.latinName})插图放大`}
+   656→            onClick={(e) => e.stopPropagation()}
+   657→            className="nh-scroll max-h-[78vh] max-w-full rounded-lg object-contain shadow-2xl"
+   658→          />
+   659→          <figcaption className="pointer-events-none max-w-2xl text-center">
+   660→            <p className="font-display text-xl font-bold text-white">{taxon.chineseName}</p>
+   661→            <p className="latin mt-1 text-sm italic text-white/70">{taxon.latinName}</p>
+   662→            {taxon.imageCaption && (
+   663→              <p className="mt-2 text-xs text-white/50">{taxon.imageCaption} · Esc 或点击空白处关闭</p>
+   664→            )}
+   665→          </figcaption>
+   666→        </div>
+   667→      )}
+   668→    </div>
+   669→  );
+   670→}
+   671→

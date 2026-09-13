@@ -165,22 +165,22 @@ Stage Summary:
 
 ## 项目当前状态(交接必读)
 
-**已稳定运行**:dev server 3000 端口,lint/tsc 零错误,浏览器实测所有核心交互通过。
-**核心功能**:分类树探索 / 全局搜索(⌘K) / 图鉴目录(多维筛选) / 物种对比(≤3,可导出Markdown/分享链接) / 首页新页速递时间线 / 详情页灯箱+←/→键盘导航 / AI 助手(限流时优雅降级) / 分享链接恢复(#compare=… 与 #browse?… 两种 hash 路由,支持重载+同页hashchange)。
+**已稳定运行**:dev server 3000 端口,lint/tsc 零错误,浏览器实测所有核心交互通过(最近完整回归:R9 轮,零 bug)。
+**核心功能**:分类树探索 / 全局搜索(⌘K) / 图鉴目录(多维筛选+密度切换) / 物种对比(≤3,MD/CSV/JSON 导出+分享链接+视图内快搜选择器) / 红色名录专题(按界筛选/等级聚焦/每组全部对比) / 标本收藏夹(导出导入备份) / 浏览足迹 / 演化谱系时间轴 / 引用格式一键复制 / 首页新页速递+轮盘摇号 / 详情页灯箱+←/→键盘导航 / AI 助手(限流时优雅降级) / hash 路由 5 种(#compare/#browse/#favorites/#redlist含参数/#compare 分享恢复)。
 
 **数据规模**:1267 分类单元 / 311 物种 / 47 门 / 84 旗舰物种 / IUCN 62 种 / 配图 142/311。
 
 **未完成/风险**:
-1. 剩余 169 个非旗舰物种无配图(占位图兜底)。z-ai 全部 API(image/image-search/LLM/VLM)在 2026-09-13 15:00 轮仍账户级 429。恢复后:
+1. 剩余 169 个非旗舰物种无配图(占位图兜底)。z-ai 全部 API(image/image-search/LLM/VLM)在 2026-09-13 17:00 轮(R9)仍账户级 429。恢复后:
    - `timeout 90 z-ai image -p test -o /tmp/t.png` 探测 → 恢复则 `BATCH=999 SCOPE=all CONCURRENCY=2 timeout 580 bun scripts/generate-images.ts` 连跑多批(勿用并发4)
-   - image-search 已从 400 变 429(服务存活),恢复后可 `timeout 500 bun scripts/fetch-images.ts` 抓真实照片
-2. Agent 引用卡「加对比」按钮因 LLM 限流未做浏览器端到端实测(代码路径与其他对比按钮一致,类型/lint 通过)
-3. Agent 回答口语化波动(已知,非阻塞)
+   - image-search 恢复后可 `timeout 500 bun scripts/fetch-images.ts` 抓真实照片
+2. Agent 规范9-13 新功能指引均因 LLM 限流未做浏览器端到端实测(代码路径与其他功能一致,类型/lint 通过)
+3. dev server 偶被沙箱清理(非代码问题),需 `setsid bun run dev` 重启
 
 **下一阶段建议(优先级)**:
 1. P0:补齐非旗舰物种配图(探测→分批前台跑,每批约20张)
-2. P1:Agent 新功能指引(规范8)实测;VLM 抽查配图质量
-3. P2:对比视图列hover高亮;探索视图物种计数徽章;首页数据徽章墙
+2. P1:Agent 规范13实测(限流恢复后);VLM 抽查配图质量
+3. P2:详情页引用 BibTeX 导出;首页六界卡直达红色名录对应界;探索视图节点卡配图缩略;对比视图交换物种
 
 ---
 Task ID: R2(cron 第1轮巡检, 2026-09-13 13:38)
@@ -388,3 +388,34 @@ Stage Summary(当前项目状态):
   2. Agent 实测(限流恢复后):验证规范12红色名录指引
   3. 备选新功能:红色名录页每组加"全部加入对比"按钮;物种详情页 IUCN 徽章点击跳红色名录对应分组;红色名录支持按界过滤;收藏夹导出(备份 JSON 下载/导入);详情页"引用格式"一键复制(学名+权威缩写)
   4. 已知取舍:redlist 六组各发一次 /api/species 请求(无分页全量,数据量小可接受);收藏密度与目录密度共用同一偏好(设计取舍:用户偏好跨视图一致)
+
+---
+Task ID: R9(cron 第8轮巡检, 2026-09-13 17:05)
+Agent: main
+Task: QA回归(零bug) + 6项新功能(红色名录大升级/引用格式/对比快搜选择器/IUCN三级跳转入口)
+
+Work Log:
+- 【环境判断】z-ai 全部 API(image/LLM/image-search)整轮仍账户级 429(轮初+轮末各探测一次),P0 补图继续搁置;dev server 中途被沙箱清理一次,`setsid bun run dev` 重启后稳定完成全部测试
+- 【QA回归】agent-browser 全链路:首页零 console 错误/六界卡跳转(动物界)/目录筛选渲染156/对比托盘3上限+对比视图12行表+只看差异切换/四种导出按钮齐备/红色名录分组+低危折叠/收藏夹视图+徽章/搜索"灵芝"6处高亮/暗色切换/390px 无溢出——全部通过,零新 bug
+- 【新功能A:红色名录大升级】
+  - store:redlistFocus(聚焦等级)+redlistKingdom(界筛选)双状态;openRedlist(opts) 语义化传参;patchRedlist 视图内修改;hash 路由升级 #redlist?iucn=CR&kingdom=Animalia(同页 hashchange+重载均恢复,空组合如 CR+Fungi=0 自动隐藏分组为正确数据事实)
+  - 按界筛选胶囊:六大家族界色胶囊(汇总六等级查询客户端统计计数,选中界色填充,动物界56/植物界等),全部界=62
+  - 每个等级分组新增「全部加入对比」按钮(≤3 入托盘,与收藏夹同款逻辑)
+  - 聚焦模式:从详情页/卡片跳入时 scrollIntoView 滚动+ring-2 红环+2.4s×2 pulse-ring 呼吸动画(新增 globals.css keyframes);聚焦低危等级时派生展开折叠区(showLower=lowerOpen||focusInLower,手动收起自动清除聚焦,规避 effect 内 setState)
+- 【新功能B:IUCN 三级跳转入口】物种详情页 hero 角标(「IUCN 易危·看同类」)+保护状况区等级牌+文字链、SpeciesCard 卡片右上角等级角标(stopPropagation 不触发卡片导航)——三处均可一键直达红色名录对应等级分组(自动滚动高亮);实测大熊猫 VU/目录 CR 卡片角标
+- 【新功能C:引用格式 CITATIO】物种详情页右栏新区块:①分类学引用(斜体学名+命名人,如 Panthera tigris (Linnaeus, 1758))②图鉴条目完整引用(含中文检索日期);复制按钮+ShareDialog 手动复制兜底(无头浏览器剪贴板被拒时实测弹兜底框,文本完整);快捷复制/论文写作场景
+- 【新功能D:对比视图快搜选择器】新组件 species-picker-dialog.tsx:DialogContent 卸载式设计(每次打开状态归零,规避 effect setState lint)+PickerBody 子组件(防抖 260ms 搜索/仅物种阶元/界徽章+IUCN 角标/已在托盘勾选态/加满自动关闭);对比视图「再挑一个物种」按钮改为打开选择器(保留「去图鉴目录逛逛」文字链)
+- 【关键修复】store.toggleCompare 在对比视图内时同步 view.ids(此前仅 removeCompare 同步,视图内直接添加会不刷新列——本次实测虎列即时出现验证通过)
+- 【发现】收藏夹导出/导入(备份 JSON 下载+合并去重导入)代码已存在(favorites-view 完整 UI),系上轮未记录的已完成项
+- 【集成更新】Agent 提示词规范12更新+规范13新增(红色名录聚焦/引用格式/快搜选择器/收藏备份);footer 功能清单更新
+- 【lint/tsc】修复过程中处理:react-compiler set-state-in-effect×2(redlist 聚焦展开改派生 state;picker 重构为卸载式)、preserve-manual-memoization×1(kingdomChips 改 IIFE 直接计算)、home-view onClick={openRedlist} 签名变更适配;最终 lint/tsc 零错误,console 零错误,390px 无溢出
+
+Stage Summary(当前项目状态):
+- 【稳定】6 项新功能全部浏览器实测通过;本轮 QA 回归零 bug,仅修复 toggleCompare 视图内同步这一真实缺陷
+- 视图清单:home/explore/taxon/search/browse/compare/favorites/redlist(8 个,5 个有 hash 路由,redlist 支持参数化分享)
+- 配图仍 142/311;z-ai 全 API 整轮 429,Agent 规范13未做 LLM 端到端实测(限流恢复后验证)
+- 下一轮优先:
+  1. P0 补图(429恢复后):`timeout 90 z-ai image -p "test" -o /tmp/t.png` 探测,恢复则 `BATCH=999 SCOPE=all CONCURRENCY=2 timeout 580 bun scripts/generate-images.ts` 连跑(勿用并发4);image-search 恢复则 `timeout 500 bun scripts/fetch-images.ts` 抓真实照片
+  2. Agent 实测(限流恢复后):验证规范13新功能指引(引用格式/红色名录聚焦/快搜选择器)
+  3. 备选新功能:对比视图「交换物种」便捷操作;详情页「引用格式」增加 BibTeX 导出;红色名录聚焦时给该等级加"本等级全部对比"已做,可加"只看有图物种"开关;首页六界卡点击直达红色名录对应界过滤;探索视图节点卡配图缩略
+  4. 已知取舍:redlist 界筛选为客户端过滤(六个等级查询已含全部字段,无额外请求);hashchange 恢复重置浏览历史栈(既有取舍);dev server 偶被沙箱清理,需 `setsid bun run dev` 重启

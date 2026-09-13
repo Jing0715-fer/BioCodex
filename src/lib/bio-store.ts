@@ -57,6 +57,10 @@ interface BioState {
   browseDensity: "grid" | "list";
   /** 快捷键帮助面板 */
   shortcutsOpen: boolean;
+  /** 红色名录:聚焦等级(滚动高亮锚点,如详情页跳入) */
+  redlistFocus: string | null;
+  /** 红色名录:按界过滤 */
+  redlistKingdom: string | null;
   goHome: () => void;
   explore: (taxonId?: string | null) => void;
   openTaxon: (id: string) => void;
@@ -64,7 +68,9 @@ interface BioState {
   openCompare: () => void;
   openBrowse: (filter?: BrowseFilter) => void;
   openFavorites: () => void;
-  openRedlist: () => void;
+  openRedlist: (opts?: { iucn?: string | null; kingdom?: string | null }) => void;
+  /** 红色名录内修改筛选(不压历史栈) */
+  patchRedlist: (patch: { iucn?: string | null; kingdom?: string | null }) => void;
   /** 目录内筛选变更(不压入历史栈) */
   patchBrowseFilter: (patch: Partial<BrowseState>) => void;
   setBrowseDensity: (d: "grid" | "list") => void;
@@ -89,6 +95,8 @@ export const useBioStore = create<BioState>((set, get) => ({
   browseFilter: { ...DEFAULT_BROWSE },
   browseDensity: "grid",
   shortcutsOpen: false,
+  redlistFocus: null,
+  redlistKingdom: null,
   goHome: () =>
     set((s) => ({ view: { type: "home" }, historyStack: [...s.historyStack, s.view].slice(-30) })),
   explore: (taxonId = null) =>
@@ -114,10 +122,18 @@ export const useBioStore = create<BioState>((set, get) => ({
       view: { type: "favorites" },
       historyStack: [...s.historyStack, s.view].slice(-30),
     })),
-  openRedlist: () =>
+  openRedlist: (opts = {}) =>
     set((s) => ({
       view: { type: "redlist" },
+      // 传 opts 则应用(未出现的键重置);不传则保留上次筛选
+      redlistFocus: "iucn" in opts ? opts.iucn ?? null : s.redlistFocus,
+      redlistKingdom: "kingdom" in opts ? opts.kingdom ?? null : s.redlistKingdom,
       historyStack: [...s.historyStack, s.view].slice(-30),
+    })),
+  patchRedlist: (patch) =>
+    set((s) => ({
+      redlistFocus: patch.iucn !== undefined ? patch.iucn : s.redlistFocus,
+      redlistKingdom: patch.kingdom !== undefined ? patch.kingdom : s.redlistKingdom,
     })),
   patchBrowseFilter: (patch) =>
     set((s) => ({
@@ -139,13 +155,23 @@ export const useBioStore = create<BioState>((set, get) => ({
   bumpUnread: () => set((s) => ({ agentUnread: s.agentUnread + 1 })),
   clearUnread: () => set({ agentUnread: 0 }),
   toggleCompare: (id) => {
-    const { compareIds } = get();
+    const { compareIds, view } = get();
     if (compareIds.includes(id)) {
-      set({ compareIds: compareIds.filter((x) => x !== id) });
+      const next = compareIds.filter((x) => x !== id);
+      set({
+        compareIds: next,
+        // 若当前正在对比视图,同步移除列,避免残留
+        view: view.type === "compare" ? { type: "compare", ids: view.ids.filter((x) => x !== id) } : view,
+      });
       return "removed";
     }
     if (compareIds.length >= MAX_COMPARE) return "full";
-    set({ compareIds: [...compareIds, id] });
+    const next = [...compareIds, id];
+    set({
+      compareIds: next,
+      // 若当前正在对比视图(如选择器直接添加),同步刷新对比列
+      view: view.type === "compare" ? { type: "compare", ids: next } : view,
+    });
     return "added";
   },
   removeCompare: (id) =>
@@ -168,10 +194,24 @@ export const useBioStore = create<BioState>((set, get) => ({
       window.history.replaceState(null, "", window.location.pathname + window.location.search + "#favorites");
       return true;
     }
-    // 红色名录专题: #redlist
-    if (h === "#redlist" || h.startsWith("#redlist?")) {
-      set({ view: { type: "redlist" }, historyStack: [] });
-      window.history.replaceState(null, "", window.location.pathname + window.location.search + "#redlist");
+    // 红色名录专题: #redlist 或 #redlist?iucn=CR&kingdom=Animalia
+    if (/^#redlist(\?.*)?$/.test(h)) {
+      const qs = h.split("?")[1] || "";
+      const sp = new URLSearchParams(qs);
+      set({
+        view: { type: "redlist" },
+        redlistFocus: sp.get("iucn") || null,
+        redlistKingdom: sp.get("kingdom") || null,
+        historyStack: [],
+      });
+      const out = new URLSearchParams();
+      if (sp.get("iucn")) out.set("iucn", sp.get("iucn")!);
+      if (sp.get("kingdom")) out.set("kingdom", sp.get("kingdom")!);
+      window.history.replaceState(
+        null,
+        "",
+        window.location.pathname + window.location.search + (out.toString() ? `#redlist?${out}` : "#redlist")
+      );
       return true;
     }
     // 对比分享链接: #compare=id1,id2

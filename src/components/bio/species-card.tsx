@@ -11,7 +11,7 @@ import { useFavorites, toggleFavorite, FAVORITES_MAX } from "@/lib/favorites";
 
 /** 聚合浏览/对比场景的物种卡片:支持一键加入对比托盘与收藏标本夹 */
 export function SpeciesCard({ species, index = 0 }: { species: SpeciesItem; index?: number }) {
-  const { openTaxon, compareIds, toggleCompare } = useBioStore();
+  const { openTaxon, compareIds, toggleCompare, openRedlist } = useBioStore();
   const favorites = useFavorites();
   const theme = KINGDOM_THEME[species.kingdom] || KINGDOM_THEME.Animalia;
   const inCompare = compareIds.includes(species.id);
@@ -76,14 +76,19 @@ export function SpeciesCard({ species, index = 0 }: { species: SpeciesItem; inde
           <TaxaPlaceholder latinName={species.latinName} kingdom={species.kingdom} className="h-full w-full" />
         )}
         {species.conservation && (
-          <span
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              openRedlist({ iucn: species.conservation });
+            }}
+            title={`查看红色名录中该等级全部物种`}
             className={cn(
-              "absolute right-2 top-2 rounded-sm px-1.5 py-0.5 text-[10px] font-bold text-white shadow",
+              "absolute right-2 top-2 rounded-sm px-1.5 py-0.5 text-[10px] font-bold text-white shadow transition-transform hover:scale-110 active:scale-95",
               IUCN_INFO[species.conservation]?.bg
             )}
           >
             {IUCN_INFO[species.conservation]?.label}
-          </span>
+          </button>
         )}
         {/* 左上角操作:加入对比 + 收藏 */}
         <div className="absolute left-2 top-2 flex items-center gap-1.5">
