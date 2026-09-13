@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useBioStore } from "@/lib/bio-store";
-import { useStats, useFeatured, useTree } from "@/hooks/use-bio";
+import { useStats, useFeatured, useTree, type TreeNodeDTO } from "@/hooks/use-bio";
 import { KINGDOM_THEME, IUCN_INFO } from "@/lib/bio-domain";
 import { KingdomIcon } from "./taxa-icon";
 import { Button } from "@/components/ui/button";
@@ -66,10 +66,20 @@ export function HomeView() {
   };
 
   const kingdomOrder = ["Bacteria", "Archaea", "Protista", "Fungi", "Plantae", "Animalia"];
+  // 递归查找界/域节点(真核四界嵌套在 Eukarya 域下,顶层找不到)
+  const findTreeNode = (nodes: TreeNodeDTO[] | undefined, la: string): TreeNodeDTO | null => {
+    if (!nodes) return null;
+    for (const n of nodes) {
+      if (n.la === la) return n;
+      const r = findTreeNode(n.ch, la);
+      if (r) return r;
+    }
+    return null;
+  };
   const kingdomCards = kingdomOrder
     .map((k) => {
       const t = KINGDOM_THEME[k];
-      const node = tree?.find((n) => n.la === k);
+      const node = findTreeNode(tree, k);
       const stat = stats?.kingdoms.find((s) => s.kingdom === k);
       return { k, t, node, species: stat?.species ?? node?.sc ?? 0, taxa: stat?.taxa ?? 0 };
     });
@@ -117,6 +127,22 @@ export function HomeView() {
               </Button>
             </div>
           </div>
+
+          {/* 生命之树版画横幅 */}
+          <figure className="reveal-up relative mt-10 overflow-hidden rounded-xl border border-foreground/15 shadow-md">
+            <img
+              src="/generated/hero-tree-of-life.png"
+              alt="生命之树复古铜版画:从微生物到哺乳动物的演化全景"
+              className="img-fade-in h-44 w-full object-cover object-center sm:h-64 lg:h-72"
+            />
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-background/55 via-transparent to-background/55" />
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-background/80 to-transparent" />
+            <figcaption className="absolute bottom-3 left-5 flex items-center gap-2 text-xs text-foreground/70 dark:text-foreground/60">
+              <span className="h-px w-6 bg-foreground/40" />
+              <span className="latin text-sm">Arbor Vitae</span>
+              <span>生命之树 · 从原核到哺乳的演化长卷</span>
+            </figcaption>
+          </figure>
 
           {/* 统计带 */}
           <div className="mt-12 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-foreground/10 bg-foreground/10 shadow-sm sm:grid-cols-3 lg:grid-cols-6">

@@ -48,12 +48,15 @@ export async function GET(
     const childStats = new Map<string, number>();
     for (const c of node?.children || []) childStats.set(c.id, c.speciesCount);
 
-    // 兄弟(含自身,用于上/下导航)
+    // 兄弟(含自身,用于上/下导航与同属近亲)
     const siblings = taxon.parentId
       ? await db.taxon.findMany({
           where: { parentId: taxon.parentId },
           orderBy: { sortOrder: "asc" },
-          select: { id: true, latinName: true, chineseName: true, rank: true },
+          select: {
+            id: true, latinName: true, chineseName: true, rank: true,
+            image: true, conservation: true, description: true,
+          },
         })
       : [];
 

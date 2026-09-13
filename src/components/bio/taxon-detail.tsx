@@ -98,6 +98,11 @@ export function TaxonDetail({ id }: { id: string }) {
   const prev = idx > 0 ? siblings[idx - 1] : null;
   const next = idx >= 0 && idx < siblings.length - 1 ? siblings[idx + 1] : null;
   const tags = taxon.tags || [];
+  // 同属近亲(排除自身)
+  const relatedSpecies = siblings.filter(
+    (s) => s.rank === "species" && s.id !== taxon.id
+  );
+  const genusName = lineage[lineage.length - 1]?.chineseName;
 
   return (
     <div className="mx-auto w-full max-w-[1400px] px-4 pb-8 pt-4 sm:px-6">
@@ -234,6 +239,53 @@ export function TaxonDetail({ id }: { id: string }) {
                     图鉴中 {data.counts.speciesCount >= 0 && "收录的该等级物种均附红色名录直链,可查最新评估。"}
                   </p>
                 </div>
+              </div>
+            </SectionCard>
+          )}
+
+          {/* 同属近亲 */}
+          {isSpecies && relatedSpecies.length > 0 && (
+            <SectionCard
+              title={`${genusName || "同属"}的其它成员(${relatedSpecies.length})`}
+              icon={Sparkles}
+            >
+              <div className="nh-scroll -mx-1 flex gap-3 overflow-x-auto px-1 pb-2">
+                {relatedSpecies.map((r) => (
+                  <button
+                    key={r.id}
+                    onClick={() => openTaxon(r.id)}
+                    className="group relative w-40 shrink-0 overflow-hidden rounded-lg border border-foreground/10 bg-muted/30 text-left transition-all hover:border-primary/40 hover:shadow-md"
+                  >
+                    <div className="relative h-24 w-full overflow-hidden">
+                      {r.image ? (
+                        <img
+                          src={r.image}
+                          alt={r.chineseName}
+                          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <TaxaPlaceholder latinName={r.latinName} kingdom={taxon.kingdom} className="h-full w-full" />
+                      )}
+                      {r.conservation && (
+                        <span
+                          className={cn(
+                            "absolute right-1.5 top-1.5 rounded-sm px-1 py-0.5 text-[9px] font-bold text-white",
+                            IUCN_INFO[r.conservation]?.bg
+                          )}
+                        >
+                          {r.conservation}
+                        </span>
+                      )}
+                    </div>
+                    <div className="p-2">
+                      <p className="truncate text-[13px] font-semibold text-foreground group-hover:text-primary">
+                        {r.chineseName}
+                      </p>
+                      <p className="latin truncate text-[10px] text-muted-foreground">{r.latinName}</p>
+                    </div>
+                  </button>
+                ))}
               </div>
             </SectionCard>
           )}

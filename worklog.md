@@ -183,3 +183,22 @@ Stage Summary:
 3. P1:物种详情增加"同属近亲"推荐、相关文献卡片
 4. P2:对比功能(选 2-3 物种并排对比形态/分布)
 5. P2:按 IUCN/界/标签的聚合浏览页
+
+---
+Task ID: R2(cron 第1轮巡检, 2026-09-13 13:38)
+Agent: main
+Task: QA回归 + 修复界卡片Bug + 新功能(hero横幅/同属近亲) + 补图两批
+
+Work Log:
+- QA 发现真Bug:首页六大界卡片中,真核四界(原生生物/真菌/植物/动物)点击无效
+  原因:home-view 用 tree?.find() 只在顶层找节点,而真核界嵌套在 Eukarya 域下 → id 为 undefined,onClick 静默失败
+  修复:改为递归 findTreeNode(tree, k);已浏览器实测动物界(10 门卡)与真菌界(5 门卡)跳转正常
+- P1 首页 hero 新增"生命之树 Arbor Vitae"复古铜版画横幅(z-ai image 1344x768,渐变遮罩+拉丁图注),VLM 评估协调性高、无遮挡
+- P1 物种详情新增"同属近亲"区块:API siblings select 扩展 image/conservation/description,前端横向滚动卡片(已用中华蜜蜂↔西方蜜蜂实测)
+- P0 补图:两批 SCOPE=all 生成插画 42 张(变形菌门各菌/古菌/原生生物等),累计配图 ~125/311
+- image-search 服务本轮仍 400 不可用(已测试),继续走 AI 插画路线
+- lint/tsc 零错误;dev.log 无新增错误
+
+Stage Summary:
+- 修复1个真实交互Bug;新增2个P1功能;配图进度 84→~125
+- 交接建议:下轮继续 BATCH=40 SCOPE=all 分批补图;可做 P2 物种对比功能或 IUCN/界聚合浏览页;首页六界卡下方可加"最近更新"时间线

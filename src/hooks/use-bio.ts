@@ -49,7 +49,15 @@ export interface TaxonDetailResponse {
   success: boolean;
   taxon: TaxonDetail;
   lineage: { id: string; rank: string; latinName: string; chineseName: string }[];
-  siblings: { id: string; latinName: string; chineseName: string; rank: string }[];
+  siblings: {
+    id: string;
+    latinName: string;
+    chineseName: string;
+    rank: string;
+    image: string | null;
+    conservation: string | null;
+    description: string | null;
+  }[];
   children: ChildDTO[];
   counts: { children: number; speciesCount: number; totalCount: number };
 }
