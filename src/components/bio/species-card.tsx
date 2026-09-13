@@ -2,7 +2,7 @@
 
 import { useBioStore, MAX_COMPARE } from "@/lib/bio-store";
 import type { SpeciesItem } from "@/hooks/use-bio";
-import { KINGDOM_THEME, IUCN_INFO } from "@/lib/bio-domain";
+import { KINGDOM_THEME, IUCN_INFO, phylumZh } from "@/lib/bio-domain";
 import { KingdomIcon, TaxaPlaceholder } from "./taxa-icon";
 import { GitCompareArrows, Check, ArrowRight, Microscope, Star, Bookmark } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -147,6 +147,9 @@ export function SpeciesCard({ species, index = 0 }: { species: SpeciesItem; inde
             </p>
             <p className="latin mt-0.5 truncate text-xs text-muted-foreground italic">
               {species.latinName}
+              {phylumZh(species.phylum) && (
+                <span className="not-italic text-muted-foreground/55"> · {phylumZh(species.phylum)}</span>
+              )}
             </p>
           </div>
           <span

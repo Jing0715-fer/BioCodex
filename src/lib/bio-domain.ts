@@ -221,3 +221,61 @@ export function kingdomOf(path: string[] | undefined): string {
   if (path.includes("Archaea")) return "Archaea";
   return "Animalia";
 }
+
+/** 全库 48 门拉丁名 → 中文标准译名(卡片/行级门徽标用,与 DB phylum 阶元一一对应) */
+export const PHYLUM_ZH: Record<string, string> = {
+  "Actinomycetota": "放线菌门",
+  "Amoebozoa": "变形虫门",
+  "Annelida": "环节动物门",
+  "Apicomplexa": "顶复门",
+  "Arthropoda": "节肢动物门",
+  "Ascomycota": "子囊菌门",
+  "Bacillariophyta": "硅藻门",
+  "Bacillota": "厚壁菌门",
+  "Bacteroidota": "拟杆菌门",
+  "Basidiomycota": "担子菌门",
+  "Bryophyta": "藓类植物门",
+  "Chlamydiota": "衣原体门",
+  "Chlorophyta": "绿藻门",
+  "Choanozoa": "领鞭动物门",
+  "Chordata": "脊索动物门",
+  "Chytridiomycota": "壶菌门",
+  "Ciliophora": "纤毛门",
+  "Cnidaria": "刺胞动物门",
+  "Crenarchaeota": "泉古菌门",
+  "Cyanobacteria": "蓝细菌门",
+  "Cycadophyta": "苏铁门",
+  "Deinococcota": "异常球菌门",
+  "Dinoflagellata": "甲藻门",
+  "Echinodermata": "棘皮动物门",
+  "Euglenozoa": "眼虫门",
+  "Euryarchaeota": "广古菌门",
+  "Foraminifera": "有孔虫门",
+  "Ginkgophyta": "银杏门",
+  "Glomeromycota": "球囊菌门",
+  "Gnetophyta": "买麻藤门",
+  "Hemichordata": "半索动物门",
+  "Lycopodiophyta": "石松门",
+  "Magnoliophyta": "被子植物门",
+  "Marchantiophyta": "苔类植物门",
+  "Mollusca": "软体动物门",
+  "Mucoromycota": "毛霉门",
+  "Nanoarchaeota": "纳米古菌门",
+  "Nematoda": "线虫动物门",
+  "Ochrophyta": "褐藻门",
+  "Oomycota": "卵菌门",
+  "Pinophyta": "松柏门",
+  "Platyhelminthes": "扁形动物门",
+  "Polypodiophyta": "蕨类植物门",
+  "Porifera": "多孔动物门",
+  "Pseudomonadota": "变形菌门",
+  "Rhodophyta": "红藻门",
+  "Spirochaetota": "螺旋体门",
+  "Thaumarchaeota": "奇古菌门",
+};
+
+/** 门拉丁名 → 中文(未知门回退空串) */
+export function phylumZh(latin?: string | null): string {
+  if (!latin) return "";
+  return PHYLUM_ZH[latin] ?? "";
+}

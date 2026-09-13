@@ -2,7 +2,7 @@
 
 import { useBioStore } from "@/lib/bio-store";
 import type { SpeciesItem } from "@/hooks/use-bio";
-import { KINGDOM_THEME, IUCN_INFO } from "@/lib/bio-domain";
+import { KINGDOM_THEME, IUCN_INFO, phylumZh } from "@/lib/bio-domain";
 import { GitCompareArrows, Check, ArrowRight, Bookmark } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -91,7 +91,12 @@ export function SpeciesRow({ species, index = 0 }: { species: SpeciesItem; index
           <span className="font-display text-sm font-bold text-foreground group-hover:text-primary">
             {species.chineseName}
           </span>
-          <span className="latin truncate text-xs text-muted-foreground italic">{species.latinName}</span>
+          <span className="latin truncate text-xs text-muted-foreground italic">
+            {species.latinName}
+            {phylumZh(species.phylum) && (
+              <span className="not-italic text-muted-foreground/55"> · {phylumZh(species.phylum)}</span>
+            )}
+          </span>
           {isFav && (
             <span className="flex items-center gap-0.5 rounded-sm bg-amber-500/15 px-1 py-px text-[9px] font-semibold text-amber-700 dark:text-amber-400">
               <Bookmark className="h-2 w-2 fill-current" />
