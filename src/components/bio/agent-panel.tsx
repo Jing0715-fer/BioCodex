@@ -9,9 +9,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { KingdomIcon } from "./taxa-icon";
 import ReactMarkdown from "react-markdown";
-import { Sparkles, Send, X, RotateCcw, Bot, User, ChevronRight, GitCompareArrows } from "lucide-react";
+import { Sparkles, Send, X, RotateCcw, Bot, User, ChevronRight, GitCompareArrows, Bookmark } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { useFavorites, toggleFavorite } from "@/lib/favorites";
 
 interface MatchDTO {
   id: string;
@@ -91,6 +92,8 @@ function AssistantMarkdown({ content, matches }: { content: string; matches?: Ma
 
 export function AgentPanel() {
   const { agentOpen, setAgentOpen, openTaxon, agentUnread, clearUnread, toggleCompare, compareIds } = useBioStore();
+  const favorites = useFavorites();
+  const isFav = (id: string) => favorites.some((f) => f.id === id);
   const [messages, setMessages] = useState<Msg[]>([
     {
       role: "assistant",
@@ -298,6 +301,36 @@ export function AgentPanel() {
                                       )}
                                     >
                                       <GitCompareArrows className="h-4 w-4" />
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        const r = toggleFavorite({
+                                          id: mt.id,
+                                          chineseName: mt.chineseName,
+                                          latinName: mt.latinName,
+                                          kingdom: mt.kingdom,
+                                          image: mt.image,
+                                          conservation: mt.conservation,
+                                          ncbiTaxId: null,
+                                          description: null,
+                                        });
+                                        if (r === "added")
+                                          toast({
+                                            title: `已将「${mt.chineseName}」收进标本夹`,
+                                            description: "头栏书签图标可查看全部收藏",
+                                          });
+                                        else if (r === "removed") toast({ title: `已将「${mt.chineseName}」从标本夹取出` });
+                                      }}
+                                      aria-label={`收藏${mt.chineseName}到标本夹`}
+                                      title="收进标本夹"
+                                      className={cn(
+                                        "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition-all",
+                                        isFav(mt.id)
+                                          ? "border-amber-500/50 bg-amber-500/15 text-amber-600"
+                                          : "border-foreground/10 bg-muted/40 text-muted-foreground/60 hover:border-amber-500/40 hover:text-amber-600"
+                                      )}
+                                    >
+                                      <Bookmark className={cn("h-4 w-4", isFav(mt.id) && "fill-current")} />
                                     </button>
                                   </div>
                                 );

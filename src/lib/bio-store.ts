@@ -8,7 +8,8 @@ export type BioView =
   | { type: "taxon"; id: string; focus?: string }
   | { type: "search"; q: string }
   | { type: "compare"; ids: string[] }
-  | { type: "browse" };
+  | { type: "browse" }
+  | { type: "favorites" };
 
 export interface BrowseFilter {
   iucn?: string | null;
@@ -61,6 +62,7 @@ interface BioState {
   openSearch: (q: string) => void;
   openCompare: () => void;
   openBrowse: (filter?: BrowseFilter) => void;
+  openFavorites: () => void;
   /** 目录内筛选变更(不压入历史栈) */
   patchBrowseFilter: (patch: Partial<BrowseState>) => void;
   setBrowseDensity: (d: "grid" | "list") => void;
@@ -103,6 +105,11 @@ export const useBioStore = create<BioState>((set, get) => ({
       view: { type: "browse" },
       // 传入具体筛选则整组应用(其余重置);空参数仅进入目录,保留上次筛选
       browseFilter: Object.keys(filter).length > 0 ? { ...DEFAULT_BROWSE, ...filter } : s.browseFilter,
+      historyStack: [...s.historyStack, s.view].slice(-30),
+    })),
+  openFavorites: () =>
+    set((s) => ({
+      view: { type: "favorites" },
       historyStack: [...s.historyStack, s.view].slice(-30),
     })),
   patchBrowseFilter: (patch) =>
@@ -148,6 +155,12 @@ export const useBioStore = create<BioState>((set, get) => ({
   hydrateFromHash: () => {
     if (typeof window === "undefined") return false;
     const h = window.location.hash;
+    // 标本收藏夹: #favorites
+    if (h === "#favorites" || h.startsWith("#favorites?")) {
+      set({ view: { type: "favorites" }, historyStack: [] });
+      window.history.replaceState(null, "", window.location.pathname + window.location.search + "#favorites");
+      return true;
+    }
     // 对比分享链接: #compare=id1,id2
     const mc = h.match(/^#compare=([a-zA-Z0-9]+(?:,[a-zA-Z0-9]+)+)/);
     if (mc) {

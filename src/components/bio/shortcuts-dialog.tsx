@@ -5,7 +5,7 @@ import { useBioStore } from "@/lib/bio-store";
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import { Search, ArrowLeftRight, XCircle, Keyboard, CornerDownLeft, HelpCircle, MousePointerClick } from "lucide-react";
+import { Search, ArrowLeftRight, XCircle, Keyboard, CornerDownLeft, HelpCircle, MousePointerClick, Bookmark } from "lucide-react";
 
 interface Shortcut {
   keys: string[];
@@ -28,6 +28,7 @@ const GROUPS: { title: string; hint: string; items: Shortcut[] }[] = [
     hint: "查看物种时可用",
     items: [
       { keys: ["←", "→"], desc: "灯箱放大图中切换同属上一个 / 下一个物种", icon: ArrowLeftRight },
+      { keys: ["F"], desc: "收藏 / 取消收藏当前物种(存入标本夹)", icon: Bookmark },
     ],
   },
   {
@@ -41,7 +42,7 @@ const GROUPS: { title: string; hint: string; items: Shortcut[] }[] = [
     title: "指针操作",
     hint: "同样高效",
     items: [
-      { keys: ["点击"], desc: "卡片「对比」按钮加入托盘;详情页主图点击放大", icon: MousePointerClick },
+      { keys: ["点击"], desc: "卡片「对比」按钮加入托盘;卡片书签按钮收进标本夹;详情页主图点击放大", icon: MousePointerClick },
     ],
   },
 ];

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Diff } from "lucide-react";
 import { useBioStore, MAX_COMPARE } from "@/lib/bio-store";
 import { useTaxaBatch, type TaxonDetailResponse } from "@/hooks/use-bio";
 import { buildDbLinks, IUCN_INFO, KINGDOM_THEME, rankLabel } from "@/lib/bio-domain";
@@ -38,6 +39,8 @@ export function CompareView({ ids }: { ids: string[] }) {
   const [fallback, setFallback] = useState<{ kind: "md" | "link"; text: string } | null>(null);
   /** hover 高亮的物种列 id(列头卡与表格列联动) */
   const [hoverCol, setHoverCol] = useState<string | null>(null);
+  /** 「只看差异」聚焦模式:隐藏所有物种完全一致的行 */
+  const [diffOnly, setDiffOnly] = useState(false);
 
   const taxa = data || [];
 
@@ -160,7 +163,7 @@ export function CompareView({ ids }: { ids: string[] }) {
       const norm = values.map((v) => v.trim());
       return { key, label, icon, values, uniform: new Set(norm).size === 1 && norm[0] !== "—" };
     };
-    return [
+    const base: CompareRow[] = [
       build("kingdom", "界/域", Database, (t) => kingdomOrDomain(t)),
       build("phylum", "门", Database, (t) => lineageOf(t, "phylum")),
       build("class", "纲", Database, (t) => lineageOf(t, "class")),
@@ -237,7 +240,15 @@ export function CompareView({ ids }: { ids: string[] }) {
           ),
       },
     ];
+    return base.map((r) => ({
+      ...r,
+      // 统一为每一行计算 uniform(含文本字段),供「只看差异」过滤与徽标显示
+      uniform: r.uniform ?? new Set(r.values.map((v) => v.trim())).size === 1,
+    }));
   }, [taxa]);
+
+  const diffCount = rows.filter((r) => !r.uniform).length;
+  const shownRows = diffOnly ? rows.filter((r) => !r.uniform) : rows;
 
   if (isLoading) {
     return (
@@ -295,6 +306,17 @@ export function CompareView({ ids }: { ids: string[] }) {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant={diffOnly ? "default" : "outline"}
+            size="sm"
+            className={"gap-1.5 rounded-full"}
+            onClick={() => setDiffOnly((v) => !v)}
+            aria-pressed={diffOnly}
+            title={diffOnly ? "切回显示全部字段" : "隐藏完全一致的行,聚焦差异"}
+          >
+            <Diff className="h-4 w-4" />
+            {diffOnly ? "显示全部字段" : `只看差异${diffCount > 0 ? `(${diffCount})` : ""}`}
+          </Button>
           <Button variant="outline" size="sm" className="gap-1.5 rounded-full" onClick={exportMarkdown}>
             {copied === "md" ? <Check className="h-4 w-4 text-emerald-600" /> : <ClipboardCopy className="h-4 w-4" />}
             {copied === "md" ? "已复制" : "导出 Markdown"}
@@ -451,12 +473,23 @@ export function CompareView({ ids }: { ids: string[] }) {
       <div className="nh-scroll mt-4 overflow-x-auto rounded-xl border border-foreground/10 bg-card shadow-sm">
         <table className="w-full border-collapse" style={{ minWidth: 560 }}>
           <tbody>
-            {rows.map((row, i) => (
+            {diffOnly && shownRows.length === 0 && (
+              <tr>
+                <td colSpan={taxa.length + 1} className="px-4 py-10 text-center">
+                  <p className="flex flex-col items-center gap-2 text-sm text-muted-foreground">
+                    <Diff className="h-6 w-6 text-emerald-500/60" />
+                    所选物种在各阶元与字段上高度一致——试试换一个差异更大的组合?
+                  </p>
+                </td>
+              </tr>
+            )}
+            {shownRows.map((row, i) => (
               <tr
                 key={row.key}
                 className={cn(
                   "border-b border-foreground/8 last:border-0",
-                  i % 2 === 1 && "bg-muted/25"
+                  i % 2 === 1 && "bg-muted/25",
+                  diffOnly && !row.uniform && "bg-amber-500/[0.06]"
                 )}
               >
                 <th
@@ -467,19 +500,17 @@ export function CompareView({ ids }: { ids: string[] }) {
                     <row.icon className="h-3.5 w-3.5 text-primary/70" />
                     {row.label}
                   </span>
-                  {row.uniform !== undefined && row.key !== "morphology" && row.key !== "habitat" && row.key !== "distribution" && (
-                    <Badge
-                      variant="outline"
-                      className={cn(
-                        "mt-1.5 px-1.5 py-0 text-[9px] font-semibold",
-                        row.uniform
-                          ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-                          : "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400"
-                      )}
-                    >
-                      {row.uniform ? "一致" : "相异"}
-                    </Badge>
-                  )}
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      "mt-1.5 px-1.5 py-0 text-[9px] font-semibold",
+                      row.uniform
+                        ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                        : "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400"
+                    )}
+                  >
+                    {row.uniform ? "一致" : "相异"}
+                  </Badge>
                 </th>
                 {taxa.map((t, ti) => (
                   <td
@@ -531,7 +562,7 @@ export function CompareView({ ids }: { ids: string[] }) {
       </div>
 
       <p className="mt-3 text-center text-[11px] text-muted-foreground/60">
-        对比数据与图鉴条目同源;「一致/相异」徽标提示该阶元或字段在所选物种间是否相同。详细数据库入口见各列头部快捷链接。
+        对比数据与图鉴条目同源;「一致/相异」徽标提示该阶元或字段在所选物种间是否相同;用「只看差异」可隐藏完全一致的行。详细数据库入口见各列头部快捷链接。
       </p>
 
       {/* 剪贴板不可用时的手动复制兑底 */}

@@ -327,3 +327,33 @@ Stage Summary(当前项目状态):
   2. Agent 实测(限流恢复后):验证规范10新功能指引
   3. 备选新功能:详情页「界主题装饰纹样」(各界卡片区角落纹样差异化);首页「足迹接续」区块(基于浏览足迹推荐近亲);探索视图节点卡加配图缩略;目录视图虚拟滚动优化(311 卡全量渲染)
   4. 已知取舍:足迹记录所有阶元(含非物种,便于回溯);CSV 导出在无头浏览器自动落地 Downloads,普通浏览器走下载栏
+
+---
+Task ID: R7(cron 第6轮巡检, 2026-09-13 16:20)
+Agent: main
+Task: QA回归(零bug) + 6项新功能(标本收藏夹/足迹接续/界纹样/只看差异/多入口收藏/hero快捷入口) + 1 bug修复
+
+Work Log:
+- 【环境判断】z-ai 全部 API(image/LLM/image-search)轮初探测仍账户级 429,P0 补图继续搁置;dev server 全程稳定
+- 【QA回归】agent-browser 全链路:首页零错误/六界卡跳转/7级下潜(动物界→脊索→脊椎→哺乳→灵长→人科→人属→智人)/智人详情主图+时间轴+近亲/对比托盘+9行表+MD/CSV/分享/搜索大熊猫→建议→详情/暗色/快捷键面板/目录筛选/390px 无溢出——全部通过,本轮 QA 零新 bug
+- 【新功能A:标本收藏夹 Specimen Cabinet】(本轮主体)
+  - src/lib/favorites.ts:localStorage 持久化(上限60件)+事件订阅模型(同页多实例+跨标签页同步), FavoriteEntry 含渲染卡片所需全部字段(可离线渲染)
+  - store 新增 favorites 视图+openFavorites;hash 路由 #favorites(mount 恢复+同页 hashchange 恢复)
+  - favorites-view.tsx:标题区(SPECIMEN CABINET+界纹样装饰带)+界色分隔纹章线+SpeciesCard 网格(离线数据映射)+收藏时间行+「全部加入对比」(逐个入托盘≤3,满2自动进对比视图)+「清空」+空态(六界色斜插标本卡插画+指引)
+  - 入口全覆盖:①SpeciesCard hover 书签按钮(与对比按钮同排左上,已收藏常亮琥珀+「标本」角标) ②详情页右上角「收藏」按钮(加入对比旁) ③header 书签图标+计数徽章 ④首页 hero「我的标本夹(N)」按钮(N>0时) ⑤Agent 引用卡收藏按钮 ⑥搜索结果卡收藏按钮 ⑦快捷键 F(详情页收藏/取消)
+  - 快捷键面板/Agent提示词规范11/footer 功能清单同步更新
+- 【修复bug】page.tsx hashchange 监听正则 /^#(compare|browse)/ 漏掉 favorites → 同页粘贴 #favorites 不恢复视图;已改为 /^#(compare|browse|favorites)/ 并实测恢复
+- 【新功能B:首页「足迹接续 Ubi Relinquisti」区块】hero 与六界卡之间:琥珀底横滚胶囊芯片(缩略图/界徽/中文名/相对时间),点击续读;「清除足迹」按钮;无足迹时整区块隐藏(首访者不见)
+- 【新功能C:界主题装饰纹样 KingdomOrnament】新组件 kingdom-ornament.tsx:6 域差异化手绘 SVG(细菌=链球菌+杆菌+鞭毛波/古菌=六边形晶格/原生=纤毛波浪+眼点/真菌=孢子点阵+菌丝/植物=叶脉+果实/动物=足迹序列+羽毛);三处应用:详情页主图顶部白纹钢印、六界卡右下角界色纹样(hover 加深)、收藏视图标题装饰带(按收藏界别动态显示前3)
+- 【新功能D:对比视图「只看差异」聚焦模式】所有行统一计算 uniform(含形态/生境/分布/NCBI 文本字段,徽标全行显示);「只看差异(N)」切换按钮(相异行琥珀底纹强调);全一致时空态提示;实测 11↔10 行切换
+- 【验证】lint/tsc 零错误;dev.log 全 200 无错误;暗色截图合格;390px 无横向溢出;console 零错误
+
+Stage Summary(当前项目状态):
+- 【稳定】6 项新功能全部浏览器实测通过;修复 1 个真实 bug(hashchange 正则遗漏 favorites)
+- 收藏功能全链路:卡片/详情/header/hero/Agent/搜索/快捷键 7 入口 + #favorites 分享路由 + 一键全对比
+- 配图仍 142/311;z-ai 全 API 本轮仍 429(账户级),Agent 规范11提示词未做 LLM 端到端实测(限流恢复后验证)
+- 下一轮优先:
+  1. P0 补图(429恢复后):`timeout 90 z-ai image -p "test" -o /tmp/t.png` 探测,恢复则 `BATCH=999 SCOPE=all CONCURRENCY=2 timeout 580 bun scripts/generate-images.ts` 连跑(勿用并发4)
+  2. Agent 实测(限流恢复后):验证规范11收藏指引
+  3. 备选新功能:收藏视图列表密度(复用 SpeciesRow);详情页收藏时跨页同步动画;对比导出 JSON 格式;IUCN 红色名录专题聚合页;首页「足迹接续」增加同属近亲推荐(需 API)
+  4. 已知取舍:收藏数据仅存本机 localStorage(换设备/清缓存不随行,已在 UI 说明);标本夹上限 60 件

@@ -4,13 +4,16 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useBioStore } from "@/lib/bio-store";
 import { useStats, useFeatured, useTree, useRecent, type TreeNodeDTO } from "@/hooks/use-bio";
 import { KINGDOM_THEME, IUCN_INFO } from "@/lib/bio-domain";
+import { useViewHistory, relativeTime, clearHistory } from "@/lib/view-history";
+import { useFavorites } from "@/lib/favorites";
 import { KingdomIcon } from "./taxa-icon";
+import { KingdomOrnament } from "./kingdom-ornament";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  ArrowRight, ChevronRight, Sparkles, Dna, BookOpen, Shield, Database, Shuffle, RefreshCw, LayoutGrid, History,
+  ArrowRight, ChevronRight, Sparkles, Dna, BookOpen, Shield, Database, Shuffle, RefreshCw, LayoutGrid, History, Footprints, Trash2, Bookmark,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -83,11 +86,13 @@ function DataRing({
 }
 
 export function HomeView() {
-  const { explore, openTaxon, setAgentOpen, openBrowse } = useBioStore();
+  const { explore, openTaxon, setAgentOpen, openBrowse, openFavorites } = useBioStore();
   const { data: stats } = useStats();
   const { data: featured, refetch: refetchFeatured } = useFeatured();
   const { data: tree } = useTree();
   const { data: recent } = useRecent(12);
+  const history = useViewHistory();
+  const favorites = useFavorites();
 
   // 随机漫游(摇号动效):中奖结果一次拉取,滚动画面从本地候选池循环采样,避免连发 API
   const [rand, setRand] = useState<{ id: string; chineseName: string; latinName: string; image: string | null; kingdom?: string | null } | null>(null);
@@ -217,6 +222,17 @@ export function HomeView() {
                 <Dna className="h-4 w-4" />
                 问问 AI 助手
               </Button>
+              {favorites.length > 0 && (
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="h-11 gap-2 rounded-full border-amber-500/40 text-amber-700 hover:bg-amber-500 hover:text-white dark:text-amber-400"
+                  onClick={openFavorites}
+                >
+                  <Bookmark className="h-4 w-4" />
+                  我的标本夹({favorites.length})
+                </Button>
+              )}
             </div>
           </div>
 
@@ -301,6 +317,74 @@ export function HomeView() {
         <div className="dna-divider" />
       </section>
 
+      {/* ============ 足迹接续(个性化回访) ============ */}
+      {history.length > 0 && (
+        <section className="border-b border-foreground/10 bg-amber-50/50 paper-texture dark:bg-amber-950/10" aria-label="足迹接续">
+          <div className="mx-auto w-full max-w-[1400px] px-4 py-6 sm:px-6">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-baseline gap-2.5">
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500/15 text-amber-700 dark:text-amber-400">
+                  <Footprints className="h-4 w-4" />
+                </span>
+                <h2 className="font-display text-lg font-bold text-foreground">
+                  足迹接续
+                  <span className="latin ml-1.5 text-sm font-normal text-muted-foreground">Ubi Relinquisti</span>
+                </h2>
+                <p className="hidden text-xs text-muted-foreground/80 sm:block">从上次停下的地方继续翻阅</p>
+              </div>
+              <button
+                className="flex items-center gap-1 rounded-full px-2 py-1 text-[10px] text-muted-foreground/70 transition-colors hover:bg-foreground/5 hover:text-foreground"
+                onClick={() => clearHistory()}
+              >
+                <Trash2 className="h-3 w-3" />
+                清除足迹
+              </button>
+            </div>
+            <div className="nh-scroll -mx-1 flex gap-2.5 overflow-x-auto px-1 pb-1.5">
+              {history.slice(0, 10).map((h, i) => {
+                const theme = KINGDOM_THEME[h.kingdom] || KINGDOM_THEME.Animalia;
+                return (
+                  <button
+                    key={h.id}
+                    onClick={() => openTaxon(h.id)}
+                    className="reveal-up group flex shrink-0 items-center gap-2.5 rounded-full border border-foreground/10 bg-card py-1.5 pl-1.5 pr-3.5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
+                    style={{ animationDelay: `${Math.min(i, 10) * 40}ms` }}
+                    aria-label={`继续阅读:${h.chineseName}(${relativeTime(h.ts)})`}
+                  >
+                    {h.image ? (
+                      <img
+                        src={h.image}
+                        alt={h.chineseName}
+                        className="h-8 w-8 rounded-full object-cover ring-2"
+                        style={{ "--tw-ring-color": `${theme.color}55` } as React.CSSProperties}
+                        loading="lazy"
+                      />
+                    ) : (
+                      <span
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white"
+                        style={{ background: theme.color }}
+                        aria-hidden
+                      >
+                        <KingdomIcon kingdom={h.kingdom} className="h-3.5 w-3.5" />
+                      </span>
+                    )}
+                    <span className="min-w-0 flex-col text-left leading-tight">
+                      <span className="block max-w-28 truncate text-[13px] font-semibold text-foreground">
+                        {h.chineseName}
+                      </span>
+                      <span className="block max-w-28 truncate text-[9px] tabular-nums text-muted-foreground/70">
+                        {relativeTime(h.ts)}
+                      </span>
+                    </span>
+                    <ChevronRight className="h-3 w-3 shrink-0 text-muted-foreground/40 transition-transform group-hover:translate-x-0.5" />
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* ============ 六大界 ============ */}
       <section className="mx-auto w-full max-w-[1400px] px-4 py-12 sm:px-6">
         <div className="mb-6 flex items-baseline justify-between">
@@ -324,6 +408,12 @@ export function HomeView() {
                 <div
                   className="absolute inset-x-0 top-0 h-1 opacity-80"
                   style={{ background: `linear-gradient(90deg, ${t.color}, ${t.color}88)` }}
+                />
+                {/* 界主题装饰纹样(右下角钢印) */}
+                <KingdomOrnament
+                  kingdom={k}
+                  className="pointer-events-none absolute bottom-2.5 right-2.5 h-6 w-24 opacity-[0.16] transition-opacity duration-500 group-hover:opacity-30"
+                  style={{ color: t.color }}
                 />
                 <div className="flex items-start justify-between">
                   <span

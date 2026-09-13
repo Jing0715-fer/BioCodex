@@ -4,8 +4,16 @@ import { KINGDOM_THEME, rankLabel } from "@/lib/bio-domain";
 import { Dna, Microscope, Sparkles, Bug, TreePine, PawPrint, Leaf } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export function KingdomIcon({ kingdom, className }: { kingdom: string; className?: string }) {
-  const props = { className: cn("h-4 w-4", className) };
+export function KingdomIcon({
+  kingdom,
+  className,
+  style,
+}: {
+  kingdom: string;
+  className?: string;
+  style?: React.CSSProperties;
+}) {
+  const props = { className: cn("h-4 w-4", className), style };
   switch (kingdom) {
     case "Bacteria":
       return <Microscope {...props} />;

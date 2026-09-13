@@ -5,17 +5,18 @@ import { useBioStore } from "@/lib/bio-store";
 import { useSearch, type SearchRow } from "@/hooks/use-bio";
 import { useTheme } from "next-themes";
 import { useViewHistory, clearHistory, relativeTime } from "@/lib/view-history";
+import { useFavorites } from "@/lib/favorites";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  Search, Sun, Moon, Dna, MapPin, ChevronRight, Sparkles, Command, LayoutGrid, Keyboard, History, Trash2,
+  Search, Sun, Moon, Dna, MapPin, ChevronRight, Sparkles, Command, LayoutGrid, Keyboard, History, Trash2, Bookmark,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { KingdomIcon, kingdomTheme, RankBadge } from "./taxa-icon";
 
 export function BioHeader() {
-  const { view, goHome, explore, openTaxon, openSearch, openBrowse, setAgentOpen, setShortcutsOpen } = useBioStore();
+  const { view, goHome, explore, openTaxon, openSearch, openBrowse, openFavorites, setAgentOpen, setShortcutsOpen } = useBioStore();
   const { theme, setTheme } = useTheme();
   const [q, setQ] = useState("");
   const [focus, setFocus] = useState(false);
@@ -24,6 +25,7 @@ export function BioHeader() {
   const boxRef = useRef<HTMLDivElement>(null);
   const histRef = useRef<HTMLDivElement>(null);
   const history = useViewHistory();
+  const favorites = useFavorites();
   const { data: results, isFetching } = useSearch(q, q.trim().length >= 1 && focus);
 
   // ⌘K / Ctrl+K 聚焦搜索
@@ -211,6 +213,27 @@ export function BioHeader() {
         >
           <Sparkles className="h-4 w-4" />
           助手
+        </Button>
+
+        {/* 标本收藏夹 */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className={cn(
+            "relative h-9 w-9 shrink-0",
+            favorites.length > 0 ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground",
+            view.type === "favorites" && "bg-accent"
+          )}
+          onClick={openFavorites}
+          aria-label={`标本收藏夹(${favorites.length} 件${favorites[0] ? ",最近收藏:" + favorites[0].chineseName : ""})`}
+          title="标本收藏夹"
+        >
+          <Bookmark className={cn("h-4 w-4", view.type === "favorites" && "fill-current")} />
+          {favorites.length > 0 && (
+            <span className="absolute right-1 top-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-amber-600 px-0.5 text-[8px] font-bold tabular-nums text-white">
+              {favorites.length > 9 ? "9+" : favorites.length}
+            </span>
+          )}
         </Button>
 
         {/* 浏览足迹 */}

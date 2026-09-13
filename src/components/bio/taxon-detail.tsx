@@ -5,16 +5,18 @@ import { useBioStore, MAX_COMPARE } from "@/lib/bio-store";
 import { useTaxon, useTree, type TreeNodeDTO } from "@/hooks/use-bio";
 import { buildDbLinks, IUCN_INFO, KINGDOM_THEME, rankLabel } from "@/lib/bio-domain";
 import { TaxaPlaceholder, KingdomIcon } from "./taxa-icon";
+import { KingdomOrnament } from "./kingdom-ornament";
 import { TaxonCard } from "./taxon-card";
 import { LineageTimeline } from "./lineage-timeline";
 import { pushHistory } from "@/lib/view-history";
+import { useFavorites, toggleFavorite, FAVORITES_MAX } from "@/lib/favorites";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import {
   ChevronRight, ArrowLeft, ArrowRight, ExternalLink, Database, Dna, Shield,
-  MapPin, Leaf, FlaskConical, BookOpen, Star, Sparkles, Microscope, GitCompareArrows, GitBranch, Check, X, ZoomIn,
+  MapPin, Leaf, FlaskConical, BookOpen, Star, Sparkles, Microscope, GitCompareArrows, GitBranch, Check, X, ZoomIn, Bookmark,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -51,6 +53,7 @@ function SectionCard({
 
 export function TaxonDetail({ id }: { id: string }) {
   const { openTaxon, explore, goBack, compareIds, toggleCompare, openCompare } = useBioStore();
+  const favorites = useFavorites();
   const { data, isLoading } = useTaxon(id);
   const { data: tree } = useTree();
   const [lightbox, setLightbox] = useState(false);
@@ -105,10 +108,27 @@ export function TaxonDetail({ id }: { id: string }) {
       if (e.key === "Escape") setLightbox(false);
       if (e.key === "ArrowLeft" && prev) openTaxon(prev.id);
       if (e.key === "ArrowRight" && next) openTaxon(next.id);
+      // F 键快捷收藏当前物种(仅物种阶元)
+      if (e.key.toLowerCase() === "f" && data?.success && data.taxon.rank === "species") {
+        const t = data.taxon;
+        const res = toggleFavorite({
+          id: t.id,
+          chineseName: t.chineseName,
+          latinName: t.latinName,
+          kingdom: t.kingdom,
+          image: t.image,
+          conservation: t.conservation,
+          ncbiTaxId: t.ncbiTaxId,
+          description: t.description,
+        });
+        if (res === "added") toast.success(`已收进标本夹:${t.chineseName}`, { description: "头栏书签图标可查看全部收藏" });
+        else if (res === "removed") toast.info(`已从标本夹取出:${t.chineseName}`);
+        else toast.warning(`标本夹已满(上限 ${FAVORITES_MAX} 件)`);
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [prev, next, openTaxon]);
+  }, [prev, next, openTaxon, data]);
 
   // 浏览足迹:查看任意条目时记录(localStorage 持久化,头栏「足迹」下拉可回溯)
   useEffect(() => {
@@ -200,6 +220,11 @@ export function TaxonDetail({ id }: { id: string }) {
           <TaxaPlaceholder latinName={taxon.latinName} kingdom={taxon.kingdom} big className="h-[320px] w-full sm:h-[420px]" />
         )}
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-black/15 to-transparent" />
+        {/* 界主题装饰纹样(博物馆钢印式,叠加于顶部左侧) */}
+        <KingdomOrnament
+          kingdom={taxon.kingdom}
+          className="absolute left-4 top-3 hidden h-8 w-36 text-white/40 drop-shadow-sm sm:block"
+        />
         {/* 放大提示角标(有图时) */}
         {taxon.image && (
           <span className="pointer-events-none absolute bottom-3 right-3 flex items-center gap-1 rounded-full bg-black/50 px-2.5 py-1 text-[11px] font-medium text-white/90 opacity-0 backdrop-blur-sm transition-opacity duration-300 group-hover/img:opacity-100 sm:bottom-5 sm:right-5">
@@ -207,14 +232,45 @@ export function TaxonDetail({ id }: { id: string }) {
             点击放大
           </span>
         )}
-        {/* 右上角操作:加入对比(仅物种) */}
+        {/* 右上角操作:加入对比 + 收藏(仅物种) */}
         {isSpecies && (
           <div className="absolute right-3 top-3 flex items-center gap-2">
             {(() => {
               const inCompare = compareIds.includes(taxon.id);
               const full = !inCompare && compareIds.length >= MAX_COMPARE;
+              const isFav = favorites.some((x) => x.id === taxon.id);
               return (
                 <>
+                  <button
+                    onClick={() => {
+                      const res = toggleFavorite({
+                        id: taxon.id,
+                        chineseName: taxon.chineseName,
+                        latinName: taxon.latinName,
+                        kingdom: taxon.kingdom,
+                        image: taxon.image,
+                        conservation: taxon.conservation,
+                        ncbiTaxId: taxon.ncbiTaxId,
+                        description: taxon.description,
+                      });
+                      if (res === "added")
+                        toast.success(`已收进标本夹:${taxon.chineseName}`, {
+                          description: `快捷键 F 也可随时收藏 · 头栏书签图标查看全部`,
+                        });
+                      else if (res === "removed") toast.info(`已从标本夹取出:${taxon.chineseName}`);
+                      else toast.warning(`标本夹已满(上限 ${FAVORITES_MAX} 件)`, { description: "可先清理一些不再需要的标本" });
+                    }}
+                    aria-label={isFav ? `从标本夹移除:${taxon.chineseName}` : `收藏到标本夹:${taxon.chineseName}`}
+                    className={cn(
+                      "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold shadow transition-all",
+                      isFav
+                        ? "bg-amber-500 text-white"
+                        : "bg-black/50 text-white backdrop-blur-sm hover:bg-black/70"
+                    )}
+                  >
+                    <Bookmark className={cn("h-3.5 w-3.5", isFav && "fill-current")} />
+                    {isFav ? "已收藏" : "收藏"}
+                  </button>
                   <button
                     onClick={() => {
                       const res = toggleCompare(taxon.id);

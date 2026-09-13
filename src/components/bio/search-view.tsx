@@ -5,13 +5,16 @@ import { useBioStore, MAX_COMPARE } from "@/lib/bio-store";
 import { rankLabel, IUCN_INFO, KINGDOM_THEME } from "@/lib/bio-domain";
 import { highlightText } from "@/lib/highlight";
 import { TaxaPlaceholder, RankBadge, KingdomIcon } from "./taxa-icon";
-import { Loader2, SearchX, ChevronRight, GitCompareArrows, Check } from "lucide-react";
+import { Loader2, SearchX, ChevronRight, GitCompareArrows, Check, Bookmark } from "lucide-react";
+import { useFavorites, toggleFavorite } from "@/lib/favorites";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 export function SearchView({ q }: { q: string }) {
   const { data: results, isFetching } = useSearch(q, true);
   const { openTaxon, compareIds, toggleCompare } = useBioStore();
+  const favorites = useFavorites();
+  const isFav = (id: string) => favorites.some((f) => f.id === id);
 
   return (
     <div className="mx-auto w-full max-w-[1200px] px-4 py-6 sm:px-6">
@@ -123,6 +126,36 @@ export function SearchView({ q }: { q: string }) {
                 >
                   {inCompare ? <Check className="h-3.5 w-3.5" /> : <GitCompareArrows className="h-3.5 w-3.5" />}
                   {inCompare ? "已加入" : "对比"}
+                </button>
+              )}
+
+              {isSpecies && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const res = toggleFavorite({
+                      id: r.id,
+                      chineseName: r.chineseName,
+                      latinName: r.latinName,
+                      kingdom: r.kingdom,
+                      image: r.image,
+                      conservation: r.conservation,
+                      ncbiTaxId: null,
+                      description: r.description,
+                    });
+                    if (res === "added") toast.success(`已收进标本夹:${r.chineseName}`, { description: "头栏书签图标可查看全部收藏" });
+                    else if (res === "removed") toast.info(`已从标本夹取出:${r.chineseName}`);
+                  }}
+                  aria-label={isFav(r.id) ? `从标本夹移除:${r.chineseName}` : `收藏到标本夹:${r.chineseName}`}
+                  title={isFav(r.id) ? "从标本夹移除" : "收藏到标本夹"}
+                  className={cn(
+                    "hidden h-8 w-8 shrink-0 items-center justify-center rounded-full border transition-all sm:flex",
+                    isFav(r.id)
+                      ? "border-amber-500/60 bg-amber-500/10 text-amber-600"
+                      : "border-foreground/15 text-muted-foreground hover:border-amber-500/50 hover:text-amber-600"
+                  )}
+                >
+                  <Bookmark className={cn("h-3.5 w-3.5", isFav(r.id) && "fill-current")} />
                 </button>
               )}
 
