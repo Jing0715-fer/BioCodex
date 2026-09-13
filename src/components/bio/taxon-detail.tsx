@@ -6,13 +6,15 @@ import { useTaxon, useTree, type TreeNodeDTO } from "@/hooks/use-bio";
 import { buildDbLinks, IUCN_INFO, KINGDOM_THEME, rankLabel } from "@/lib/bio-domain";
 import { TaxaPlaceholder, KingdomIcon } from "./taxa-icon";
 import { TaxonCard } from "./taxon-card";
+import { LineageTimeline } from "./lineage-timeline";
+import { pushHistory } from "@/lib/view-history";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import {
   ChevronRight, ArrowLeft, ArrowRight, ExternalLink, Database, Dna, Shield,
-  MapPin, Leaf, FlaskConical, BookOpen, Star, Sparkles, Microscope, GitCompareArrows, Check, X, ZoomIn,
+  MapPin, Leaf, FlaskConical, BookOpen, Star, Sparkles, Microscope, GitCompareArrows, GitBranch, Check, X, ZoomIn,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -107,6 +109,19 @@ export function TaxonDetail({ id }: { id: string }) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [prev, next, openTaxon]);
+
+  // 浏览足迹:查看任意条目时记录(localStorage 持久化,头栏「足迹」下拉可回溯)
+  useEffect(() => {
+    if (data?.success && data.taxon) {
+      pushHistory({
+        id: data.taxon.id,
+        chineseName: data.taxon.chineseName,
+        latinName: data.taxon.latinName,
+        kingdom: data.taxon.kingdom,
+        image: data.taxon.image,
+      });
+    }
+  }, [data]);
 
   if (isLoading || !data?.success) {
     return (
@@ -460,39 +475,26 @@ export function TaxonDetail({ id }: { id: string }) {
 
         {/* 右列:侧栏 */}
         <aside className="space-y-5">
-          {/* 分类地位卡 */}
+          {/* 分类地位卡:演化谱系时间轴 */}
           <section className="rounded-xl border border-foreground/10 bg-card p-5 shadow-sm">
             <h2 className="flex items-center gap-2 font-display text-lg font-bold">
-              <Database className="h-4.5 w-4.5 text-primary" />
-              分类地位
+              <GitBranch className="h-4.5 w-4.5 text-primary" />
+              演化谱系
+              <span className="ml-auto rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
+                {lineage.length + 1} 级
+              </span>
             </h2>
-            <Separator className="my-3.5" />
-            <ol className="space-y-0.5">
-              {lineage.map((l, i) => (
-                <li key={l.id} className="flex items-center gap-2">
-                  <span className="w-10 shrink-0 text-right text-[10px] tabular-nums text-muted-foreground/60">
-                    {rankLabel(l.rank)}
-                  </span>
-                  <button
-                    onClick={() => explore(l.id)}
-                    className="flex-1 truncate rounded px-1.5 py-1 text-left text-sm text-foreground/85 transition-colors hover:bg-accent hover:text-accent-foreground"
-                  >
-                    {l.chineseName}
-                  </button>
-                  <span className="latin hidden max-w-24 truncate text-[10px] text-muted-foreground/50 xl:inline">
-                    {l.latinName}
-                  </span>
-                </li>
-              ))}
-              <li className="flex items-center gap-2">
-                <span className="w-10 shrink-0 text-right text-[10px] tabular-nums font-bold text-primary">
-                  {rankLabel(taxon.rank)}
-                </span>
-                <span className="flex-1 truncate rounded bg-accent px-1.5 py-1 text-sm font-bold text-accent-foreground">
-                  {taxon.chineseName}
-                </span>
-              </li>
-            </ol>
+            <p className="mt-1 mb-3.5 text-[11px] leading-4 text-muted-foreground">
+              从域到种的分类下潜路径——每一步都是一次演化分岔
+            </p>
+            <Separator className="mb-4" />
+            <LineageTimeline
+              lineage={lineage}
+              current={{ id: taxon.id, rank: taxon.rank, latinName: taxon.latinName, chineseName: taxon.chineseName }}
+              kingdom={taxon.kingdom}
+              speciesCountById={speciesCountById}
+              onNavigate={explore}
+            />
             <div className="mt-4 grid grid-cols-3 gap-2 border-t border-foreground/10 pt-3.5 text-center">
               <div>
                 <p className="font-display text-xl font-bold tabular-nums text-foreground">

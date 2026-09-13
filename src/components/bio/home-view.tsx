@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useBioStore } from "@/lib/bio-store";
 import { useStats, useFeatured, useTree, useRecent, type TreeNodeDTO } from "@/hooks/use-bio";
 import { KINGDOM_THEME, IUCN_INFO } from "@/lib/bio-domain";
 import { KingdomIcon } from "./taxa-icon";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -88,17 +89,49 @@ export function HomeView() {
   const { data: tree } = useTree();
   const { data: recent } = useRecent(12);
 
-  // 随机漫游
-  const [rand, setRand] = useState<{ id: string; chineseName: string; latinName: string; image: string | null } | null>(null);
+  // 随机漫游(摇号动效):中奖结果一次拉取,滚动画面从本地候选池循环采样,避免连发 API
+  const [rand, setRand] = useState<{ id: string; chineseName: string; latinName: string; image: string | null; kingdom?: string | null } | null>(null);
   const [rolling, setRolling] = useState(false);
+  const [spinShow, setSpinShow] = useState<typeof rand>(null);
+  const rollTimers = useRef<number[]>([]);
+  useEffect(() => () => rollTimers.current.forEach((t) => clearTimeout(t)), []);
   const roll = async () => {
+    if (rolling) return;
     setRolling(true);
-    for (let i = 0; i < 10; i++) {
+    // 候选池:旗舰精选(本地已有,无额外请求)
+    const pool = (featured || []).map((f) => ({
+      id: f.id, chineseName: f.chineseName, latinName: f.latinName, image: f.image, kingdom: f.kingdom,
+    }));
+    // 先取中奍号(一次请求)
+    let winner: typeof rand = null;
+    try {
       const r = await fetch("/api/random").then((x) => x.json());
-      if (r?.success) setRand(r.taxon);
-      await new Promise((res) => setTimeout(res, 90));
+      if (r?.success) winner = r.taxon;
+    } catch { /* 网络异常时仅滚动不揭幕 */ }
+    if (!pool.length && !winner) { setRolling(false); return; }
+    // 老虎机式减速序列:间隔从 55ms 递增到 260ms,共 ~1.6s
+    const steps = [55, 60, 65, 70, 78, 88, 100, 115, 135, 160, 195, 240, 260];
+    let t = 0;
+    let cursor = Math.floor(Math.random() * Math.max(pool.length, 1));
+    for (const gap of steps) {
+      t += gap;
+      const idx = cursor;
+      rollTimers.current.push(
+        window.setTimeout(() => {
+          const item = pool.length ? pool[idx % pool.length] : winner;
+          setSpinShow(item);
+        }, t)
+      );
+      cursor += 1 + Math.floor(Math.random() * 2);
     }
-    setRolling(false);
+    // 揭幕:落在中奖物种上
+    rollTimers.current.push(
+      window.setTimeout(() => {
+        setSpinShow(null);
+        setRand(winner);
+        setRolling(false);
+      }, t + 300)
+    );
   };
 
   const kingdomOrder = ["Bacteria", "Archaea", "Protista", "Fungi", "Plantae", "Animalia"];
@@ -114,6 +147,14 @@ export function HomeView() {
   };
   // 递归统计子树条目数(不含自身)
   const countTaxa = (n: TreeNodeDTO): number => (n.ch ?? []).reduce((acc, c) => acc + 1 + countTaxa(c), 0);
+  // 六界卡迷你条形图:取该界/域下物种数 Top3 的子门(原核域为直接子门,真核界为其子门)
+  const topChildren = (n: TreeNodeDTO | null, count = 3) =>
+    (n?.ch ?? [])
+      .slice()
+      .sort((a, b) => b.sc - a.sc)
+      .slice(0, count)
+      .filter((c) => c.sc > 0)
+      .map((c) => ({ cn: c.cn, la: c.la, sc: c.sc, id: c.id }));
   const kingdomCards = kingdomOrder
     .map((k) => {
       const t = KINGDOM_THEME[k];
@@ -121,7 +162,9 @@ export function HomeView() {
       const stat = stats?.kingdoms.find((s) => s.kingdom === k);
       // 条目数优先取树数据递归统计(stats.kingdoms 仅含三域,真核四界缺失)
       const taxa = node ? countTaxa(node) : stat?.taxa ?? 0;
-      return { k, t, node, species: node?.sc ?? stat?.species ?? 0, taxa };
+      const bars = topChildren(node);
+      const barMax = Math.max(...bars.map((b) => b.sc), 1);
+      return { k, t, node, species: node?.sc ?? stat?.species ?? 0, taxa, bars, barMax };
     });
 
   return (
@@ -269,7 +312,7 @@ export function HomeView() {
           </div>
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {kingdomCards.map(({ k, t, node, species, taxa }) => {
+          {kingdomCards.map(({ k, t, node, species, taxa, bars, barMax }) => {
             const id = node?.id;
             return (
               <button
@@ -293,6 +336,28 @@ export function HomeView() {
                 </div>
                 <h3 className="mt-4 font-display text-xl font-bold text-foreground">{t.name}</h3>
                 <p className="mt-1 text-xs text-muted-foreground">{t.desc}</p>
+                {/* 迷你条形图:下属门物种数 Top3 */}
+                {bars.length > 0 && (
+                  <div className="mt-3.5 space-y-1.5" aria-label="下属主要门类物种数">
+                    {bars.map((b, bi) => (
+                      <div key={b.id} className="flex items-center gap-2">
+                        <span className="w-20 shrink-0 truncate text-[10px] text-muted-foreground" title={`${b.cn} · ${b.sc} 物种`}>
+                          {b.cn}
+                        </span>
+                        <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-foreground/8">
+                          <motion.span
+                            className="block h-full rounded-full"
+                            style={{ background: `linear-gradient(90deg, ${t.color}dd, ${t.color}99)` }}
+                            initial={{ width: 0 }}
+                            animate={{ width: `${Math.max((b.sc / barMax) * 100, 12)}%` }}
+                            transition={{ delay: 0.3 + bi * 0.12, duration: 0.5, ease: "easeOut" }}
+                          />
+                        </span>
+                        <span className="w-4 text-right text-[10px] font-semibold tabular-nums text-muted-foreground/80">{b.sc}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <div className="mt-4 flex items-center gap-4 border-t border-foreground/10 pt-3 text-xs text-muted-foreground">
                   <span>
                     <strong className="font-display text-base font-bold tabular-nums text-foreground">{species}</strong>{" "}
@@ -602,33 +667,84 @@ export function HomeView() {
             </CardContent>
           </Card>
 
-          {/* 随机漫游 */}
-          <Card className="relative overflow-hidden border-foreground/10 shadow-sm">
+          {/* 随机漫游(摇号动效) */}
+          <Card className="relative overflow-hidden border-forest/25 shadow-sm">
             <CardContent className="p-5">
               <div className="flex items-center gap-2">
                 <Shuffle className="h-4 w-4 text-primary" />
                 <h3 className="font-display text-lg font-bold">图鉴轮盘</h3>
+                <span className="latin ml-auto text-[10px] text-muted-foreground/60">Tibia Fortunae</span>
               </div>
               <p className="mt-1 text-xs text-muted-foreground">
                 命运之手为你翻开一页——311 个物种,抽到哪个算哪个
               </p>
-              <div className="mt-4 flex min-h-28 items-center justify-center rounded-lg border border-dashed border-foreground/15 bg-muted/30 p-3">
-                {rand ? (
-                  <button onClick={() => openTaxon(rand.id)} className="group text-center">
-                    <p className={cn("font-display text-lg font-bold text-primary", rolling && "blur-[1.5px]")}>
-                      {rand.chineseName}
-                    </p>
-                    <p className={cn("latin mt-1 text-xs text-muted-foreground", rolling && "blur-[1.5px]")}>
-                      {rand.latinName}
-                    </p>
-                  </button>
-                ) : (
+              <div className="relative mt-4 flex min-h-32 items-center justify-center overflow-hidden rounded-lg border border-dashed border-forest/30 bg-muted/30 p-3">
+                {/* 滚动态:快速掠过的候选名 */}
+                <AnimatePresence mode="popLayout">
+                  {rolling && spinShow && (
+                    <motion.div
+                      key={`spin-${spinShow.id}-${Date.now()}`}
+                      initial={{ y: 22, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      exit={{ y: -22, opacity: 0 }}
+                      transition={{ duration: 0.13, ease: "easeOut" }}
+                      className="absolute inset-x-4 select-none text-center"
+                    >
+                      <p className="font-display text-lg font-bold text-foreground/45 blur-[1.2px]">
+                        {spinShow.chineseName}
+                      </p>
+                      <p className="latin mt-0.5 text-xs text-muted-foreground/60 blur-[1.2px]">
+                        {spinShow.latinName}
+                      </p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+                {/* 揭幕态:中奖物种卡片 */}
+                <AnimatePresence>
+                  {!rolling && rand && (
+                    <motion.button
+                      key="winner"
+                      initial={{ scale: 0.6, opacity: 0, rotate: -3 }}
+                      animate={{ scale: 1, opacity: 1, rotate: 0 }}
+                      exit={{ scale: 0.8, opacity: 0 }}
+                      transition={{ type: "spring", stiffness: 260, damping: 15 }}
+                      onClick={() => openTaxon(rand.id)}
+                      className="group relative w-full overflow-hidden rounded-lg border border-amber-500/40 bg-gradient-to-br from-amber-500/10 to-primary/10 p-3 text-center shadow-md"
+                    >
+                      {/* 荣光描边 */}
+                      <motion.span
+                        className="pointer-events-none absolute inset-0 rounded-lg"
+                        initial={{ boxShadow: "0 0 0 0 rgba(180,83,9,0.45)" }}
+                        animate={{ boxShadow: ["0 0 0 3px rgba(180,83,9,0.35)", "0 0 0 0px rgba(180,83,9,0)"] }}
+                        transition={{ duration: 0.9 }}
+                      />
+                      {rand.image && (
+                        <img
+                          src={rand.image}
+                          alt={rand.chineseName}
+                          className="mx-auto h-20 w-20 rounded-md object-cover shadow-sm transition-transform duration-300 group-hover:scale-105"
+                          loading="lazy"
+                        />
+                      )}
+                      <p className="mt-2 font-display text-lg font-bold text-foreground group-hover:text-primary">
+                        {rand.chineseName}
+                      </p>
+                      <p className="latin mt-0.5 text-xs italic text-muted-foreground">{rand.latinName}</p>
+                      <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-[11px] font-bold text-primary-foreground opacity-90 transition-opacity group-hover:opacity-100">
+                        翻开这页
+                        <ArrowRight className="h-3 w-3" />
+                      </span>
+                    </motion.button>
+                  )}
+                </AnimatePresence>
+                {/* 空态 */}
+                {!rolling && !rand && (
                   <p className="text-sm text-muted-foreground">点击下方按钮开始漫游</p>
                 )}
               </div>
               <Button className="mt-3 w-full gap-2 rounded-full" onClick={roll} disabled={rolling}>
                 <Shuffle className={cn("h-4 w-4", rolling && "animate-spin")} />
-                {rolling ? "旋转中……" : "抽取一个物种"}
+                {rolling ? "命运转轮旋转中……" : "抽取一个物种"}
               </Button>
             </CardContent>
           </Card>

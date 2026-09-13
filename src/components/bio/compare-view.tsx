@@ -12,7 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import {
   ChevronRight, ArrowLeft, X, Microscope, Leaf, MapPin, Shield, GitCompareArrows,
-  Dna, Database, Plus, Star, Sparkles, Columns2, ClipboardCopy, Link2, Check,
+  Dna, Database, Plus, Star, Sparkles, Columns2, ClipboardCopy, Link2, Check, FileSpreadsheet,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -95,6 +95,60 @@ export function CompareView({ ids }: { ids: string[] }) {
       toast({ title: "分享链接已复制", description: "对方打开后将自动还原这份对比" });
     } else {
       setFallback({ kind: "link", text: url });
+    }
+  };
+
+  /** 导出:对比表格转 CSV(Excel/Numbers 可直接打开,含 BOM 防乱码) */
+  const buildCsv = () => {
+    const esc = (v: string) => `"${v.replace(/"/g, '""').replace(/\r?\n/g, " ").trim()}"`;
+    const head = ["属性", ...taxa.map((t) => `${t.taxon.chineseName}(${t.taxon.latinName})`)];
+    const row = (label: string, fn: (t: TaxonDetailResponse) => string) =>
+      [label, ...taxa.map((t) => fn(t))].map(esc).join(",");
+    const lines = [
+      ["BioCodex 物种对比导出"].map(esc).join(","),
+      [`导出时间: ${new Date().toLocaleString("zh-CN")}`].map(esc).join(","),
+      "",
+      head.map(esc).join(","),
+      row("界/域", (t) => kingdomOrDomain(t)),
+      row("门", (t) => lineageOf(t, "phylum")),
+      row("纲", (t) => lineageOf(t, "class")),
+      row("目", (t) => lineageOf(t, "order")),
+      row("科", (t) => lineageOf(t, "family")),
+      row("属", (t) => lineageOf(t, "genus")),
+      row("拉丁学名", (t) => t.taxon.latinName),
+      row("形态特征", (t) => t.taxon.morphology || "暂无记录"),
+      row("生境", (t) => t.taxon.habitat || "暂无记录"),
+      row("分布", (t) => t.taxon.distribution || "暂无记录"),
+      row("保护等级", (t) => (t.taxon.conservation ? `${t.taxon.conservation} ${IUCN_INFO[t.taxon.conservation]?.label ?? ""}`.trim() : "未评估")),
+      row("NCBI 分类", (t) => (t.taxon.ncbiTaxId ? `txid${t.taxon.ncbiTaxId}` : "未锚定")),
+      row("物种速览", (t) => t.taxon.description || ""),
+    ];
+    return "\uFEFF" + lines.join("\r\n");
+  };
+
+  const exportCsv = async () => {
+    const csv = buildCsv();
+    // 优先触发文件下载(比剪贴板更适合 CSV)
+    try {
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `biocodex-对比-${taxa.map((t) => t.taxon.chineseName).join("-")}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      setCopied("md");
+      setTimeout(() => setCopied(null), 2000);
+      toast({ title: "已导出 CSV 文件", description: "Excel / Numbers / WPS 可直接打开,中文无乱码" });
+    } catch {
+      const ok = await copyText(csv);
+      if (ok) {
+        toast({ title: "已复制 CSV 文本", description: "下载不可用时已改为复制到剪贴板" });
+      } else {
+        setFallback({ kind: "md", text: csv });
+      }
     }
   };
 
@@ -244,6 +298,10 @@ export function CompareView({ ids }: { ids: string[] }) {
           <Button variant="outline" size="sm" className="gap-1.5 rounded-full" onClick={exportMarkdown}>
             {copied === "md" ? <Check className="h-4 w-4 text-emerald-600" /> : <ClipboardCopy className="h-4 w-4" />}
             {copied === "md" ? "已复制" : "导出 Markdown"}
+          </Button>
+          <Button variant="outline" size="sm" className="gap-1.5 rounded-full" onClick={exportCsv}>
+            <FileSpreadsheet className="h-4 w-4" />
+            导出 CSV
           </Button>
           <Button variant="outline" size="sm" className="gap-1.5 rounded-full" onClick={shareLink}>
             {copied === "link" ? <Check className="h-4 w-4 text-emerald-600" /> : <Link2 className="h-4 w-4" />}

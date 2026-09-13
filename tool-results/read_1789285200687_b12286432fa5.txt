@@ -1,0 +1,640 @@
+     1→"use client";
+     2→
+     3→import { useEffect, useRef, useState } from "react";
+     4→import { useBioStore } from "@/lib/bio-store";
+     5→import { useStats, useFeatured, useTree, useRecent, type TreeNodeDTO } from "@/hooks/use-bio";
+     6→import { KINGDOM_THEME, IUCN_INFO } from "@/lib/bio-domain";
+     7→import { KingdomIcon } from "./taxa-icon";
+     8→import { Button } from "@/components/ui/button";
+     9→import { Card, CardContent } from "@/components/ui/card";
+    10→import { Skeleton } from "@/components/ui/skeleton";
+    11→import {
+    12→  ArrowRight, ChevronRight, Sparkles, Dna, BookOpen, Shield, Database, Shuffle, RefreshCw, LayoutGrid, History,
+    13→} from "lucide-react";
+    14→import { cn } from "@/lib/utils";
+    15→
+    16→function useCountUp(target: number, duration = 900) {
+    17→  const [v, setV] = useState(0);
+    18→  const ref = useRef<number>(0);
+    19→  useEffect(() => {
+    20→    const start = performance.now();
+    21→    const from = ref.current;
+    22→    let raf = 0;
+    23→    const tick = (now: number) => {
+    24→      const p = Math.min(1, (now - start) / duration);
+    25→      const eased = 1 - Math.pow(1 - p, 3);
+    26→      setV(Math.round(from + (target - from) * eased));
+    27→      if (p < 1) raf = requestAnimationFrame(tick);
+    28→      else ref.current = target;
+    29→    };
+    30→    raf = requestAnimationFrame(tick);
+    31→    return () => cancelAnimationFrame(raf);
+    32→  }, [target, duration]);
+    33→  return v;
+    34→}
+    35→
+    36→function StatCounter({ value, label, suffix }: { value: number; label: string; suffix?: string }) {
+    37→  const v = useCountUp(value);
+    38→  return (
+    39→    <div className="flex flex-col items-center px-4 py-3 sm:items-start">
+    40→      <span className="font-display text-3xl font-bold tabular-nums text-foreground sm:text-4xl">
+    41→        {v.toLocaleString()}
+    42→        {suffix}
+    43→      </span>
+    44→      <span className="mt-1 text-xs tracking-widest text-muted-foreground">{label}</span>
+    45→    </div>
+    46→  );
+    47→}
+    48→
+    49→/** 环形进度指示(数据完备度徽章墙用) */
+    50→function DataRing({
+    51→  value, total, label, hint, color,
+    52→}: { value: number; total: number; label: string; hint: string; color: string }) {
+    53→  const pct = total > 0 ? value / total : 0;
+    54→  const v = useCountUp(Math.round(pct * 100));
+    55→  const R = 30;
+    56→  const C = 2 * Math.PI * R;
+    57→  return (
+    58→    <div className="flex flex-col items-center gap-2.5 px-2 py-4 text-center">
+    59→      <div className="relative h-[76px] w-[76px]">
+    60→        <svg viewBox="0 0 76 76" className="h-full w-full -rotate-90">
+    61→          <circle cx="38" cy="38" r={R} fill="none" strokeWidth="7" className="stroke-foreground/10" />
+    62→          <circle
+    63→            cx="38" cy="38" r={R} fill="none" strokeWidth="7" strokeLinecap="round"
+    64→            stroke={color}
+    65→            strokeDasharray={C}
+    66→            strokeDashoffset={C * (1 - pct)}
+    67→            style={{ transition: "stroke-dashoffset 1.1s cubic-bezier(.25,.1,.25,1)" }}
+    68→          />
+    69→        </svg>
+    70→        <div className="absolute inset-0 flex flex-col items-center justify-center">
+    71→          <span className="font-display text-lg font-bold tabular-nums leading-none text-foreground">{v}%</span>
+    72→        </div>
+    73→      </div>
+    74→      <div>
+    75→        <p className="text-xs font-bold tracking-wide text-foreground">{label}</p>
+    76→        <p className="mt-0.5 text-[10px] tabular-nums text-muted-foreground">
+    77→          {value} / {total} · {hint}
+    78→        </p>
+    79→      </div>
+    80→    </div>
+    81→  );
+    82→}
+    83→
+    84→export function HomeView() {
+    85→  const { explore, openTaxon, setAgentOpen, openBrowse } = useBioStore();
+    86→  const { data: stats } = useStats();
+    87→  const { data: featured, refetch: refetchFeatured } = useFeatured();
+    88→  const { data: tree } = useTree();
+    89→  const { data: recent } = useRecent(12);
+    90→
+    91→  // 随机漫游
+    92→  const [rand, setRand] = useState<{ id: string; chineseName: string; latinName: string; image: string | null } | null>(null);
+    93→  const [rolling, setRolling] = useState(false);
+    94→  const roll = async () => {
+    95→    setRolling(true);
+    96→    for (let i = 0; i < 10; i++) {
+    97→      const r = await fetch("/api/random").then((x) => x.json());
+    98→      if (r?.success) setRand(r.taxon);
+    99→      await new Promise((res) => setTimeout(res, 90));
+   100→    }
+   101→    setRolling(false);
+   102→  };
+   103→
+   104→  const kingdomOrder = ["Bacteria", "Archaea", "Protista", "Fungi", "Plantae", "Animalia"];
+   105→  // 递归查找界/域节点(真核四界嵌套在 Eukarya 域下,顶层找不到)
+   106→  const findTreeNode = (nodes: TreeNodeDTO[] | undefined, la: string): TreeNodeDTO | null => {
+   107→    if (!nodes) return null;
+   108→    for (const n of nodes) {
+   109→      if (n.la === la) return n;
+   110→      const r = findTreeNode(n.ch, la);
+   111→      if (r) return r;
+   112→    }
+   113→    return null;
+   114→  };
+   115→  // 递归统计子树条目数(不含自身)
+   116→  const countTaxa = (n: TreeNodeDTO): number => (n.ch ?? []).reduce((acc, c) => acc + 1 + countTaxa(c), 0);
+   117→  const kingdomCards = kingdomOrder
+   118→    .map((k) => {
+   119→      const t = KINGDOM_THEME[k];
+   120→      const node = findTreeNode(tree, k);
+   121→      const stat = stats?.kingdoms.find((s) => s.kingdom === k);
+   122→      // 条目数优先取树数据递归统计(stats.kingdoms 仅含三域,真核四界缺失)
+   123→      const taxa = node ? countTaxa(node) : stat?.taxa ?? 0;
+   124→      return { k, t, node, species: node?.sc ?? stat?.species ?? 0, taxa };
+   125→    });
+   126→
+   127→  return (
+   128→    <div className="flex flex-col">
+   129→      {/* ============ HERO ============ */}
+   130→      <section className="relative overflow-hidden border-b border-foreground/10 paper-texture">
+   131→        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-primary/8 via-transparent to-transparent" />
+   132→        {/* 装饰:巨幅拉丁字母背景 */}
+   133→        <div className="pointer-events-none absolute -right-8 -top-10 select-none latin text-[22vw] font-bold leading-none text-foreground/[0.045] dark:text-foreground/[0.06]">
+   134→          Bio
+   135→        </div>
+   136→        <div className="relative mx-auto max-w-[1400px] px-4 pb-12 pt-14 sm:px-6 sm:pt-20">
+   137→          <div className="max-w-3xl">
+   138→            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/5 px-3 py-1 text-xs font-medium text-primary dark:bg-primary/10">
+   139→              <BookOpen className="h-3.5 w-3.5" />
+   140→              专业生物学百科 · 域界门纲目科属种
+   141→            </div>
+   142→            <h1 className="font-display text-4xl font-bold leading-[1.15] tracking-tight text-foreground sm:text-6xl">
+   143→              从一粒细菌,
+   144→              <br />
+   145→              到万千生灵<span className="text-primary">。</span>
+   146→            </h1>
+   147→            <p className="mt-5 max-w-2xl text-sm leading-7 text-muted-foreground sm:text-base sm:leading-8">
+   148→              BioCodex 收录 <strong className="font-semibold text-foreground">{stats?.species ?? "…"}</strong>{" "}
+   149→              个物种,覆盖生命之树从原核生物到高等脊椎动物的主要门类。
+   150→              每个条目配有拉丁学名、形态描述、IUCN 保护等级,并直连{" "}
+   151→              <span className="latin">NCBI</span>、GBIF、GenBank 等科学数据库。
+   152→              遇到问题?右下角的 AI 博物学家阿博随时待命。
+   153→            </p>
+   154→            <div className="mt-7 flex flex-wrap gap-3">
+   155→              <Button size="lg" className="h-11 gap-2 rounded-full" onClick={() => explore(null)}>
+   156→                <Sparkles className="h-4 w-4" />
+   157→                开始分类探索
+   158→              </Button>
+   159→              <Button
+   160→                size="lg"
+   161→                variant="outline"
+   162→                className="h-11 gap-2 rounded-full border-forest/40 text-forest hover:bg-forest hover:text-primary-foreground"
+   163→                onClick={() => openBrowse({})}
+   164→              >
+   165→                <LayoutGrid className="h-4 w-4" />
+   166→                图鉴目录
+   167→              </Button>
+   168→              <Button
+   169→                size="lg"
+   170→                variant="outline"
+   171→                className="h-11 gap-2 rounded-full border-primary/40 text-primary hover:bg-primary hover:text-primary-foreground"
+   172→                onClick={() => setAgentOpen(true)}
+   173→              >
+   174→                <Dna className="h-4 w-4" />
+   175→                问问 AI 助手
+   176→              </Button>
+   177→            </div>
+   178→          </div>
+   179→
+   180→          {/* 生命之树版画横幅 */}
+   181→          <figure className="reveal-up relative mt-10 overflow-hidden rounded-xl border border-foreground/15 shadow-md">
+   182→            <img
+   183→              src="/generated/hero-tree-of-life.png"
+   184→              alt="生命之树复古铜版画:从微生物到哺乳动物的演化全景"
+   185→              className="img-fade-in h-44 w-full object-cover object-center sm:h-64 lg:h-72"
+   186→            />
+   187→            <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-background/55 via-transparent to-background/55" />
+   188→            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-background/80 to-transparent" />
+   189→            <figcaption className="absolute bottom-3 left-5 flex items-center gap-2 text-xs text-foreground/70 dark:text-foreground/60">
+   190→              <span className="h-px w-6 bg-foreground/40" />
+   191→              <span className="latin text-sm">Arbor Vitae</span>
+   192→              <span>生命之树 · 从原核到哺乳的演化长卷</span>
+   193→            </figcaption>
+   194→          </figure>
+   195→
+   196→          {/* 统计带 */}
+   197→          <div className="mt-12 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-foreground/10 bg-foreground/10 shadow-sm sm:grid-cols-3 lg:grid-cols-6">
+   198→            {[
+   199→              { v: stats?.species ?? 0, l: "收录物种" },
+   200→              { v: stats?.phyla ?? 0, l: "覆盖门类" },
+   201→              { v: stats?.families ?? 0, l: "科" },
+   202→              { v: stats?.genera ?? 0, l: "属" },
+   203→              { v: stats?.images ?? 0, l: "实景配图" },
+   204→              { v: stats?.flagship ?? 0, l: "旗舰物种" },
+   205→            ].map((s, i) => (
+   206→              <div key={i} className="bg-card">
+   207→                <StatCounter value={s.v} label={s.l} />
+   208→              </div>
+   209→            ))}
+   210→          </div>
+   211→
+   212→          {/* 数据完备度徽章墙 */}
+   213→          {stats && (
+   214→            <div className="mt-4 overflow-hidden rounded-xl border border-foreground/10 bg-card shadow-sm">
+   215→              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-foreground/10 bg-muted/30 px-4 py-2.5">
+   216→                <p className="flex items-center gap-1.5 text-[11px] font-bold tracking-widest text-muted-foreground">
+   217→                  <Database className="h-3.5 w-3.5 text-primary/70" />
+   218→                  数据完备度 · DATA COMPLETENESS
+   219→                </p>
+   220→                <div className="flex flex-wrap items-center gap-1.5 text-[10px] text-muted-foreground">
+   221→                  <span className="flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 font-semibold text-amber-700 dark:text-amber-400">
+   222→                    <Shield className="h-3 w-3" />旗舰 {stats.flagship}
+   223→                  </span>
+   224→                  <span className="flex items-center gap-1 rounded-full border border-primary/25 bg-primary/5 px-2 py-0.5 font-semibold text-primary">
+   225→                    <Dna className="h-3 w-3" />NCBI 锚定 {stats.ncbiLinked}
+   226→                  </span>
+   227→                  <span className="flex items-center gap-1 rounded-full border border-foreground/15 bg-muted/40 px-2 py-0.5 font-semibold">
+   228→                    <Database className="h-3 w-3" />21+ 科学库直连
+   229→                  </span>
+   230→                </div>
+   231→              </div>
+   232→              <div className="grid grid-cols-1 divide-y divide-foreground/8 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+   233→                <DataRing
+   234→                  value={stats.images}
+   235→                  total={stats.species}
+   236→                  label="物种配图"
+   237→                  hint="复古博物学插画"
+   238→                  color="var(--ring, #2f6b4f)"
+   239→                />
+   240→                <DataRing
+   241→                  value={stats.iucn.reduce((a, x) => a + x.count, 0)}
+   242→                  total={stats.species}
+   243→                  label="IUCN 评估"
+   244→                  hint="红色名录等级覆盖"
+   245→                  color="#b45309"
+   246→                />
+   247→                <DataRing
+   248→                  value={stats.ncbiLinked}
+   249→                  total={stats.species}
+   250→                  label="NCBI 锚定"
+   251→                  hint="直连分类学数据库"
+   252→                  color="#0d7a6b"
+   253→                />
+   254→              </div>
+   255→            </div>
+   256→          )}
+   257→        </div>
+   258→        <div className="dna-divider" />
+   259→      </section>
+   260→
+   261→      {/* ============ 六大界 ============ */}
+   262→      <section className="mx-auto w-full max-w-[1400px] px-4 py-12 sm:px-6">
+   263→        <div className="mb-6 flex items-baseline justify-between">
+   264→          <div>
+   265→            <h2 className="font-display text-2xl font-bold text-foreground sm:text-3xl">生命三域,六大家族</h2>
+   266→            <p className="mt-1.5 text-sm text-muted-foreground">
+   267→              沿现代三域系统漫游:细菌与古菌为原核之域,真核域下分原生生物、真菌、植物与动物
+   268→            </p>
+   269→          </div>
+   270→        </div>
+   271→        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+   272→          {kingdomCards.map(({ k, t, node, species, taxa }) => {
+   273→            const id = node?.id;
+   274→            return (
+   275→              <button
+   276→                key={k}
+   277→                onClick={() => id && explore(id)}
+   278→                className="specimen-card group relative overflow-hidden rounded-xl border border-foreground/10 bg-card p-5 text-left shadow-sm focus-visible:outline-2 focus-visible:outline-forest"
+   279→                aria-label={`进入${t.name}分类浏览`}
+   280→              >
+   281→                <div
+   282→                  className="absolute inset-x-0 top-0 h-1 opacity-80"
+   283→                  style={{ background: `linear-gradient(90deg, ${t.color}, ${t.color}88)` }}
+   284→                />
+   285→                <div className="flex items-start justify-between">
+   286→                  <span
+   287→                    className="flex h-11 w-11 items-center justify-center rounded-lg text-white shadow-sm"
+   288→                    style={{ background: t.color }}
+   289→                  >
+   290→                    <KingdomIcon kingdom={k} className="h-5.5 w-5.5" />
+   291→                  </span>
+   292→                  <span className="latin text-sm text-muted-foreground/70">{t.latin}</span>
+   293→                </div>
+   294→                <h3 className="mt-4 font-display text-xl font-bold text-foreground">{t.name}</h3>
+   295→                <p className="mt-1 text-xs text-muted-foreground">{t.desc}</p>
+   296→                <div className="mt-4 flex items-center gap-4 border-t border-foreground/10 pt-3 text-xs text-muted-foreground">
+   297→                  <span>
+   298→                    <strong className="font-display text-base font-bold tabular-nums text-foreground">{species}</strong>{" "}
+   299→                    物种
+   300→                  </span>
+   301→                  <span>
+   302→                    <strong className="font-display text-base font-bold tabular-nums text-foreground">{taxa}</strong>{" "}
+   303→                    条目
+   304→                  </span>
+   305→                  <ArrowRight className="ml-auto h-4 w-4 text-muted-foreground/40 transition-transform group-hover:translate-x-1 group-hover:text-primary" />
+   306→                </div>
+   307→              </button>
+   308→            );
+   309→          })}
+   310→        </div>
+   311→      </section>
+   312→
+   313→      {/* ============ 旗舰物种 ============ */}
+   314→      <section className="border-y border-foreground/10 bg-muted/40 paper-texture">
+   315→        <div className="mx-auto w-full max-w-[1400px] px-4 py-12 sm:px-6">
+   316→          <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+   317→            <div>
+   318→              <h2 className="font-display text-2xl font-bold text-foreground sm:text-3xl">
+   319→                明星物种 <span className="latin text-lg text-muted-foreground">Flagship Species</span>
+   320→              </h2>
+   321→              <p className="mt-1.5 text-sm text-muted-foreground">
+   322→                从图鉴 84 个旗舰物种中精选——它们是演化奇迹、文化符号,也是保护行动的旗舰
+   323→              </p>
+   324→            </div>
+   325→            <Button
+   326→              variant="outline"
+   327→              size="sm"
+   328→              className="gap-2 rounded-full"
+   329→              onClick={() => refetchFeatured()}
+   330→            >
+   331→              <RefreshCw className="h-3.5 w-3.5" />
+   332→              换一批
+   333→            </Button>
+   334→          </div>
+   335→
+   336→          {!featured && (
+   337→            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+   338→              {Array.from({ length: 8 }).map((_, i) => (
+   339→                <Skeleton key={i} className="aspect-[4/3] rounded-xl" />
+   340→              ))}
+   341→            </div>
+   342→          )}
+   343→
+   344→          {featured && (
+   345→            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+   346→              {featured.slice(0, 8).map((f, i) => (
+   347→                <button
+   348→                  key={f.id}
+   349→                  onClick={() => openTaxon(f.id)}
+   350→                  className={cn(
+   351→                    "specimen-card reveal-up group relative overflow-hidden rounded-xl border border-foreground/10 bg-card text-left shadow-sm"
+   352→                  )}
+   353→                  style={{ animationDelay: `${i * 60}ms` }}
+   354→                >
+   355→                  <div className="relative aspect-[4/3] overflow-hidden">
+   356→                    {f.image ? (
+   357→                      <img
+   358→                        src={f.image}
+   359→                        alt={f.chineseName}
+   360→                        className="img-fade-in h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+   361→                        loading="lazy"
+   362→                      />
+   363→                    ) : (
+   364→                      <div
+   365→                        className="flex h-full w-full items-center justify-center"
+   366→                        style={{
+   367→                          background: `linear-gradient(140deg, ${KINGDOM_THEME[f.kingdom]?.color}30, var(--parchment))`,
+   368→                        }}
+   369→                      >
+   370→                        <span className="latin text-5xl text-foreground/20">
+   371→                          {f.latinName.charAt(0)}
+   372→                        </span>
+   373→                      </div>
+   374→                    )}
+   375→                    <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/0 to-black/0" />
+   376→                    <div className="absolute bottom-0 left-0 right-0 p-3.5">
+   377→                      <p className="font-display text-base font-bold text-white drop-shadow-sm">
+   378→                        {f.chineseName}
+   379→                      </p>
+   380→                      <p className="latin truncate text-xs text-white/85">{f.latinName}</p>
+   381→                    </div>
+   382→                    {f.conservation && (
+   383→                      <span
+   384→                        className={cn(
+   385→                          "absolute right-2.5 top-2.5 rounded-sm px-1.5 py-0.5 text-[10px] font-bold text-white shadow",
+   386→                          IUCN_INFO[f.conservation]?.bg
+   387→                        )}
+   388→                      >
+   389→                        {IUCN_INFO[f.conservation]?.label}
+   390→                      </span>
+   391→                    )}
+   392→                  </div>
+   393→                  {f.description && (
+   394→                    <p className="line-clamp-2 px-3.5 py-2.5 text-xs leading-5 text-muted-foreground">
+   395→                      {f.description}
+   396→                    </p>
+   397→                  )}
+   398→                </button>
+   399→              ))}
+   400→            </div>
+   401→          )}
+   402→        </div>
+   403→      </section>
+   404→
+   405→      {/* ============ 新页速递(最近配图时间线) ============ */}
+   406→      <section className="border-t border-foreground/10 bg-muted/30">
+   407→        <div className="mx-auto w-full max-w-[1400px] px-4 py-12 sm:px-6">
+   408→          <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+   409→            <div>
+   410→              <h2 className="flex items-center gap-2 font-display text-2xl font-bold text-foreground sm:text-3xl">
+   411→                <History className="h-6 w-6 text-primary" />
+   412→                新页速递
+   413→                <span className="latin text-lg font-normal text-muted-foreground">Novissima</span>
+   414→              </h2>
+   415→              <p className="mt-1.5 text-sm text-muted-foreground">
+   416→                图鉴最近描绘完成的物种——博物学画室每天都在补充新的版画插图
+   417→              </p>
+   418→            </div>
+   419→            {/* 插画进度 */}
+   420→            <div className="min-w-52 rounded-xl border border-foreground/10 bg-card px-4 py-2.5 shadow-sm">
+   421→              <div className="flex items-baseline justify-between gap-3">
+   422→                <span className="text-xs text-muted-foreground">插画完成度</span>
+   423→                <span className="font-display text-sm font-bold tabular-nums text-foreground">
+   424→                  {stats?.images ?? 0}
+   425→                  <span className="text-muted-foreground/60">/{stats?.species ?? 0}</span>
+   426→                </span>
+   427→              </div>
+   428→              <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted">
+   429→                <div
+   430→                  className="h-full rounded-full bg-gradient-to-r from-primary to-amber-600 transition-all duration-700"
+   431→                  style={{ width: `${stats ? Math.min(100, Math.round((stats.images / Math.max(1, stats.species)) * 100)) : 0}%` }}
+   432→                />
+   433→              </div>
+   434→            </div>
+   435→          </div>
+   436→
+   437→          {!recent && (
+   438→            <div className="flex gap-3 overflow-hidden">
+   439→              {Array.from({ length: 6 }).map((_, i) => (
+   440→                <Skeleton key={i} className="h-40 w-36 shrink-0 rounded-xl sm:w-44" />
+   441→              ))}
+   442→            </div>
+   443→          )}
+   444→
+   445→          {recent && recent.length > 0 && (
+   446→            <div className="nh-scroll -mx-1 flex gap-3 overflow-x-auto px-1 pb-2">
+   447→              {recent.map((r, i) => {
+   448→                const theme = KINGDOM_THEME[r.kingdom] || KINGDOM_THEME.Animalia;
+   449→                const d = new Date(r.updatedAt);
+   450→                const today = new Date();
+   451→                const isToday = d.toDateString() === today.toDateString();
+   452→                const yesterday = new Date(today.getTime() - 86400000);
+   453→                const timeStr = isToday
+   454→                  ? `今天 ${d.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}`
+   455→                  : d.toDateString() === yesterday.toDateString()
+   456→                    ? "昨天"
+   457→                    : d.toLocaleDateString("zh-CN", { month: "numeric", day: "numeric" });
+   458→                return (
+   459→                  <button
+   460→                    key={r.id}
+   461→                    onClick={() => openTaxon(r.id)}
+   462→                    className="reveal-up group relative w-36 shrink-0 overflow-hidden rounded-xl border border-foreground/10 bg-card text-left shadow-sm transition-shadow hover:shadow-md sm:w-44"
+   463→                    style={{ animationDelay: `${Math.min(i, 8) * 50}ms` }}
+   464→                    aria-label={`查看${r.chineseName}详情,${timeStr}更新`}
+   465→                  >
+   466→                    <div
+   467→                      className="h-1 opacity-80"
+   468→                      style={{ background: `linear-gradient(90deg, ${theme.color}, ${theme.color}66)` }}
+   469→                    />
+   470→                    <div className="relative h-24 overflow-hidden sm:h-28">
+   471→                      {r.image ? (
+   472→                        <img
+   473→                          src={r.image}
+   474→                          alt={r.chineseName}
+   475→                          className="img-fade-in h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+   476→                          loading="lazy"
+   477→                        />
+   478→                      ) : (
+   479→                        <div
+   480→                          className="flex h-full w-full items-center justify-center"
+   481→                          style={{ background: `linear-gradient(140deg, ${theme.color}26, var(--parchment))` }}
+   482→                        >
+   483→                          <span className="latin text-3xl text-foreground/20">{r.latinName.charAt(0)}</span>
+   484→                        </div>
+   485→                      )}
+   486→                      <span
+   487→                        className="absolute left-1.5 top-1.5 flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-bold text-white shadow"
+   488→                        style={{ background: theme.color }}
+   489→                      >
+   490→                        <KingdomIcon kingdom={r.kingdom} className="h-2.5 w-2.5" />
+   491→                        {theme.name}
+   492→                      </span>
+   493→                      {r.conservation && (
+   494→                        <span
+   495→                          className={cn(
+   496→                            "absolute right-1.5 top-1.5 rounded-sm px-1 py-0.5 text-[9px] font-bold text-white shadow",
+   497→                            IUCN_INFO[r.conservation]?.bg
+   498→                          )}
+   499→                        >
+   500→                          {r.conservation}
+   501→                        </span>
+   502→                      )}
+   503→                    </div>
+   504→                    <div className="p-2.5">
+   505→                      <p className="truncate text-[13px] font-semibold text-foreground group-hover:text-primary">
+   506→                        {r.chineseName}
+   507→                      </p>
+   508→                      <p className="latin truncate text-[11px] text-muted-foreground">{r.latinName}</p>
+   509→                      <p className="mt-1.5 flex items-center gap-1 text-[10px] tabular-nums text-muted-foreground/70">
+   510→                        <span className="h-1 w-1 rounded-full bg-primary/60" />
+   511→                        {timeStr} 描绘
+   512→                      </p>
+   513→                    </div>
+   514→                  </button>
+   515→                );
+   516→              })}
+   517→              <button
+   518→                onClick={() => openBrowse({})}
+   519→                className="flex w-36 shrink-0 flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-foreground/15 bg-muted/20 text-muted-foreground transition-colors hover:border-primary/50 hover:bg-primary/5 hover:text-primary sm:w-44"
+   520→                aria-label="浏览图鉴目录"
+   521→              >
+   522→                <LayoutGrid className="h-5 w-5" />
+   523→                <span className="text-xs font-medium">浏览全部物种</span>
+   524→              </button>
+   525→            </div>
+   526→          )}
+   527→        </div>
+   528→      </section>
+   529→
+   530→      {/* ============ 保护状况 + 数据库 + 玩法 ============ */}
+   531→      <section className="mx-auto w-full max-w-[1400px] px-4 py-12 sm:px-6">
+   532→        <div className="grid gap-4 lg:grid-cols-3">
+   533→          {/* IUCN 分布 */}
+   534→          <Card className="border-foreground/10 shadow-sm">
+   535→            <CardContent className="p-5">
+   536→              <div className="flex items-center gap-2">
+   537→                <Shield className="h-4 w-4 text-primary" />
+   538→                <h3 className="font-display text-lg font-bold">IUCN 保护状况</h3>
+   539→              </div>
+   540→              <p className="mt-1 text-xs text-muted-foreground">
+   541→                图鉴收录物种的红色名录分布,点击任意等级查看对应物种
+   542→              </p>
+   543→              <div className="mt-4 space-y-2">
+   544→                {stats?.iucn
+   545→                  .slice()
+   546→                  .sort((a, b) => {
+   547→                    const order = ["EX", "EW", "CR", "EN", "VU", "NT", "LC", "DD", "NE"];
+   548→                    return order.indexOf(a.code) - order.indexOf(b.code);
+   549→                  })
+   550→                  .map((i) => {
+   551→                    const total = stats.iucn.reduce((s, x) => s + x.count, 0) || 1;
+   552→                    const info = IUCN_INFO[i.code];
+   553→                    return (
+   554→                      <button
+   555→                        key={i.code}
+   556→                        onClick={() => openBrowse({ iucn: i.code })}
+   557→                        className="group flex w-full items-center gap-3 rounded-md px-1 py-0.5 text-left transition-colors hover:bg-accent/60"
+   558→                        aria-label={`浏览${info?.label ?? i.code}等级的 ${i.count} 个物种`}
+   559→                      >
+   560→                        <span className={cn("w-16 shrink-0 rounded-sm px-1.5 py-0.5 text-center text-[10px] font-bold text-white", info?.bg)}>
+   561→                          {i.code}
+   562→                        </span>
+   563→                        <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
+   564→                          <div
+   565→                            className={cn("h-full rounded-full transition-all group-hover:brightness-110", info?.bg)}
+   566→                            style={{ width: `${(i.count / total) * 100}%` }}
+   567→                          />
+   568→                        </div>
+   569→                        <span className="w-8 text-right text-xs tabular-nums text-muted-foreground group-hover:text-foreground">
+   570→                          {i.count}
+   571→                        </span>
+   572→                        <ChevronRight className="h-3 w-3 text-muted-foreground/0 transition-colors group-hover:text-primary" />
+   573→                      </button>
+   574→                    );
+   575→                  })}
+   576→              </div>
+   577→            </CardContent>
+   578→          </Card>
+   579→
+   580→          {/* 数据库直连 */}
+   581→          <Card className="border-foreground/10 shadow-sm">
+   582→            <CardContent className="p-5">
+   583→              <div className="flex items-center gap-2">
+   584→                <Database className="h-4 w-4 text-primary" />
+   585→                <h3 className="font-display text-lg font-bold">科学数据库直连</h3>
+   586→              </div>
+   587→              <p className="mt-1 text-xs text-muted-foreground">
+   588→                每个条目一键跳转权威数据库,溯源基因组、序列与分布
+   589→              </p>
+   590→              <div className="mt-4 flex flex-wrap gap-1.5">
+   591→                {["NCBI Taxonomy", "GenBank", "NCBI Genome", "Ensembl", "UniProt", "KEGG", "GBIF", "EOL", "iNaturalist", "MycoBank", "LPSN", "Kew POWO", "IUCN 红色名录", "WoRMS", "BOLD", "BHL"].map(
+   592→                  (d) => (
+   593→                    <span
+   594→                      key={d}
+   595→                      className="rounded-full border border-foreground/15 bg-muted/50 px-2.5 py-1 text-[11px] font-medium text-muted-foreground"
+   596→                    >
+   597→                      {d}
+   598→                    </span>
+   599→                  )
+   600→                )}
+   601→              </div>
+   602→            </CardContent>
+   603→          </Card>
+   604→
+   605→          {/* 随机漫游 */}
+   606→          <Card className="relative overflow-hidden border-foreground/10 shadow-sm">
+   607→            <CardContent className="p-5">
+   608→              <div className="flex items-center gap-2">
+   609→                <Shuffle className="h-4 w-4 text-primary" />
+   610→                <h3 className="font-display text-lg font-bold">图鉴轮盘</h3>
+   611→              </div>
+   612→              <p className="mt-1 text-xs text-muted-foreground">
+   613→                命运之手为你翻开一页——311 个物种,抽到哪个算哪个
+   614→              </p>
+   615→              <div className="mt-4 flex min-h-28 items-center justify-center rounded-lg border border-dashed border-foreground/15 bg-muted/30 p-3">
+   616→                {rand ? (
+   617→                  <button onClick={() => openTaxon(rand.id)} className="group text-center">
+   618→                    <p className={cn("font-display text-lg font-bold text-primary", rolling && "blur-[1.5px]")}>
+   619→                      {rand.chineseName}
+   620→                    </p>
+   621→                    <p className={cn("latin mt-1 text-xs text-muted-foreground", rolling && "blur-[1.5px]")}>
+   622→                      {rand.latinName}
+   623→                    </p>
+   624→                  </button>
+   625→                ) : (
+   626→                  <p className="text-sm text-muted-foreground">点击下方按钮开始漫游</p>
+   627→                )}
+   628→              </div>
+   629→              <Button className="mt-3 w-full gap-2 rounded-full" onClick={roll} disabled={rolling}>
+   630→                <Shuffle className={cn("h-4 w-4", rolling && "animate-spin")} />
+   631→                {rolling ? "旋转中……" : "抽取一个物种"}
+   632→              </Button>
+   633→            </CardContent>
+   634→          </Card>
+   635→        </div>
+   636→      </section>
+   637→    </div>
+   638→  );
+   639→}
+   640→

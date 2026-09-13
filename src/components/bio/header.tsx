@@ -4,11 +4,13 @@ import { useState, useRef, useEffect } from "react";
 import { useBioStore } from "@/lib/bio-store";
 import { useSearch, type SearchRow } from "@/hooks/use-bio";
 import { useTheme } from "next-themes";
+import { useViewHistory, clearHistory, relativeTime } from "@/lib/view-history";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  Search, Sun, Moon, Dna, MapPin, ChevronRight, Sparkles, Command, LayoutGrid, Keyboard,
+  Search, Sun, Moon, Dna, MapPin, ChevronRight, Sparkles, Command, LayoutGrid, Keyboard, History, Trash2,
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { KingdomIcon, kingdomTheme, RankBadge } from "./taxa-icon";
 
@@ -17,8 +19,11 @@ export function BioHeader() {
   const { theme, setTheme } = useTheme();
   const [q, setQ] = useState("");
   const [focus, setFocus] = useState(false);
+  const [histOpen, setHistOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
+  const histRef = useRef<HTMLDivElement>(null);
+  const history = useViewHistory();
   const { data: results, isFetching } = useSearch(q, q.trim().length >= 1 && focus);
 
   // ⌘K / Ctrl+K 聚焦搜索
@@ -34,10 +39,11 @@ export function BioHeader() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // 点击外部关闭建议
+  // 点击外部关闭建议与足迹
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
       if (boxRef.current && !boxRef.current.contains(e.target as Node)) setFocus(false);
+      if (histRef.current && !histRef.current.contains(e.target as Node)) setHistOpen(false);
     };
     document.addEventListener("mousedown", onClick);
     return () => document.removeEventListener("mousedown", onClick);
@@ -206,6 +212,98 @@ export function BioHeader() {
           <Sparkles className="h-4 w-4" />
           助手
         </Button>
+
+        {/* 浏览足迹 */}
+        <div ref={histRef} className="relative shrink-0">
+          <Button
+            variant="ghost"
+            size="icon"
+            className={cn("h-9 w-9", history.length > 0 && "text-forest")}
+            onClick={() => setHistOpen((v) => !v)}
+            aria-label={`浏览足迹(${history.length} 条,最近看过:${history[0]?.chineseName ?? "暂无"})`}
+            title="浏览足迹"
+          >
+            <History className="h-4 w-4" />
+            {history.length > 0 && (
+              <span className="absolute right-1 top-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-amber-600 px-0.5 text-[8px] font-bold tabular-nums text-white">
+                {history.length > 9 ? "9+" : history.length}
+              </span>
+            )}
+          </Button>
+          <AnimatePresence>
+            {histOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: -6, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -6, scale: 0.98 }}
+                transition={{ duration: 0.18, ease: "easeOut" }}
+                className="absolute right-0 top-11 z-50 w-72 overflow-hidden rounded-xl border border-foreground/10 bg-popover shadow-xl"
+                role="dialog"
+                aria-label="最近浏览足迹"
+              >
+                <div className="flex items-center justify-between border-b border-foreground/10 bg-muted/40 px-3 py-2">
+                  <p className="flex items-center gap-1.5 text-[11px] font-bold tracking-wider text-muted-foreground">
+                    <History className="h-3.5 w-3.5 text-primary" />
+                    浏览足迹 · VESTIGIA
+                  </p>
+                  {history.length > 0 && (
+                    <button
+                      className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                      onClick={() => clearHistory()}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                      清空
+                    </button>
+                  )}
+                </div>
+                {history.length === 0 ? (
+                  <p className="px-4 py-6 text-center text-xs leading-5 text-muted-foreground">
+                    还没有足迹——翻开任意图鉴页面,
+                    <br />
+                    你的巡览路径会出现在这里
+                  </p>
+                ) : (
+                  <ul className="nh-scroll max-h-80 overflow-y-auto py-1.5">
+                    {history.map((h) => (
+                      <li key={h.id}>
+                        <button
+                          className="flex w-full items-center gap-2.5 px-3 py-2 text-left transition-colors hover:bg-accent"
+                          onClick={() => {
+                            openTaxon(h.id);
+                            setHistOpen(false);
+                          }}
+                        >
+                          {h.image ? (
+                            <img
+                              src={h.image}
+                              alt={h.chineseName}
+                              className="h-8 w-8 shrink-0 rounded-md object-cover"
+                              loading="lazy"
+                            />
+                          ) : (
+                            <span
+                              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md"
+                              style={{ background: `${kingdomTheme(h.kingdom).color}18` }}
+                            >
+                              <KingdomIcon kingdom={h.kingdom} className="h-3.5 w-3.5" />
+                            </span>
+                          )}
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-[13px] font-medium text-foreground">{h.chineseName}</span>
+                            <span className="latin block truncate text-[10px] text-muted-foreground">{h.latinName}</span>
+                          </span>
+                          <span className="shrink-0 text-[9px] tabular-nums text-muted-foreground/70">
+                            {relativeTime(h.ts)}
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
 
         {/* 快捷键帮助 */}
         <Button
