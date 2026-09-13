@@ -18,8 +18,8 @@ interface ContextTaxon {
 /** 前端可执行的跳转/交互动作 */
 interface AgentAction {
   label: string;
-  kind: "navigate" | "random";
-  /** navigate: home|explore|browse|compare|favorites|redlist|redlist:CR|taxon:<id> */
+  kind: "navigate" | "random" | "compareIds";
+  /** navigate: home|explore|browse|compare|favorites|redlist|redlist:CR|taxon:<id>; compareIds: <id>,<id> */
   target: string;
 }
 
@@ -191,6 +191,56 @@ interface Intents {
   compareHow: boolean;
   favHow: boolean;
   aboutContext: boolean;
+  /** 「对比 A 和 B」型指令(非 how-to 问句) */
+  compareCmd: boolean;
+}
+
+/** 解析「对比 A 和 B」型指令,提取两个待比较名称(未命中两个则返回 null) */
+function splitCompareTerms(msg: string): [string, string] | null {
+  let m = msg.trim();
+  // how-to 问句交给 compareHow,不解析
+  if (/(怎么|如何|怎样)/.test(m)) return null;
+  if (!/(对比|比较|比一比|比一下)/.test(m)) return null;
+  // 剔除动词短语与请求前缀,保留主体名词片段
+  m = m
+    .replace(/(帮我|请|给我|麻烦|一下)/g, "")
+    .replace(/(把|将|加入|放到|放进|放入|托盘|视图|里面|拿去)/g, " ")
+    .replace(/(对比|比较|比一比|比一下)/g, " ")
+    .trim();
+  const parts = m
+    .split(/和|与|跟|还有|以及|、|,|，|vs|VS|Vs|\.vs\./i)
+    .map((s) => {
+      let x = s.trim();
+      // 去掉后续疑问尾巴:「谁更厉害」「的区别」等(不动名称本体,大熊猫/小熊猫不受影响)
+      x = x
+        .replace(/(谁更|谁)(厉害|猛|强|快|高|重|大|小)?$/, "")
+        .replace(/的区别$/, "")
+        .replace(/(一样吗|吗|呢|吧|啊)$/, "")
+        .replace(/(的|了)$/u, "");
+      return x.trim();
+    })
+    .filter(Boolean);
+  if (parts.length < 2) return null;
+  const [a, b] = parts;
+  if (!a || !b || a === b || a.length > 12 || b.length > 12) return null;
+  return [a, b];
+}
+
+/** 从检索候选中选最佳匹配:精确名 > 前缀/包含 > 拉丁名,物种优先,短中文名优先 */
+function pickBestCandidate(term: string, cs: Candidate[]): Candidate | null {
+  if (!cs.length) return null;
+  const t = term.trim();
+  const score = (c: Candidate) => {
+    let s = 0;
+    if (c.chineseName === t) s += 100;
+    else if (c.chineseName.startsWith(t) || t.startsWith(c.chineseName)) s += 50;
+    else if (c.chineseName.includes(t) || t.includes(c.chineseName)) s += 20;
+    if (c.rank === "species") s += 30;
+    s += Math.max(0, 10 - c.chineseName.length); // 短名更可能是本体(狮 vs 狮鬃水母)
+    if (c.latinName.toLowerCase().includes(t.toLowerCase())) s += 15;
+    return s;
+  };
+  return [...cs].sort((a, b) => score(b) - score(a))[0] || null;
 }
 
 const KINGDOM_PATTERNS: { re: RegExp; la: string; zh: string }[] = [
@@ -232,6 +282,7 @@ function detectIntents(msg: string, ctx: ContextTaxon | null): Intents {
     compareHow: /(怎么|如何|怎样).*(对比|比较)/.test(m),
     favHow: /(怎么|如何|怎样).*(收藏|书签|标本夹|保存)/.test(m),
     aboutContext: !!ctx && /(这个物种|当前物种|这个条目|它|这个家伙|正在看)/.test(m),
+    compareCmd: !!splitCompareTerms(m),
   };
 }
 
@@ -300,6 +351,30 @@ async function buildFallbackReply(
     lines.push("打开物种对比视图——把 2-3 个物种放进托盘,即可并排比较分类、形态、生境与保护等级,支持导出 Markdown/CSV/JSON。");
     actions.push({ label: "打开对比视图", kind: "navigate", target: "compare" });
     return lines.join("\n");
+  }
+  // ---- 对比指令已解析出两个物种 ----
+  if (intents.compareCmd) {
+    const act = actions.find((a) => a.kind === "compareIds");
+    if (act) {
+      const ids = act.target.split(",");
+      const rows = await db.taxon.findMany({
+        where: { id: { in: ids } },
+        select: { id: true, chineseName: true, latinName: true, conservation: true, distribution: true, ecologyRole: true },
+      });
+      const ra = rows.find((r) => r.id === ids[0]);
+      const rb = rows.find((r) => r.id === ids[1]);
+      if (ra && rb) {
+        lines.push(`已为你在库内定位到两个物种,点下方按钮即可装载对比托盘:`);
+        lines.push(`- [[${ra.id}]] **${ra.chineseName}**(*${ra.latinName}*)${ra.conservation ? ` · IUCN ${ra.conservation}` : ""}`);
+        lines.push(`- [[${rb.id}]] **${rb.chineseName}**(*${rb.latinName}*)${rb.conservation ? ` · IUCN ${rb.conservation}` : ""}`);
+        lines.push("对比页支持并排比较分类/形态/科学档案,并可导出 Markdown、CSV 与 JSON。");
+        cands.length = 0;
+        cands.push(ra as any, rb as any);
+        followUps.length = 0;
+        followUps.push(`详细介绍${ra.chineseName}`, `详细介绍${rb.chineseName}`);
+        return lines.join("\n");
+      }
+    }
   }
   if (intents.favPage) {
     lines.push("打开标本收藏夹——你在本机收藏的物种都保存在这里(上限 60 件,跨会话保留)。");
@@ -483,6 +558,28 @@ export async function POST(req: NextRequest) {
     let candidates: Candidate[] = await searchCandidates(extractTerms(lastUser.content));
     const lowerMsg = lastUser.content;
 
+    // ===== 「对比 A 和 B」指令:解析两个物种并直接装载托盘(在线/离线均生效) =====
+    if (intents.compareCmd) {
+      const terms = splitCompareTerms(lastUser.content);
+      if (terms) {
+        const [hitA, hitB] = await Promise.all(
+          terms.map(async (t) => {
+            // 原始词 + 抽取词双路检索,评分选最佳(精确名优先)
+            const cs = await searchCandidates([t, ...extractTerms(t)]);
+            return pickBestCandidate(t, cs);
+          })
+        );
+        if (hitA && hitB && hitA.id !== hitB.id) {
+          actions.push({
+            label: `⚖️ 装载对比:${hitA.chineseName} vs ${hitB.chineseName}`,
+            kind: "compareIds",
+            target: `${hitA.id},${hitB.id}`,
+          });
+          followUps.push(`${hitA.chineseName}和${hitB.chineseName}哪个更濒危?`);
+        }
+      }
+    }
+
     // 保护状况关键词命中时,补充相应等级的物种
     const conservationHit: Record<string, string[]> = {
       极危: ["CR"], 濒危: ["EN", "CR"], 易危: ["VU"], 灭绝: ["EX", "EW"],
@@ -624,7 +721,7 @@ ${flagshipList}
 4. 适当使用要点列表让回答更清晰;长度控制在 300 字以内,除非用户要求详细展开。
 5. 若用户想找某类生物,推荐 2-5 个库内条目并附 [[id]] 引用标记,邀请用户点击查看图鉴页面。
 6. 涉及保护等级时使用 IUCN 代码并解释。诚实为本:不确定的就说不确定,不编造数据。
-7. 介绍网站功能时:除分类树探索外,还有「图鉴目录」(顶栏,可按界/IUCN 等级/标签过滤全部物种)与「物种对比」(在物种卡片或详情页点「对比」,把 2-3 个物种加入底部托盘后即可并排比较分类、形态、生境与保护等级)。用户想比较物种时,引导其使用对比功能。
+7. 介绍网站功能时:除分类树探索外,还有「图鉴目录」(顶栏,可按界/IUCN 等级/标签过滤全部物种)与「物种对比」(在物种卡片或详情页点「对比」,把 2-3 个物种加入底部托盘后即可并排比较分类、形态、生境与保护等级)。用户想比较物种时,引导其使用对比功能;若用户说「帮我对比 A 和 B」,系统会自动解析两个物种并附上一键装载对比托盘的按钮,你可以顺带预览两者的关键差异。
 8. 对比视图还支持「导出 Markdown」(一键复制对比表)与「复制分享链接」;聊天回答下方与我消息里的引用条目卡片旁有对比小按钮,可直接把物种加入托盘。首页「新页速递」展示最近配图的物种。
 9. 更多功能提示:图鉴目录有「卡片/列表」两种密度切换与「分享筛选」;目录筛选在离开再返回后会自动保留;按键盘 ? 键可随时查看快捷键速查表(⌘K 聚焦搜索、Esc 关闭弹窗、详情页 ←/→ 切换同属物种);物种详情页与探索页的面包屑上标有各级类群的物种计数。
 10. 最新功能:物种详情页右栏有「演化谱系」竖向时间轴(域→…→种的完整下潜路径,每个节点可点击上溯,末端标"你在此处");首页六大家族卡片内有各门物种数迷你条形图;首页「图鉴轮盘」是摇号动效抽取物种;对比视图支持「导出 CSV」;头栏有「浏览足迹」按钮(时钟图标,记录你最近翻过的页面,可一键回到刚才看过的物种)。介绍功能时优先提及这些。

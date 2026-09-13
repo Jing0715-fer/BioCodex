@@ -995,3 +995,163 @@ Stage Summary:
 - 产出 src/data/seed/expansion3-insects.ts:86 条 = 30 物种 + 56 中间阶元(5 目/23 科/28 属),五项科学档案字段 100% 覆盖,ncbiTaxId 5 + authority 25,校验脚本 scripts/validate-expansion3-insects.ts 可复用,tsc 零新增错误
 - 查重说明:推荐名单 16+ 个已入库物种全部跳过并以同目替代表(棉蚜替豌豆蚜、白纹伊蚊/斑翅果蝇补双翅等),30 个物种 latin 与清单及文件内零冲突
 - 待主代理集成:scripts/seed-incremental.ts 追加 import { expansion3Insects } 并展开入增量数组后统一入库(入库后预计 488→518 物种、1685→1771 条);物种配图走 generate-images.ts SCOPE=all 或 image-search 恢复后补齐
+
+---
+Task ID: 6-d
+Agent: general-purpose
+Task: 软体动物门深扩数据编写(expansion4-molluscs.ts)
+
+Work Log:
+- 背景阅读:worklog 末数章节(现状 2018 分类单元/626 物种=488+expansion3 系列 138 种已入库)、/tmp/taxa-inventory.tsv 全量 2018 条(查重唯一依据)、types.ts TaxonSeed 接口、expansion3-fishes.ts 开头风格模板、validate-expansion3-fishes.ts 校验框架
+- 现状盘点(rg 全清单+全 seed 源文件):软体动物在库 25 种——腹足 6(皱纹盘鲍/褐云玛瑙螺/脉红螺/地纹芋螺/湖北钉螺/中国圆田螺)、双壳 10(长牡蛎/合浦珠母贝/紫贻贝/三角帆蚌/文蛤/栉孔扇贝/虾夷扇贝/泥蚶/毛蚶/河蚬)、头足 9(普通章鱼/金乌贼/鹦鹉螺/曼氏无针乌贼/短蛸/中国枪乌贼/船蛸/拟态章鱼/蓝环章鱼);已有中间阶元直接 parent 引用:Stylommatophora/Viviparidae/Littorinimorpha/Neogastropoda/Haliotis/Conus/Pectinidae/Veneridae/Venerida/Unionidae/Mytilidae/Pinctada/Crassostrea/Octopus/Sepia/Loliginidae 等
+- 查重跳过任务推荐已存种:褐云玛瑙螺(清单作 Achatina fulica,即 Lissachatina fulica 同种异属,拉丁+中文双查均冲突,换替补)、地纹芋螺(Conus geographus)、马氏珠母贝(合浦珠母贝 Pinctada fucata 之亚种)、栉孔扇贝/虾夷扇贝/紫贻贝/三角帆蚌/河蚬(全已存)、短蛸/金乌贼(已存);替补:褐云→散大蜗牛/灰巴蜗牛/同型巴蜗牛/黄蛞蝓,地纹芋螺→织锦芋螺,马氏珠母贝→大珠母贝,紫贻贝→翡翠贻贝,短蛸→长蛸+双斑蛸;24 物种 latin+中文与 2018 清单及文件内零冲突(另与并行 expansion4-cryptogams.ts 交叉查重零冲突)
+- 网络核验(沿用 4-c 惯例):NCBI eutils esearch/esummary 回名比对 24 物种,18 种获高把握 TaxID(加州海兔 6500/双斑蛸 37653/织锦芋螺 6494/菲律宾蛤仔 129788/大珠母贝 104660/缢蛏 98310/杂色鲍 36095/虎斑宝贝 75124/华贵栉孔扇贝 106276/翡翠贻贝 73031/莱氏拟乌贼 34570/褶纹冠蚌 165446/阿文绶贝 218045/唐冠螺 2576938/法螺 1960912/红带织纹螺 1088897/散大蜗牛 6535/同型巴蜗牛 145626),灰巴蜗牛/黄蛞蝓/铜锈环棱螺/长蛸/虎斑乌贼/香港牡蛎等 NCBI 未按该组合名收录,宁缺毋滥省略;GBIF Backbone 逐条核对命名者(修正多处:红带织纹螺=Adams 1852 而非林奈、同型巴蜗牛=Férussac 1822、褶纹冠蚌=Leach 1814、黄蛞蝓现名移入 Limacus 属、莱氏拟乌贼命名人三说并存故省略 authority);NCBI assembly 库核 genome 表述(双斑蛸 2015 首测 2.7Gb/织锦芋螺/菲律宾蛤仔/缢蛏/大珠母贝/翡翠贻贝/虎斑乌贼/莱氏拟乌贼/同型巴蜗牛/散大蜗牛/加州海兔等确有公开组装才写"染色体级/草图已公开",唐冠螺/法螺/织纹螺/冠蚌/环棱螺等无组装则定性)
+- 编写 src/data/seed/expansion4-molluscs.ts:export const expansion4Molluscs: TaxonSeed[],50 条 = 24 物种 + 26 中间阶元(1 目/9 科/16 属),六大块:①腹足陆生 4(散大蜗牛 Cornu aspersum/灰巴蜗牛/同型巴蜗牛/黄蛞蝓 Limacus flavus,新科大蜗牛科/巴蜗牛科/蛞蝓科挂已有柄眼目)②腹足淡水 1(铜锈环棱螺,新属环棱螺属挂已有田螺科)③腹足海产前鳃 7(杂色鲍挂已有鲍属;虎斑宝贝+阿文绶贝,新科宝贝科挂已有玉黍螺目;唐冠螺新科冠螺科;法螺新科法螺科 Charoniidae(GBIF 现行,中名仍作法螺科);红带织纹螺新科织纹螺科挂已有新腹足目;织锦芋螺挂已有芋螺属)④腹足后鳃 1(加州海兔,新链海兔目 Aplysiida→海兔科→海兔属,神经科学诺奖模式)⑤双壳 7(华贵栉孔扇贝新属拟栉孔扇贝属挂已有扇贝科;菲律宾蛤仔新属蛤仔属挂已有帘蛤科;缢蛏新科竹蛏科+新属挂已有帘蛤目,注明亦有归刀蛏科 Pharidae 的现行处理;大珠母贝/香港牡蛎直接挂已有珠母贝属/巨蛎属;褶纹冠蚌新属冠蚌属挂已有蚌科;翡翠贻贝新属股贻贝属挂已有贻贝科)⑥头足 4(长蛸/双斑蛸挂已有章鱼属;莱氏拟乌贼新属拟乌贼属挂已有枪乌贼科;虎斑乌贼挂已有乌贼属)
+- 每物种 9 字段齐备:description 60-140 字 2-3 句/morphology/habitat/distribution 20-60/etymology 20-80/discovery 30-100/genomeInfo/ecologyRole/researchValue 20-80,24×5 科学档案 100%;科学亮点:加州海兔坎德尔记忆研究与 2000 诺奖、双斑蛸头足纲首基因组 2015(2.7Gb)、法螺棘冠海星生物防治、织锦芋螺毒理学与齐考诺肽、大珠母贝南洋珠、香港牡蛎 2003 新种"重新发现"与 Magallana 属之争、红带织纹螺贝毒食物中毒、铜锈环棱螺螺蛳粉、黄蛞蝓 Limax→Limacus 属级新考订等;国家二级保护 tag 仅录高把握 4 种(虎斑宝贝/唐冠螺/法螺/大珠母贝),IUCN 无高把握值全部省略;tags 沿用库内词表(模式生物/经济物种/入侵物种/药用/农业害虫/有毒/观赏/国家二级保护/环境指示种),未用英文 flagship
+- 自写 scripts/validate-expansion4-molluscs.ts(复用 expansion3 校验框架+档案覆盖与 TaxID 统计)并运行:50 条文件内零重复(拉丁+中文)、与 2018 清单零重复、parent 全闭合(清单∪本文件)、阶元阶梯单调、字段长度区间全过、flagship 零使用 → ALL CHECKS PASSED(24 物种/16 属/9 科/1 目)
+- bunx tsc --noEmit:本文件与校验脚本零类型错误(expansion4-molluscs|validate-expansion4-molluscs 过滤 grep 无任何输出);⚠ 唯一干扰:并行子代理(棘皮/隐花类深扩)的临时核验脚本 scripts/tmp-verify-*.ts(baidu/baike/echino/wikidata/worms/zhwiki,运行期间持续增删)自带 TS1375/TS2451 报错,属其工作区产物,按"禁改共享文件"未予处置,全部过滤后项目代码零错误;零共享文件修改(未动 seed-incremental.ts/enrich-taxa.ts/schema)
+
+Stage Summary:
+- 产出 src/data/seed/expansion4-molluscs.ts:50 条 = 24 物种 + 26 中间阶元(1 目/9 科/16 属);腹足纲 6→19、双壳纲 10→17、头足纲 9→13(库内软体动物 25→49 种);五项科学档案 24/24,ncbiTaxId 18 个(NCBI 回名核验),authority 23 个(GBIF 核对,莱氏拟乌贼存疑省略),IUCN 宁缺毋滥全省、国家二级保护以 tag 承载 4 种
+- 校验:validate-expansion4-molluscs.ts ALL CHECKS PASSED(清单查重/parent 闭合/阶梯单调/长度区间/flagship 禁用全过);tsc 对本任务文件零错误(报错均为并行代理 tmp-verify-*.ts 临时文件,见上)
+- 待主代理集成:scripts/seed-incremental.ts 需追加 `import { expansion4Molluscs } from "../src/data/seed/expansion4-molluscs"` 并展开进 newTaxa 数组后统一入库(入库后预计 626→650 物种、2018→2068 条);物种配图走 generate-images.ts SCOPE=all 或 image-search 恢复后补齐
+
+---
+Task ID: 6-b
+Agent: general-purpose
+Task: 扁形/线虫/海绵/环节动物深扩数据编写(expansion4-worms-sponges.ts)
+
+Work Log:
+- 背景阅读:worklog 末数章节(现状 2018 分类单元/626 物种)、/tmp/taxa-inventory.tsv 全量 2018 条(查重唯一依据)、types.ts TaxonSeed 接口、expansion3-fishes.ts 开头风格模板与 validate-expansion3-fishes.ts 校验框架
+- 现状盘点(rg 全清单+invertebrates.ts/expansion-invertebrates.ts 源码):扁形动物门 4 种(日本三角涡虫/肝片吸虫/日本血吸虫/猪带绦虫)、线虫 3(秀丽隐杆线虫/似蚓蛔线虫/旋毛形线虫)、多孔 3(毛壶/偕老同穴/浴用海绵)、环节 5(双齿围沙蚕/赤子爱胜蚓/欧洲医蛭/参环毛蚓/沙蚕 Nereis virens,后两种为 expansion-invertebrates.ts 已加)——任务推荐名单中日本三角涡虫、肝片吸虫、血吸虫(跳过东毕吸虫)、猪带绦虫、人蛔虫、旋毛虫、Spongia officinalis、Sycon ciliatum、Pheretima aspergillum、Nereis virens 全部查重在库跳过
+- 网络核验(GBIF Backbone API + NCBI eutils 逐条 esearch/esummary 回名比对,沿用 4-c 惯例):23 物种命名人与科目归属全部核对——要点:华支睾吸虫 TaxID 实为 79923(任务提示的 11996 错误)、昆士兰海绵 400682、Schmidtea 现行归三角涡虫科 Dugesiidae(GBIF)、Clonorchis/Paragonimus/Fasciolopsis/Dicrocoelium 均挂斜睾目 Plagiorchiida(GBIF,免建新目)、Diphyllobothrium 目级 GBIF 用 Diphyllobothriidea、钩虫/根结线虫 GBIF 并目 Rhabditida 但按库内经典体系分别新建圆线目/垫刃目;NCBI 现用名与拉丁不符者按宁缺毋滥省略 taxid:Hymenolepis nana(NCBI 作 Rodentolepis nana)、Spongilla fragilis(作 Eunapius fragilis)、Diphyllobothrium latum(作 Dibothriocephalus latus)、Fasciolopsis buski(NCBI 拼 buskii)、Pheretima aspergillum(作 Amynthas,且该种已存在);z-ai web_search 持续 429 未用,中文阶元名按词源自拟并注明依据
+- 编写 src/data/seed/expansion4-worms-sponges.ts:export const expansion4WormsSponges: TaxonSeed[],共 65 条 = 23 物种 + 42 中间阶元(8 目/14 科/20 属),六大块:①涡虫纲 3(地中海涡虫 Schmidtea mediterranea——再生生物学第一模式,施密特涡虫属挂已有三角涡虫科;多目涡虫 Polycelis tenuis——新科涡虫科;微口涡虫 Microstomum lineare——分体链无性繁殖经典,新链大口目→微口科→微口虫属)②吸虫纲 4(华支睾吸虫——一类致癌物胆管癌;卫氏并殖吸虫——阿姆斯特丹动物园孟加拉虎定名;布氏姜片虫——人体最大吸虫挂已有片形科;矛形双腔吸虫——蚁脑操纵攀草行为教科书案例)③绦虫纲 5(牛带绦虫——挂已有带绦虫属零新阶元、不致囊虫病对比;细粒棘球绦虫——冰岛消除史;多房棘球绦虫——「虫癌」泡型包虫病;微小膜壳绦虫——唯一不需中间宿主的绦虫;阔节裂头绦虫——人体最长绦虫与 B12 竞争性贫血,新链裂头目→裂头绦虫科)④线虫 4(十二指肠钩虫——C 形钩齿,圣哥达隧道矿工贫血;美洲板口线虫——S 形板齿,美国南方钩虫防治运动;南方根结线虫——2008 首批植物寄生线虫基因组+纤维素酶水平基因转移;腐烂茎线虫——甘薯糠心,新链圆线目/垫刃目各承两科)⑤多孔动物门 3(脆针海绵——淡水海绵芽球越冬,新链淡水海绵目;昆士兰海绵——2010 首个海绵基因组,新链简骨海绵目→雪骨海绵科;冈田软海绵——软海绵酸与艾日布林,新链软木海绵目)⑥环节动物门 4(宽体金线蛭——药典蚂蟥基原、不吸血,新属金线蛭属挂已有医蛭科;日本医蛭——水蛭素/比伐芦定,挂已有医蛭属;杜氏阔沙蚕——月光周期产卵节律的演化发育模式,新属阔沙蚕属挂已有沙蚕科;正颤蚓——污底指示与虹鳟眩晕病中间宿主,新链颤蚓目→颤蚓科并注明现行并入仙女虫科)
+- 每物种 9 字段齐备:description 60-140 字 2-3 句/morphology/habitat/distribution 20-60 字/etymology/discovery/genomeInfo/ecologyRole/researchValue 全 23×5 覆盖;科学性把关:寄生虫 13 种 IUCN 均未评估故 conservation 全省(宁缺毋滥);基因组数值仅录高把握项(地中海涡虫约 800 Mb/昆士兰海绵约 1.7 亿碱基对/杜氏阔沙蚕约十亿量级均带约字,其余定性),血吸虫科后睾科/钩虫/膜壳/姜片/双腔等一律不虚构数值;authority 22 个(GBIF 核对,微小膜壳绦虫因 Rodentolepis nana 学名争议省略);tags 沿用任务许可与库内词表(医学寄生虫/寄生虫/模式生物/经典实验材料/人畜共患/植物病原/农业害虫/环境指示种/药物来源物种/药用),禁用英文 flagship;科属中文名按 DB 紧凑风格(后睾科/支睾属/并殖属/姜片属/双腔属/棘球绦虫属等)
+- 自写 scripts/validate-expansion4-worms-sponges.ts(复用 expansion3 校验框架+档案覆盖/TaxID 统计+中文名全量重名检查)并运行:65 条文件内零重复(拉丁+中文)、与 2018 清单拉丁+中文零冲突、parent 全闭合(清单∪本文件)、阶元阶梯单调、祖链无环、字段长度区间全过、flagship 零使用;首跑仅 2 条 description 单句警告(昆士兰海绵/冈田软海绵),改分号断句后复跑 → ALL CHECKS PASSED(23 物种/20 属/14 科/8 目,档案 23/23,taxid 19/23)
+- 与并行产出交叉查重:expansion4-molluscs.ts / expansion4-cryptogams.ts / expansion4-arthropods2.ts 逐一比对 23 物种+20 新属拉丁与中文,零冲突
+- bunx tsc --noEmit:本文件与校验脚本零类型错误(expansion4-worms-sponges|validate-expansion4-worms-sponges 过滤 grep 无任何输出);⚠ 唯一干扰与 6-d 相同:并行子代理(棘皮/隐花深扩)的 scripts/tmp-verify-*.ts 临时核验脚本持续增删且自带 TS1375/TS2451 报错,属其工作区产物,按「禁改共享文件」未予处置,全部过滤后项目代码零错误;零共享文件修改(未动 seed-incremental.ts/enrich-taxa.ts/schema)
+
+Stage Summary:
+- 产出 src/data/seed/expansion4-worms-sponges.ts:65 条 = 23 物种 + 42 中间阶元(8 目/14 科/20 属);涡虫纲 1→3、吸虫纲 2→6、绦虫纲 1→6、线虫 3→7、多孔 3→6、环节 5→8(库内四门合计 14→36 种);五项科学档案 23/23,ncbiTaxId 19 个(NCBI 回名核验),authority 22 个(GBIF 核对),IUCN 寄生虫未评估全部省略
+- 校验:validate-expansion4-worms-sponges.ts ALL CHECKS PASSED(清单查重/parent 闭合/阶梯单调/长度区间/flagship 禁用全过);tsc 对本任务文件零错误(报错均为并行代理 tmp-verify-*.ts 临时文件,见上)
+- 待主代理集成:scripts/seed-incremental.ts 需追加 `import { expansion4WormsSponges } from "../src/data/seed/expansion4-worms-sponges"` 并展开进 newTaxa 数组后统一入库(与 expansion4-molluscs/cryptogams/arthropods2 一并入库;本文件单独入库预计 626→649 物种、2018→2083 条);物种配图走 generate-images.ts SCOPE=all 或 image-search 恢复后补齐
+
+---
+Task ID: 6-c
+Agent: general-purpose
+Task: 甲壳动物+蛛形纲深扩数据编写(expansion4-arthropods2.ts)
+
+Work Log:
+- 背景阅读:worklog 末章节(现状 2018 分类单元/626 物种、蛛形纲仅 6 物种薄弱、十足目 9 种可深扩)、types.ts TaxonSeed 接口、expansion3-fishes.ts 风格模板(块注释/authority 简式/字段长度写法)、validate-expansion3-fishes.ts 校验框架、/tmp/taxa-inventory.tsv(2018 条,查重唯一依据)
+- 逐项查重(拉丁+中文双查 2018 清单):推荐名单中已有物种全部跳过——美洲螯龙虾 Homarus americanus、日本沼虾 Macrobrachium nipponense、锦绣龙虾 Panulirus ornatus、马氏钳蝎 Mesobuthus martensii(即任务推荐的马氏正钳蝎,唯一国产药用蝎已在库)、棒络新妇 Nephila clavata(=现行 Trichonephila clavata,中文名重名必撞);以高把握种替补:红螯螯虾、帝王蝎、穴居狼蛛、黑色蝇虎、二斑叶螨等;清单已有中间阶元直接 parent 引用——Penaeidae/Palaemonidae/Portunidae/Portunus/Calanus/Tetranychus/Copepoda/Acari/Arachnida/Araneae/Scorpiones/Crustacea/Malacostraca/Decapoda
+- 网络核验(GBIF Backbone species/match + NCBI eutils esearch 逐条回名 + 中文维基百科 API + WoRMS):24 物种拉丁名/接受状态/命名人/taxid 全部核实(Charybdis feriata 单 r、Plexippus paykulli 单 l、Calanus finmarchicus=飞马哲水蚤、Cyclops vicinus=近邻剑水蚤、黑色蝇虎为 zh.wiki 蝇虎属条目原名);中文名以中文维基百科独立条目背书(纹藤壶/帝王蝎/拟穴青蟹/锈斑蟳/三突花蛛/拟环纹豹蛛/草间钻头蛛/穴居狼蛛/白额高脚蛛等);ncbiTaxId 24/24 全录(GBIF+NCBI 双重核验,循 4-c 鸟纲标准)
+- 编写 src/data/seed/expansion4-arthropods2.ts:export const expansion4Arthropods2: TaxonSeed[],共 66 条(24 物种 + 42 中间阶元 = 1 纲/1 亚纲/5 目/15 科/20 属),六大分块:
+  ① 十足目 8 种(库内 9→17):斑节对虾(草虾,全球第二养殖虾)/脊尾白虾(低盐混养,注明并入 Palaemon 的现行处理)/口虾蛄(皮皮虾,新立口足目-虾蛄科-口虾蛄属)/远海梭子蟹(雄性蓝螯)/红星梭子蟹(三血斑)/锈斑蟳/拟穴青蟹(隐存种复合群厘清)/红螯螯虾(雄性化腺性别控制经典,新立拟螯虾科-澳螯虾属)
+  ② 鞘甲纲藤壶 2 种(0→2):纹藤壶(达尔文 1854 定名,全球污损标准种+防污涂层评价基准,2004 移入 Amphibalanus)/东方小藤壶(挑战者号航次定名,高潮带分带指示);新立鞘甲纲挂既有甲壳亚门(与 Malacostraca/Maxillopoda 平级,循现行体系;颚足纲多系不沿用)→蔓足亚纲→无柄目→藤壶科/小藤壶科
+  ③ 桡足亚纲 2 种(库内 1→3):飞马哲水蚤(北大西洋生物量支柱、脂泵、1931 年 CPR 逾 90 年监测)/近邻剑水蚤(新立剑水蚤目-剑水蚤科-剑水蚤属,淡水浮游经典)
+  ④ 蜘蛛目 7 种(库内 3→10):白额高脚蛛(居家捕蟑螂)/迷宫漏斗蛛(Clerck 1757,早于林奈十版一年)/三突花蛛+拟环纹豹蛛+草间钻头蛛(中国农田稻田生防主力,草间钻头蛛已发表约 1 Gb 量级基因组)/穴居狼蛛(新疆蛛伤医学,替补棒络新妇)/黑色蝇虎(视觉认知经典);新立 6 科 7 属(高脚蛛/漏斗蛛/蟹蛛/狼蛛/皿蛛/跳蛛科)
+  ⑤ 蝎目 1 种(1→2):帝王蝎(替补已入库的马氏钳蝎;钳强毒弱权衡、CITES 附录二、母性育幼),新立蝎科-帝王蝎属
+  ⑥ 蜱螨亚纲 4 种(库内 2→6):人疥螨(疥疮病原,1687/1834 病原学里程碑)/屋尘螨(Der p 过敏原体系,WHO/IUIS 命名基准)/智利小植绥螨(1968 年开创天敌商品化产业)/二斑叶螨(2011 Nature 约 90 Mb 基因组、抗药性经典,直接挂既有叶螨属);新立疥螨目(疥螨科/麦食螨科)与中气门目(植绥螨科-小植绥螨属)
+- 科学性把关:每物种 description 60-140 字 2-3 句/morphology/habitat/distribution 20-60 字/五项科学档案 20-100 字全覆盖;authority 24 个全部经 GBIF 核对((Darwin, 1854)/(Clerck, 1757)/(Gunnerus, 1770)/(De Geer, 1778)/(Audouin, 1826) 等);IUCN 均无可靠评估(污损/经济/天敌/螨类多未评估)宁缺毋滥全部省略;基因组只录高把握数值(二斑叶螨约 90 Mb/草间钻头蛛约 1 Gb 量级/疥螨与尘螨数十 Mb 量级),其余定性或量级式 hedged;异名情形透明标注(三突花蛛注 Ebrechtella 现行组合、脊尾白虾注 Palaemon 广义处理)而不另立条目
+- tags 沿用既有词表:经济物种/驯化物种/污损生物/入侵物种/环境指示种/生物防治/城市适应种/模式生物/观赏动物/有毒动物/寄生虫/人类病原/农业害虫,零英文 flagship
+- 写校验脚本 scripts/validate-expansion4-arthropods2.ts 并运行(复用 expansion3 框架 + 中文名与清单重名升级为 error + 并行 expansion4 文本粗查重):首跑即 ALL CHECKS PASSED(66 条文件内零重复、与 2018 清单拉丁/中文零冲突、parent 全闭合、阶梯单调含纲-亚纲-目链、长度区间全过、档案 24/24、taxid 24/24);与并行产出 expansion4-cryptogams/molluscs/worms-sponges 零拉丁冲突
+- bunx tsc --noEmit:本任务两文件零类型错误;未过滤输出中的报错均为并行子代理 scripts/tmp-verify-*.ts 草稿(其 worklog 亦已注明)及 examples/websocket+skills 固有基线(与既往记录一致),与本文件无关;零共享文件修改(未动 seed-incremental.ts/schema)
+
+Stage Summary:
+- 产出 src/data/seed/expansion4-arthropods2.ts:66 条 = 24 物种 + 42 中间阶元(1 纲/1 亚纲/5 目/15 科/20 属);蛛形纲 6→18 物种(蜘蛛 3→10、蝎 1→2、蜱螨 2→6),十足目 9→17,鞘甲纲 0→2,桡足 1→3;五项科学档案 24/24 全覆盖,ncbiTaxId 24 个(双核验),IUCN 0(均无可靠评估,宁缺毋滥)
+- 校验:validate-expansion4-arthropods2.ts ALL CHECKS PASSED(含与并行 expansion4 文件零冲突);tsc 本任务文件零错误(scripts/tmp-verify-*.ts 系并行代理草稿,非本任务产物,待其清理)
+- 待主代理集成:scripts/seed-incremental.ts 追加 `import { expansion4Arthropods2 } from "../src/data/seed/expansion4-arthropods2"` 并展开进 newTaxa 数组后统一入库(与 expansion4-cryptogams/molluscs/worms-sponges 一并入库;本文件单独入库预计 626→650 物种、2018→2084 条);物种配图走 generate-images.ts SCOPE=all 或 image-search 恢复后补齐
+
+---
+Task ID: 6-f(重试)
+Agent: general-purpose
+Task: 脊椎动物深扩第四轮种子数据编写(expansion4-vertebrates.ts)——深海鱼类+鳄目蜥蜴+海洋哺乳+灵长类+两栖补强
+
+Work Log:
+- 效率守则:吸取上轮超时教训,全程零网络核验(不做 GBIF/NCBI 逐条比对),authority/IUCN/ncbiTaxId 仅写本地高把握值,不确定一律省略;90% 时间用于数据编写
+- 背景阅读:types.ts TaxonSeed 接口、expansion3-mammals-herps.ts/expansion3-fishes.ts 风格模板、validate-expansion3-fishes.ts 校验框架、/tmp/taxa-inventory.tsv(2018 条,查重唯一依据)
+- 逐项查重(拉丁+中文双查清单):确认已有并跳过——暹罗鳄 Crocodylus siamensis、儒艮 Dugong dugon(连同海牛目/儒艮科/儒艮属全在库,儒艮位以座头鲸+中华白海豚替补)、猕猴、川金丝猴;确认可挂已有中间阶元:Lamniformes(鼠鲨目,欧氏尖吻鲛新立尖吻鲛科)、Crocodylus/Alligator、Gekkonidae(睑虎属直接挂科)、Squamata、Carnivora、Cetacea、Balaenopteridae(须鲸科已在库,座头鲸属直接挂)、Macaca/Rhinopithecus、Cercopithecidae、Amphibia、Salamandridae、Actinopterygii(辐鳍亚纲)、Chondrichthyes;与并行 expansion4-worms-sponges/molluscs/cryptogams/arthropods2 做拉丁粗查重零冲突
+- 编写 src/data/seed/expansion4-vertebrates.ts:export const expansion4Vertebrates: TaxonSeed[],共 56 条(22 物种 + 34 中间阶元 = 6 目/12 科/16 属),七分块:
+  ① 深海软骨鱼 3 种:皱鳃鲨(六鳃鲨目新挂软骨鱼纲-皱鳃鲨科,活化石)/欧氏尖吻鲛(哥布林鲨,新立尖吻鲛科挂已有鼠鲨目)/黑线银鲛(银鲛目新挂软骨鱼纲,全头类中国海区代表)
+  ② 深海辐鳍鱼 3 种:蝰鱼(巨口鱼目新挂辐鳍亚纲)/大西洋胸棘鲷(橙鲷,150 岁极端长寿,金眼鲷目+燧鲷科新建)/斑点灯笼鱼(灯笼鱼目新建)
+  ③ 鳄目 3 种:湾鳄(最大爬行动物,养殖皮革)、尼罗鳄(鳄鸻共生)、美洲短吻鳄(TSD 模式生物),直接挂已有 Crocodylus/Alligator 属
+  ④ 蜥蜴 3 种:圆鼻巨蜥(巨蜥科新建挂有鳞目,五爪金龙)、豹纹守宫(睑虎属新挂已有壁虎科,爬宠基因学)/高冠变色龙(避役科新建)
+  ⑤ 海洋哺乳 4 种:北海狮(海狮科新建挂食肉目,NT 旗舰)/环斑海豹(海豹科新建,海冰指示)/座头鲸(挂已有须鲸科)/中华白海豚(海豚科新建挂鲸目,海上大熊猫)
+  ⑥ 灵长类 4 种:食蟹猴(挂已有猕猴属,ncbiTaxId 9541,医学模型)/滇金丝猴(挂已有金丝猴属,EN 高山旗舰)/黑叶猴+白头叶猴(叶猴属新挂已有猴科)
+  ⑦ 两栖 2 种:版纳鱼螈(蚓螈目+鱼螈科新建挂两栖纲,中国唯一蚓螈)/细痣疣螈(疣螈属新挂已有蝾螈科)
+- 规范执行:物种 5 项科学档案 22/22 全覆盖(皱鳃鲨 researchValue 写活化石、豹纹守宫写爬宠基因品系、儒艮替补后的座头鲸/中华白海豚分别写声学旗舰与保护样板);description 60-140 字 2-3 句、morphology/habitat/distribution 20-60 字、中间阶元 30-80 字;authority 19 个简式(确定者如 Garman 1884/Jordan 1898/Schneider 1801/Laurenti 1768 等,白头叶猴不确定省略);IUCN 仅录高把握 10 个(湾鳄/尼罗鳄/美洲短吻鳄/环斑海豹/座头鲸 LC、北海狮 NT、中华白海豚 VU、滇金丝猴/黑叶猴 EN、白头叶猴 CR);ncbiTaxId 仅食蟹猴 9541;tags 全中文词表(深海物种/活化石/国家一级保护/国家二级保护/中国特有/濒危物种/旗舰物种/模式生物/观赏动物/经济物种/耐寒物种/有毒动物),零英文 flagship 键
+- 写校验脚本 scripts/validate-expansion4-vertebrates.ts 并运行:在 expansion3 框架上加并行 expansion4 四文件拉丁粗查重;首跑仅 1 警告(版纳鱼螈 description 4 句),合并句后复跑 ALL CHECKS PASSED 且零警告(56 条文件内拉丁/中文零重复、与 2018 清单零重复、与并行四文件零冲突、parent 全闭合、阶梯单调含目挂亚纲/纲链、长度区间全过、档案 22/22)
+- bunx tsc --noEmit:过滤 examples/ 与 skills/ 后输出为空;未过滤输出中仅 websocket 示例与 skills 固有基线报错(与既往记录一致,与本任务无关);零共享文件修改(未动 seed-incremental.ts/schema)
+
+Stage Summary:
+- 产出 src/data/seed/expansion4-vertebrates.ts:56 条 = 22 物种 + 34 中间阶元(6 目/12 科/16 属);深扩覆盖深海软骨鱼 3、深海辐鳍鱼 3、鳄目 3(库内鳄类 2→5)、巨蜥/守宫/变色龙 3、海洋哺乳 4(鳍足目两科 0→2 属 2 种、座头鲸、中华白海豚)、灵长类 4(库内 3→7)、两栖 2(蚓螈目 0→1 种、疣螈属 0→1 种);五项科学档案 22/22 全覆盖,authority 19,IUCN 10,ncbiTaxId 1(宁缺毋滥)
+- 校验:validate-expansion4-vertebrates.ts 全部通过(零警告);tsc 过滤后输出为空(仅 examples/skills 固有基线)
+- 待主代理集成:scripts/seed-incremental.ts 需追加 `import { expansion4Vertebrates } from "../src/data/seed/expansion4-vertebrates"` 并展开进 newTaxa 数组后统一入库(与 expansion4-worms-sponges/molluscs/cryptogams/arthropods2 一并入库;本文件单独入库预计 626→648 物种、2018→2074 条);物种配图走 generate-images.ts SCOPE=all 或 image-search 恢复后补齐
+
+---
+Task ID: 6-a(重试)
+Agent: general-purpose(BioCodex 数据编写子代理)
+Task: 棘皮动物门深扩种子数据编写(expansion4-echinoderms.ts)——海星/海胆/海参/蛇尾/海百合五纲 22-24 物种 + 必要中间阶元
+
+Work Log:
+- 效率守则:吸取前次超时教训,全程零网络核验,ncbiTaxId/IUCN 一律省略(无高把握项,宁缺毋滥),authority 仅录 12 个高把握简式(林奈 1758×4、Leske 1778、Pennant 1777、Müller & Troschel 1840/1842×2、Lütken 1869、Lamarck 1816、A. Agassiz 1864、Jaeger 1833×2);90% 时间用于数据文件本身
+- 背景快读(3 文件):taxa-inventory.tsv(2018 条)/ types.ts TaxonSeed / expansion3-fishes.ts 模板 + validate-expansion3-fishes.ts 校验框架
+- 清单核验(拉丁+中文双查):已存在跳过——多棘海盘车、紫海胆(Strongylocentrotus purpuratus,注意「紫海胆 Heliocidaris crassispina」候补因中文名与其重名而弃用,以光棘球海胆+喇叭毒棘海胆替补)、马粪海胆、仿刺参、萨氏真蛇尾(候补 Ophiura sarsii 亦已在库,以脆蛇尾替补);可直挂的已有中间阶元:Echinodermata、Asteroidea/Echinoidea/Holothuroidea/Ophiuroidea 四纲及 Camarodonta(拱齿目)、Strongylocentrotidae(球海胆科)、Aspidochirotida(楯手目)、Stichopodidae(刺参科);Crinoidea 清单缺,新建挂 Echinodermata;与并行 expansion4-worms-sponges/molluscs/cryptogams/arthropods2 拉丁粗查重零冲突
+- 编写 src/data/seed/expansion4-echinoderms.ts:export const expansion4Echinoderms: TaxonSeed[],共 59 条 = 22 物种 + 37 中间阶元(1 纲/5 目/11 科/20 属),五分块:① 海星纲 7(蓝指海星/面包海星/粒皮海星/飞白枫海星/海燕 Asterina pectinifera 模式生物/棘冠海星 珊瑚暴发种/砂海星);② 海胆纲 5(刺冠海胆 生态关键种/白棘三列海胆 食用养殖/喇叭毒棘海胆 有毒/心形海胆 内栖经典/光棘球海胆 大连紫海胆);③ 海参纲 6(梅花参 世界最长海参/绿刺参/玉足海参 居维氏管防御模式/黑乳参 名贵衰退种/糙海参 热带养殖模式/海地瓜 低值参高值化);④ 蛇尾纲 2(滩栖阳遂足 黄渤海优势指示种/脆蛇尾 欧洲模式种);⑤ 海百合纲 2(日本海羊齿 发育模式/圆等海百合 深海具柄再生模式)
+- 规范执行:物种五项科学档案 22/22 全覆盖(海胆写牧食生态与发育地位、海参写皂苷/胶原活性研究、海燕写胚胎学经典材料);description 60-140 字 2-3 句、morphology/habitat/distribution 20-60 字、中间阶元 30-80 字;tags 全中文既有词表(经济物种/食用/药用/观赏/模式生物/有毒/环境指示种/生态关键种/深海物种),零英文 flagship;零共享文件改动
+- 写校验脚本 scripts/validate-expansion4-echinoderms.ts(套用 expansion3 框架 + 并行四文件拉丁粗查重)并运行:首跑 3 条 etymology 超长(81/90/82 字),精简后复跑全部通过——59 条文件内拉丁+中文零重复、与 2018 清单拉丁零重复(中文重名零警告)、与并行四文件零冲突、parent 闭合(清单∪本文件)、阶梯单调、祖链无环、长度区间全过、科学档案 22/22
+- bunx tsc --noEmit 2>&1 | grep -v 'examples/\|skills/' 输出为空(与任务无关基线除外,实际为全空)
+
+Stage Summary:
+- 产出 src/data/seed/expansion4-echinoderms.ts:59 条 = 22 物种 + 37 中间阶元(1 纲/5 目/11 科/20 属);棘皮动物深扩覆盖:海星纲库内 1→8 种(新增蓝指/面包/粒皮/飞白枫/海燕/棘冠/砂海星 7 种,跳过多棘海盘车)、海胆纲 1→6 种(新增刺冠/白棘三列/喇叭毒棘/心形/光棘球海胆 5 种,跳过紫海胆与马粪海胆;Heliocidaris crassispina 因中文名重名弃用)、海参纲 1→7 种(新增梅花参/绿刺参/玉足/黑乳/糙/海地瓜 6 种,跳过仿刺参)、蛇尾纲 1→3 种(新增滩栖阳遂足/脆蛇尾)、海百合纲 0→2 种(新建纲);五项科学档案 22/22 全覆盖,authority 12,IUCN 0/ncbiTaxId 0(宁缺毋滥)
+- 校验:validate-expansion4-echinoderms.ts 全部通过(零警告零错误);bunx tsc 过滤后输出为空
+- 待主代理集成:scripts/seed-incremental.ts 需追加 `import { expansion4Echinoderms } from "../src/data/seed/expansion4-echinoderms"` 并展开进 newTaxa 数组统一入库(与 expansion4-worms-sponges/molluscs/cryptogams/arthropods2/vertebrates 一并;本文件单独入库预计物种 626→648、总条目 2018→2077);物种配图走 generate-images.ts SCOPE=all 或 image-search 恢复后补齐
+
+---
+Task ID: 6-e(补记,由主代理代写:子代理超时未及写入)
+Agent: general-purpose
+Task: 真菌地衣+苔藓蕨类深扩数据编写(expansion4-cryptogams.ts)
+
+Work Log:
+- 编写 src/data/seed/expansion4-cryptogams.ts:export const expansion4Cryptogams: TaxonSeed[],65 条 = 25 物种 + 40 中间阶元(1 纲/6 目/12 科/21 属)
+- 覆盖:鹅膏菌毒菌专题(灰花纹鹅膏/毒蝇鹅膏等)、刺革菌目药用木生菌、地衣化子囊菌(石蕊/松萝/梅衣)、黏菌(煤绒泡菌)、藓类(泥炭藓/葫芦藓)、苔类(地钱已存则替补)、蕨类深扩
+- 查重跳过已存:松口蘑/灵芝/香菇/云芝/茯苓/猪苓/多头绒泡菌/泥炭藓/葫芦藓/地钱/肾蕨/铁线蕨/卷柏等
+- 主代理验证:bun scripts/validate-expansion4-cryptogams.ts → ✓ 全部校验通过(25 物种五档案 100%、ncbiTaxId 23/25、清单 2018 条零冲突)
+
+Stage Summary:
+- 产出 65 条(25 物种),校验通过,已由主代理并入 seed-incremental.ts 统一入库
+
+---
+Task ID: E4(用户指令轮:GitHub 推送+物种扩充+Agent E2E+功能增强, 2026-09-15)
+Agent: main
+Task: push 到 GitHub(Jing0715-fer/BioCodex) + expansion4 六路物种深扩(140 种) + 旗舰补录 23 种 + Agent「一键对比」新功能 + 对比视图科学档案 + 详情页分节导航
+
+Work Log:
+- 【GitHub 推送】token 验证(用户 Jing0715-fer)→ POST API 建 BioCodex 公开仓 → .gitignore 追加 /tool-results 与 /agent-ctx → git remote + push main 成功(https://github.com/Jing0715-fer/BioCodex)
+- 【开工健康检查】dev server 200 OK;DB 626 物种/2018 单元;export-taxa.ts 重导清单;z-ai image API 探测仍 429(账户级限流持续,补图仍由 cron 381986 自动轮巡)
+- 【QA 回归】agent-browser:首页(766 计数/明星物种轮换)/详情页(分类路径+科学档案+收藏对比按钮)/Agent 面板离线降级模式(中华鲎提问→检索回答+匹配卡片+「详细介绍」芯片跳转 #taxon= 直链)/控制台零错误
+- 【expansion4 物种深扩·六路并行】缺口分析(棘皮 5 种/扁形 4/海绵 3/腹足 6/蛛形 6 为最薄弱)后启动 6 个子代理:
+  6-a 棘皮(expansion4-echinoderms.ts 59 条 22 种)/6-b 蠕虫海绵(expansion4-worms-sponges.ts 65 条 23 种)/6-c 甲壳蛛形(expansion4-arthropods2.ts 66 条 24 种)/6-d 软体(expansion4-molluscs.ts 50 条 24 种)/6-e 隐花(expansion4-cryptogams.ts 65 条 25 种)/6-f 脊椎(expansion4-vertebrates.ts 56 条 22 种)
+  注:6-a/6-c/6-e/6-f 首轮超时(子代理 GBIF/NCBI 逐条核验耗时过长),6-c/6-e 实际已完成文件、6-a/6-f 收紧网络核验时限后重发成功
+- 【增量入库】seed-incremental.ts 挂 6 个 import 统一入库:2018→2379 单元/626→766 物种(单轮 +140);扩后 export-taxa 2379 条
+- 【旗舰物种补录·QA 驱动】实测「帮我对比老虎和狮子」发现狮 Panthera leo 缺失 → 检查发现 Panthera 属仅虎/雪豹,豹/猎豹/非洲象/长颈鹿/河马/白犀/虎鲸/白鲸/黑猩猩/大猩猩/猩猩/斑鬣狗/白头海雕/斑马等 16 全球旗舰缺失 → 亲编 expansion4-icons.ts;再发现小熊猫/浣熊/驼鹿/驯鹿/大灰袋鼠/大食蚁兽/九带犰狳/白鼬 8 种亦缺 → 追加;共 24 物种+7 中间阶元(新科 3:长颈鹿/河马/犀+新目 2:披毛/有甲+新属多) → 两次入库:766→781→789 物种/2432 单元
+- 【Agent 新功能:一键对比】splitCompareTerms 解析「对比 A 和 B/比较 X 和 Y/A 和 B 谁更厉害」型指令(剥离请求前缀/动词/疑问尾巴,连词切分);pickBestCandidate 评分匹配(精确名>前缀>包含,物种+短名加权,修复「狮子」误中狮鬃水母);新 AgentAction kind=compareIds;前端 runAction 清空托盘→装载→openCompare+toast;离线降级分支输出双物种档案+装载按钮;LLM 系统提示词与欢迎语同步;建议提问首位改为「帮我对比老虎和狮子」
+  修 bug 过程:①首轮正则尾部空分支「|」致任何词被逐字切分(老虎→老,误中偕老同穴),console.log 定位后重写清洗逻辑 ②「大|小」切分会毁掉大熊猫/小熊猫,改为仅剥疑问尾巴 ③「的区别」型问句改为也装载对比(教育价值)
+  E2E 实测:浏览器「帮我对比老虎和狮子」→离线解析→点击「⚖️ 装载对比:虎 vs 狮」→自动跳转对比视图并排渲染;「对比一下大熊猫和小熊猫的区别」「比较虎鲸和蓝鲸谁更大」curl 验证均正确
+- 【对比视图纳入科学档案】CompareView 行数组/Markdown 导出/CSV 导出/JSON 导出全部追加 5 字段:词源命名(BookOpenText)/发现史(History)/基因组档案(Dna)/生态位(Globe2)/科研价值(FlaskConical);e2e 确认「词源命名 相异」「基因组档案 相异」行正确渲染狮虎档案
+- 【详情页分节锚点导航】SectionCard 加 sectionId prop;hero 与内容区之间插入 sticky 分节导航(物种描述/形态·生境/科学档案/保护状况/科学数据库/引用格式,按数据有无动态显隐,scrollIntoView 平滑滚动+scroll-mt-24);数据库链接与引用区块补 id;实测点击「科学档案」滚动至 985px、零 console 错误
+- 【校验】bunx tsc --noEmit(过滤 examples/skills 基线后零错误);bun run lint 零输出;首页计数 789;dev.log 无新增错误
+- 【收官】git add 全部新增(expansion4 六文件+icons+校验脚本+对比/详情/Agent 增强)→ commit → push GitHub
+
+Stage Summary(当前项目状态):
+- 【稳定】789 物种/2432 分类单元/142 配图(z-ai 429 中,cron 381986 轮巡)/48 门;GitHub 同步 https://github.com/Jing0715-fer/BioCodex
+- 本轮交付:①GitHub 远程仓建立与首次推送 ②expansion4 六文件 140 种+旗舰补录 24 种(共 +163 物种,+414 单元) ③Agent「帮我对比 A 和 B」一键装载(在线/离线双模式,评分匹配防误中) ④对比视图 5 项科学档案字段(含三种导出) ⑤详情页分节锚点导航 ⑥Panthera 属补全(狮/豹/美洲豹)
+- 未解决/风险:
+  1. z-ai image API 429 持续(缺图 647/789,配图完备度 18%):恢复后执行 BATCH=999 SCOPE=all CONCURRENCY=2 timeout 580 bun scripts/generate-images.ts 分多轮补齐
+  2. Agent 在线模式(LLM)仍 429 未实测,离线路径全验证;LLM 恢复后建议实测在线问答与对比指令的 LLM 语境回答
+  3. 子代理并行首轮超时率高(网络核验耗时):后续轮次继续沿用「收紧网络核验时限+离线把握值直书」模式
+  4. 缺口仍存:环节动物/多毛类、等足目、蜘蛛目更深、苔藓蕨类细节、鱼纲深海更多目可作 expansion5 候选
+- 下一阶段优先:
+  1. P0 补图(依赖 API 恢复;cron 已接管)
+  2. P1:LLM 恢复后 Agent 在线模式实测(含对比指令+档案引用质量)
+  3. P2:expansion5(环节/多毛、蜘蛛深扩、等足目);物种卡片档案徽标;红色名录/目录页新物种自动收录验证

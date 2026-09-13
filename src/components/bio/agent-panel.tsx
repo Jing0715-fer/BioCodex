@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { KingdomIcon } from "./taxa-icon";
 import ReactMarkdown from "react-markdown";
-import { Sparkles, Send, X, RotateCcw, Bot, User, ChevronRight, GitCompareArrows, Bookmark, WifiOff, Compass, Dices, Copy, Link2 } from "lucide-react";
+import { Sparkles, Send, X, RotateCcw, Bot, User, ChevronRight, GitCompareArrows, Bookmark, WifiOff, Compass, Dices, Copy, Link2, Scale } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useFavorites, toggleFavorite } from "@/lib/favorites";
@@ -26,7 +26,7 @@ interface MatchDTO {
 
 interface ActionDTO {
   label: string;
-  kind: "navigate" | "random";
+  kind: "navigate" | "random" | "compareIds";
   target: string;
 }
 
@@ -46,11 +46,11 @@ interface ContextTaxon {
 }
 
 const SUGGESTIONS = [
+  "帮我对比老虎和狮子",
   "帮我找老虎",
   "带我去红色名录专题",
   "随机来一个物种",
   "图鉴里收录了多少物种?",
-  "怎么把两个物种加入对比并导出表格?",
 ];
 
 const CHAT_KEY = "biocodex-agent-chat-v1";
@@ -142,13 +142,13 @@ function AssistantMarkdown({ content, matches }: { content: string; matches?: Ma
 const WELCOME: Msg = {
   role: "assistant",
   content:
-    "你好,我是**阿博**,BioCodex 的 AI 博物学家助手 🧬\n\n我可以:\n- 为你讲解图鉴里的任意物种与类群\n- 帮你按特征、保护等级、门类**寻找条目**(下方卡片可直接跳转图鉴页)\n- **带路**:说「带我去红色名录」「打开目录」即可一键跳转\n- 聊聊分类学、生态学与保护生物学\n\n试试下面的提问,或直接输入你好奇的问题。",
+    "你好,我是**阿博**,BioCodex 的 AI 博物学家助手 🧬\n\n我可以:\n- 为你讲解图鉴里的任意物种与类群\n- 帮你按特征、保护等级、门类**寻找条目**(下方卡片可直接跳转图鉴页)\n- **带路**:说「带我去红色名录」「打开目录」即可一键跳转\n- **并排对比**:说「帮我对比老虎和狮子」即可一键装载对比托盘\n- 聊聊分类学、生态学与保护生物学\n\n试试下面的提问,或直接输入你好奇的问题。",
 };
 
 export function AgentPanel() {
   const {
     agentOpen, setAgentOpen, openTaxon, agentUnread, clearUnread, toggleCompare, compareIds,
-    goHome, explore, openBrowse, openCompare, openFavorites, openRedlist, view,
+    goHome, explore, openBrowse, openCompare, openFavorites, openRedlist, view, clearCompare,
   } = useBioStore();
   const favorites = useFavorites();
   const isFav = (id: string) => favorites.some((f) => f.id === id);
@@ -240,10 +240,27 @@ export function AgentPanel() {
     }
   };
 
-  /** 执行意图动作:页面跳转 / 再抽一个 */
+  /** 执行意图动作:页面跳转 / 再抽一个 / 一键装载对比 */
   const runAction = (a: ActionDTO) => {
     if (a.kind === "random") {
       send("随机给我来一个物种 🎲");
+      return;
+    }
+    if (a.kind === "compareIds") {
+      const ids = (a.target || "").split(",").filter(Boolean).slice(0, 3);
+      if (!ids.length) return;
+      clearCompare();
+      let loaded = 0;
+      for (const id of ids) {
+        if (toggleCompare(id) === "added") loaded++;
+      }
+      if (loaded > 0) {
+        openCompare();
+        toast({ title: "对比托盘已装载", description: `已放入 ${loaded} 个物种,并排比较开始` });
+        setAgentOpen(false);
+      } else {
+        toast({ title: "装载失败", description: "这两个物种已在托盘中", variant: "destructive" });
+      }
       return;
     }
     const t = a.target || "";
@@ -357,7 +374,7 @@ export function AgentPanel() {
                                 onClick={() => runAction(a)}
                                 className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground shadow-sm transition-all hover:scale-[1.03] hover:shadow-md"
                               >
-                                {a.kind === "random" ? <Dices className="h-3.5 w-3.5" /> : <Compass className="h-3.5 w-3.5" />}
+                                {a.kind === "random" ? <Dices className="h-3.5 w-3.5" /> : a.kind === "compareIds" ? <Scale className="h-3.5 w-3.5" /> : <Compass className="h-3.5 w-3.5" />}
                                 {a.label}
                               </button>
                             ))}

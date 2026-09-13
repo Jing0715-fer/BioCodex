@@ -36,14 +36,16 @@ function SectionCard({
   icon: Icon,
   children,
   className,
+  sectionId,
 }: {
   title: string;
   icon?: any;
   children: React.ReactNode;
   className?: string;
+  sectionId?: string;
 }) {
   return (
-    <section className={cn("rounded-xl border border-foreground/10 bg-card p-5 shadow-sm", className)}>
+    <section id={sectionId} className={cn("scroll-mt-24 rounded-xl border border-foreground/10 bg-card p-5 shadow-sm", className)}>
       <h2 className="flex items-center gap-2 font-display text-lg font-bold text-foreground">
         {Icon && <Icon className="h-4.5 w-4.5 text-primary" />}
         {title}
@@ -373,18 +375,50 @@ export function TaxonDetail({ id }: { id: string }) {
         </div>
       </div>
 
+      {/* ====== 分节导航(锚点快速跳转) ====== */}
+      {(() => {
+        const anchors = [
+          { id: "section-description", label: isSpecies ? "物种描述" : "类群概述", show: !!taxon.description },
+          { id: "section-morphology", label: "形态·生境", show: !!(taxon.morphology || taxon.habitat || taxon.distribution) },
+          { id: "section-profile", label: "科学档案", show: !!(taxon.etymology || taxon.discovery || taxon.genomeInfo || taxon.ecologyRole || taxon.researchValue) },
+          { id: "section-conservation", label: "保护状况", show: !!taxon.conservation },
+          { id: "section-databases", label: "科学数据库", show: true },
+          { id: "section-cite", label: "引用格式", show: isSpecies },
+        ].filter((a) => a.show);
+        if (anchors.length < 3) return null;
+        const jump = (id: string) => {
+          document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+        };
+        return (
+          <nav aria-label="条目分节导航" className="sticky top-16 z-20 -mx-1 mt-4 rounded-xl border border-foreground/10 bg-card/95 px-2.5 py-2 shadow-sm backdrop-blur">
+            <ul className="flex items-center gap-1.5 overflow-x-auto nh-scroll">
+              {anchors.map((a) => (
+                <li key={a.id}>
+                  <button
+                    onClick={() => jump(a.id)}
+                    className="rounded-full border border-foreground/10 bg-muted/40 px-3 py-1 text-xs font-semibold whitespace-nowrap text-muted-foreground transition-all hover:border-primary/50 hover:bg-primary/10 hover:text-primary active:scale-95"
+                  >
+                    {a.label}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        );
+      })()}
+
       {/* ====== 内容 + 侧栏 ====== */}
       <div className="mt-5 grid gap-5 lg:grid-cols-[1fr_360px]">
         {/* 左列:正文 */}
         <div className="min-w-0 space-y-5">
           {taxon.description && (
-            <SectionCard title={isSpecies ? "物种描述" : "类群概述"} icon={BookOpen}>
+            <SectionCard title={isSpecies ? "物种描述" : "类群概述"} icon={BookOpen} sectionId="section-description">
               {taxon.description}
             </SectionCard>
           )}
 
           {(taxon.morphology || taxon.habitat || taxon.distribution) && (
-            <SectionCard title="形态、生境与分布" icon={Leaf}>
+            <SectionCard title="形态、生境与分布" icon={Leaf} sectionId="section-morphology">
               <dl className="space-y-4">
                 {taxon.morphology && (
                   <div>
@@ -413,7 +447,7 @@ export function TaxonDetail({ id }: { id: string }) {
 
           {/* ====== 科学档案 SCIENTIFIC PROFILE ====== */}
           {(taxon.etymology || taxon.discovery || taxon.genomeInfo || taxon.ecologyRole || taxon.researchValue) && (
-            <section className="overflow-hidden rounded-xl border border-primary/20 bg-card shadow-sm">
+            <section id="section-profile" className="overflow-hidden scroll-mt-24 rounded-xl border border-primary/20 bg-card shadow-sm">
               <div className="flex items-center gap-2.5 border-b border-foreground/10 bg-primary/5 px-5 py-3.5">
                 <ScrollText className="h-5 w-5 text-primary" />
                 <h3 className="font-display text-base font-bold text-foreground">科学档案</h3>
@@ -447,7 +481,7 @@ export function TaxonDetail({ id }: { id: string }) {
           )}
 
           {iucn && taxon.conservation && (
-            <SectionCard title="保护状况" icon={Shield}>
+            <SectionCard title="保护状况" icon={Shield} sectionId="section-conservation">
               <div className="flex flex-wrap items-center gap-3">
                 <button
                   onClick={() => openRedlist({ iucn: taxon.conservation })}
@@ -635,7 +669,7 @@ export function TaxonDetail({ id }: { id: string }) {
           </section>
 
           {/* 数据库链接 */}
-          <section className="rounded-xl border border-foreground/10 bg-card p-5 shadow-sm">
+          <section id="section-databases" className="scroll-mt-24 rounded-xl border border-foreground/10 bg-card p-5 shadow-sm">
             <h2 className="flex items-center gap-2 font-display text-lg font-bold">
               <ExternalLink className="h-4.5 w-4.5 text-primary" />
               科学数据库
@@ -681,7 +715,7 @@ export function TaxonDetail({ id }: { id: string }) {
 
           {/* 引用格式(物种) */}
           {isSpecies && (
-            <section className="rounded-xl border border-foreground/10 bg-card p-5 shadow-sm">
+            <section id="section-cite" className="scroll-mt-24 rounded-xl border border-foreground/10 bg-card p-5 shadow-sm">
               <h2 className="flex items-center gap-2 font-display text-lg font-bold">
                 <Quote className="h-4.5 w-4.5 text-primary" />
                 引用格式

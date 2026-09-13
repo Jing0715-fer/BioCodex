@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   ChevronRight, ArrowLeft, X, Microscope, Leaf, MapPin, Shield, GitCompareArrows,
   Dna, Database, Plus, Star, Sparkles, Columns2, ClipboardCopy, Link2, Check, FileSpreadsheet, Braces,
+  BookOpenText, History, Globe2, FlaskConical,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -73,6 +74,11 @@ export function CompareView({ ids }: { ids: string[] }) {
       line("形态特征", (t) => t.taxon.morphology || "暂无记录"),
       line("生境", (t) => t.taxon.habitat || "暂无记录"),
       line("分布", (t) => t.taxon.distribution || "暂无记录"),
+      line("词源命名", (t) => t.taxon.etymology || "暂无记录"),
+      line("发现史", (t) => t.taxon.discovery || "暂无记录"),
+      line("基因组概况", (t) => t.taxon.genomeInfo || "暂无记录"),
+      line("生态位", (t) => t.taxon.ecologyRole || "暂无记录"),
+      line("科研价值", (t) => t.taxon.researchValue || "暂无记录"),
       line("保护等级", (t) => (t.taxon.conservation ? `${t.taxon.conservation} ${IUCN_INFO[t.taxon.conservation]?.label ?? ""}`.trim() : "未评估")),
       line("NCBI 分类", (t) => (t.taxon.ncbiTaxId ? `txid${t.taxon.ncbiTaxId}` : "未锚定")),
       line("物种速览", (t) => t.taxon.description || ""),
@@ -125,6 +131,11 @@ export function CompareView({ ids }: { ids: string[] }) {
       row("形态特征", (t) => t.taxon.morphology || "暂无记录"),
       row("生境", (t) => t.taxon.habitat || "暂无记录"),
       row("分布", (t) => t.taxon.distribution || "暂无记录"),
+      row("词源命名", (t) => t.taxon.etymology || "暂无记录"),
+      row("发现史", (t) => t.taxon.discovery || "暂无记录"),
+      row("基因组概况", (t) => t.taxon.genomeInfo || "暂无记录"),
+      row("生态位", (t) => t.taxon.ecologyRole || "暂无记录"),
+      row("科研价值", (t) => t.taxon.researchValue || "暂无记录"),
       row("保护等级", (t) => (t.taxon.conservation ? `${t.taxon.conservation} ${IUCN_INFO[t.taxon.conservation]?.label ?? ""}`.trim() : "未评估")),
       row("NCBI 分类", (t) => (t.taxon.ncbiTaxId ? `txid${t.taxon.ncbiTaxId}` : "未锚定")),
       row("物种速览", (t) => t.taxon.description || ""),
@@ -207,6 +218,61 @@ export function CompareView({ ids }: { ids: string[] }) {
         ),
       },
       {
+        key: "etymology",
+        label: "词源命名",
+        icon: BookOpenText,
+        values: plain((t) => t.taxon.etymology || "—"),
+        render: (t) => (
+          <p className="text-[13px] leading-6 text-foreground/85">
+            {t.taxon.etymology || <span className="text-muted-foreground/50">暂无记录</span>}
+          </p>
+        ),
+      },
+      {
+        key: "discovery",
+        label: "发现史",
+        icon: History,
+        values: plain((t) => t.taxon.discovery || "—"),
+        render: (t) => (
+          <p className="text-[13px] leading-6 text-foreground/85">
+            {t.taxon.discovery || <span className="text-muted-foreground/50">暂无记录</span>}
+          </p>
+        ),
+      },
+      {
+        key: "genomeInfo",
+        label: "基因组档案",
+        icon: Dna,
+        values: plain((t) => t.taxon.genomeInfo || "—"),
+        render: (t) => (
+          <p className="text-[13px] leading-6 text-foreground/85">
+            {t.taxon.genomeInfo || <span className="text-muted-foreground/50">暂无记录</span>}
+          </p>
+        ),
+      },
+      {
+        key: "ecologyRole",
+        label: "生态位",
+        icon: Globe2,
+        values: plain((t) => t.taxon.ecologyRole || "—"),
+        render: (t) => (
+          <p className="text-[13px] leading-6 text-foreground/85">
+            {t.taxon.ecologyRole || <span className="text-muted-foreground/50">暂无记录</span>}
+          </p>
+        ),
+      },
+      {
+        key: "researchValue",
+        label: "科研价值",
+        icon: FlaskConical,
+        values: plain((t) => t.taxon.researchValue || "—"),
+        render: (t) => (
+          <p className="text-[13px] leading-6 text-foreground/85">
+            {t.taxon.researchValue || <span className="text-muted-foreground/50">暂无记录</span>}
+          </p>
+        ),
+      },
+      {
         key: "conservation",
         label: "保护等级",
         icon: Shield,
@@ -269,6 +335,11 @@ export function CompareView({ ids }: { ids: string[] }) {
           morphology: t.taxon.morphology,
           habitat: t.taxon.habitat,
           distribution: t.taxon.distribution,
+          etymology: t.taxon.etymology,
+          discovery: t.taxon.discovery,
+          genomeInfo: t.taxon.genomeInfo,
+          ecologyRole: t.taxon.ecologyRole,
+          researchValue: t.taxon.researchValue,
           conservation: t.taxon.conservation,
           ncbiTaxId: t.taxon.ncbiTaxId,
           summary: t.taxon.description,

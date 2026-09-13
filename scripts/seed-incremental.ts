@@ -23,6 +23,13 @@ import { expansion3Fishes } from "../src/data/seed/expansion3-fishes";
 import { expansion3Birds } from "../src/data/seed/expansion3-birds";
 import { expansion3MammalsHerps } from "../src/data/seed/expansion3-mammals-herps";
 import { expansion3Plants } from "../src/data/seed/expansion3-plants";
+import { expansion4Echinoderms } from "../src/data/seed/expansion4-echinoderms";
+import { expansion4WormsSponges } from "../src/data/seed/expansion4-worms-sponges";
+import { expansion4Arthropods2 } from "../src/data/seed/expansion4-arthropods2";
+import { expansion4Molluscs } from "../src/data/seed/expansion4-molluscs";
+import { expansion4Cryptogams } from "../src/data/seed/expansion4-cryptogams";
+import { expansion4Vertebrates } from "../src/data/seed/expansion4-vertebrates";
+import { expansion4Icons } from "../src/data/seed/expansion4-icons";
 
 const newTaxa: TaxonSeed[] = [
   ...expansionProkaryotes,
@@ -40,6 +47,13 @@ const newTaxa: TaxonSeed[] = [
   ...expansion3Birds,
   ...expansion3MammalsHerps,
   ...expansion3Plants,
+  ...expansion4Echinoderms,
+  ...expansion4WormsSponges,
+  ...expansion4Arthropods2,
+  ...expansion4Molluscs,
+  ...expansion4Cryptogams,
+  ...expansion4Vertebrates,
+  ...expansion4Icons,
 ];
 
 function fail(msg: string): never {
