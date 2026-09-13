@@ -1302,3 +1302,30 @@ Work Log:
 Stage Summary(中期):
 - 【稳定】818 物种/2516 单元/105 配图;expansion5 三主题(多毛深扩/蜘蛛深扩/等足目)完成入库;门级筛选上线;VLM 闸门版补图脚本就绪+后台循环运行中
 - 下一阶段:补图循环出结果→抽查新入库图详情页;worklog 终稿+git push
+
+---
+Task ID: E7(下一阶段开发+补配图, 2026-09-15)
+Agent: main
+Task: 用户指令「继续下一阶段开发和补充配图」——expansion5 物种扩充 + 目录门级筛选体系 + Agent 门级浏览 + VLM 闸门版补图基础设施
+
+Work Log:
+- 【开工健康检查】读 worklog E6 尾章;发现 cron 巡检(382461)已消失→重建 job 383203(15 分钟 webDevReview:QA+API 探测+重生成/补图续跑+DB 一致性核验);DB 105 条 image 引用与磁盘文件 100% 一致零缺失;salix-babylonica.png 404 为陈旧客户端会话请求,DB 无引用,无害
+- 【P0:generate-images.ts V2(VLM 复审闸门)】按 E6 结沦"生成即上架不可行"重构:SDK 直连生成→VLM 即时审计(match 且无解剖硬伤才入库)→fail 隔离 rejected/ 物种保持占位图;磁盘存量未入库文件同样先审计(历史遗留兜底);断点 /tmp/gen-progress.jsonl(id→accepted|rejected,rejected 宁缺毋滥不再重试);429 三连熔断保护;tsc 零错
+- 【expansion5 物种扩充(+29 物种/+84 单元)】三子代理并行产出三个数据文件(各带校验脚本零错):多毛类深扩 11 种 23 阶元(沙蠋/缨鳃虫/圣诞树蠕虫/龙介虫/毛翼虫/蜂窝帚毛虫/博比特虫/多鳞虫/鳞沙蚕/双鳃吻沙蚕/大角蛰虫,新目 Sabellida/Eunicida/Terebellida);蜘蛛深扩 11 种 17 阶元(横纹金蛛/间斑寇蛛/弓足梢蛛/孔雀跳蛛/虎跳蛛/家隅蛛/水蛛/虎纹捕鸟蛛/卡氏地蛛/斜纹猫蛛/长踦幽灵蛛,新科 6);等足目全新 7 种 15 阶元(大王具足虫/缩头水虱/普通卷甲虫/粗糙鼠妇/海蟑螂/水栉虱/波罗的海伊蝶水虱,Isopoda 新目挂 Malacostraca);seed-incremental 挂 3 import 入库 789→818 物种/2432→2516 单元(拓扑 1 轮幂等);8 高辨识度新种追加 flagship(84→92)
+- 【新功能:目录门级(PHYLUM)筛选体系】bio-server getPhylumPaths 缓存;/api/species 增 phylum 参数+facets.phyla(latin/chinese/count,计数基于门筛选前快照不受已选门影响,便于切换);store BrowseState.phylum 全链贯通(默认值/hash 分享与恢复/清除);browse-view Popover+Command 可搜索 Combobox(48 门,中文名+拉丁+计数,CommandItem 选中态打勾);界切换联动清门(一门属一界防矛盾组合);副标题文案更新;E2E:搜索"环节"→选环节动物门→20 种(9 旧+11 新);Arthropoda 129 种;q=Bathynomus 组合命中;hash #browse?phylum=Arthropoda&iucn=NE 直达 125 种;界切植物门联动清门验证;移动端 390px 无溢出
+- 【新功能:物种卡片/列表行门级徽标】bio-domain 新增 PHYLUM_ZH 48 门映射(从 DB 导出零手误)+phylumZh() 函数;species-card 拉丁名行后缀"· 节肢动物门"式徽标;species-row 同步;favorites 数据无 phylum 字段时优雅降级不渲染
+- 【新功能:Agent 门级浏览意图】route.ts 意图引擎增 phylum 字段:全名匹配(环节动物门)→短名匹配(棘皮动物,≥4 字防误伤)+浏览/列举/多少型语气词;门速览(物种计数+代表物种 flagship 优先);动作 target "browse:phylum=<拉丁>"(LLM 模式与离线模式均生成);agent-panel runAction 解析 browse: 前缀参数直达 openBrowse({phylum});建议提问新增"环节动物门有哪些物种?";stats 意图与门意图互斥修正;系统提示词 rule 7 更新;E2E(离线模式):问句→门速览 20 种+代表条目→点击"📖 目录筛选:环节动物门(20 种)"→自动跳转目录+门筛选+20 物种;"看看棘皮动物"短名命中 27 种;"节肢动物门有多少物种"多少型命中 129 种
+- 【QA 全站回归】首页 818/48门/519科/720属/105图自动更新;新种详情页(大王具足虫)五档案齐全+占位图+完整面包屑(等足目全新链路)+NCBI txid;目录 Bathynomus 筛选命中;recent API 新种上榜;首页 9 img 零破损;console/dev.log 零错误;tsc/lint 零错;移动端无溢出
+- 【补图执行】z-ai vision/image 全程 429(本轮未开窗);两代后台循环(gen-loop/gen-loop2)均被沙箱进程回收(setsid 亦无效)→结论:后台长循环在本沙箱不可靠,补图续跑交给 cron 383203(每 15 分钟 agent 轮探测执行,其会话内前台跑脚本不受回收影响);E6 遗留 10 个重生成项待续跑(Sequoia/Sphenodon/Stentor 等,断点 /tmp/regen-progress.jsonl)
+
+Stage Summary(当前项目状态):
+- 【稳定】818 物种/2516 单元/48 门/105 经审配图;GitHub 已同步 4 commits(c15e35b/7b68fb7/afc388f 及 worklog)
+- 本轮交付:①expansion5 三主题 29 物种(多毛深扩/蜘蛛深扩/等足目全新)②目录门级筛选全链(Combobox+facets+hash+界门联动)③卡片/行门徽标(PHYLUM_ZH 48 门)④Agent 门级浏览意图(离线+在线,一键直达目录筛选)⑤generate-images VLM 闸门版 ⑥cron 巡检重建(383203)
+- 未解决/风险:
+  1. z-ai image/vision 持续 429:补图(缺 713/818)与 E6 遗留 10 重生成项等待配额窗口,cron 383203 每 15 分钟探测接力;窗口开后先 `LIMIT=3 bun scripts/regenerate-rejected.ts` 再 `BATCH=18 SCOPE=all bun scripts/generate-images.ts`(V2 已带闸门)
+  2. 沙箱会杀后台长驻进程(setsid 也不保):不要依赖 nohup 后台循环,用 cron 或前台分批
+  3. Agent 在线模式(LLM)本轮仍 429 未实测,离线路径全验证
+- 下一阶段优先:
+  1. P0:配额窗口开后补图主战役(cron 接管;新图全部过 VLM 闸门;8 新 flagship 物种优先出图)
+  2. P1:Agent 在线模式实测(门级问句+对比指令 LLM 语境)
+  3. P2:expansion6 候选(甲壳十足类深扩/软体头足纲深扩/昆虫目级补全/植物兰科豆科);详情页"同科近缘物种"区块;目录门筛选加"按门排序"选项
