@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 
 export interface TreeNodeDTO {
   id: string;
@@ -145,5 +145,76 @@ export function useSearch(q: string, enabled = true) {
       (await json<{ success: boolean; results: SearchRow[] }>(`/api/search?q=${encodeURIComponent(q)}`)).results,
     enabled: enabled && q.trim().length > 0,
     staleTime: 30_000,
+  });
+}
+
+// ===== 物种聚合浏览 =====
+export interface SpeciesItem {
+  id: string;
+  rank: string;
+  latinName: string;
+  chineseName: string;
+  description: string | null;
+  image: string | null;
+  conservation: string | null;
+  ncbiTaxId: number | null;
+  tags: string[] | null;
+  kingdom: string;
+}
+
+export interface SpeciesBrowseParams {
+  kingdom?: string | null;
+  iucn?: string | null;
+  tag?: string | null;
+  hasImage?: boolean;
+  q?: string;
+  sort?: string;
+}
+
+export interface SpeciesPage {
+  items: SpeciesItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+  hasMore: boolean;
+  facets: { kingdoms: Record<string, number>; iucn: Record<string, number> };
+}
+
+export function useSpeciesBrowse(params: SpeciesBrowseParams) {
+  const qs = new URLSearchParams();
+  if (params.kingdom) qs.set("kingdom", params.kingdom);
+  if (params.iucn) qs.set("iucn", params.iucn);
+  if (params.tag) qs.set("tag", params.tag);
+  if (params.hasImage) qs.set("hasImage", "1");
+  if (params.q?.trim()) qs.set("q", params.q.trim());
+  if (params.sort && params.sort !== "default") qs.set("sort", params.sort);
+  const url = `/api/species?${qs.toString()}`;
+
+  return useInfiniteQuery<SpeciesPage>({
+    queryKey: ["bio", "species", qs.toString()],
+    queryFn: async () => json<SpeciesPage>(url),
+    initialPageParam: 1,
+    getNextPageParam: (last) => (last.hasMore ? last.page + 1 : undefined),
+    staleTime: 60_000,
+  });
+}
+
+// ===== 物种对比:批量取详情 =====
+export function useTaxaBatch(ids: string[]) {
+  return useQuery<TaxonDetailResponse[]>({
+    queryKey: ["bio", "taxaBatch", [...ids].sort().join(",")],
+    queryFn: async () => {
+      const results = await Promise.all(
+        ids.map((id) => json<{ success: boolean; taxon?: TaxonDetail }>(`/api/taxa/${id}`))
+      );
+      // 保持与 ids 相同顺序
+      const byId = new Map<string, TaxonDetailResponse>();
+      ids.forEach((id, i) => {
+        if (results[i]?.success) byId.set(id, results[i] as TaxonDetailResponse);
+      });
+      return ids.map((id) => byId.get(id)).filter((x): x is TaxonDetailResponse => !!x);
+    },
+    enabled: ids.length > 0,
+    staleTime: 60_000,
   });
 }

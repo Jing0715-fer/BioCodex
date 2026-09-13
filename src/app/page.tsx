@@ -8,6 +8,9 @@ import { HomeView } from "@/components/bio/home-view";
 import { ExploreView } from "@/components/bio/explore-view";
 import { TaxonDetail } from "@/components/bio/taxon-detail";
 import { SearchView } from "@/components/bio/search-view";
+import { BrowseView } from "@/components/bio/browse-view";
+import { CompareView } from "@/components/bio/compare-view";
+import { CompareTray } from "@/components/bio/compare-tray";
 import { AgentPanel } from "@/components/bio/agent-panel";
 import { BioFooter } from "@/components/bio/footer";
 
@@ -36,9 +39,14 @@ function AppShell() {
         {view.type === "explore" && <ExploreView taxonId={view.taxonId} />}
         {view.type === "taxon" && <TaxonDetail id={view.id} />}
         {view.type === "search" && <SearchView q={view.q} />}
+        {view.type === "browse" && (
+          <BrowseView initialIucn={view.iucn} initialKingdom={view.kingdom} initialTag={view.tag} />
+        )}
+        {view.type === "compare" && <CompareView ids={view.ids} />}
       </div>
       <BioFooter />
       <AgentPanel />
+      <CompareTray />
     </div>
   );
 }

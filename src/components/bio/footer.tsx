@@ -53,9 +53,9 @@ export function BioFooter() {
           </p>
           <ul className="mt-3 space-y-1.5 text-xs leading-5 text-muted-foreground">
             <li>分类树探索 · 全局搜索(⌘K)</li>
-            <li>物种配图持续补充中</li>
-            <li>AI 博物学家助手在线</li>
-            <li>图鉴轮盘随机漫游</li>
+            <li>图鉴目录:按界/等级/标签筛选</li>
+            <li>物种对比:最多 3 个并排比较</li>
+            <li>AI 博物学家助手 · 图鉴轮盘</li>
           </ul>
         </div>
       </div>

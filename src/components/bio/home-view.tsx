@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  ArrowRight, ChevronRight, Sparkles, Dna, BookOpen, Shield, Database, Shuffle, RefreshCw,
+  ArrowRight, ChevronRight, Sparkles, Dna, BookOpen, Shield, Database, Shuffle, RefreshCw, LayoutGrid,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -47,7 +47,7 @@ function StatCounter({ value, label, suffix }: { value: number; label: string; s
 }
 
 export function HomeView() {
-  const { explore, openTaxon, setAgentOpen } = useBioStore();
+  const { explore, openTaxon, setAgentOpen, openBrowse } = useBioStore();
   const { data: stats } = useStats();
   const { data: featured, refetch: refetchFeatured } = useFeatured();
   const { data: tree } = useTree();
@@ -76,12 +76,16 @@ export function HomeView() {
     }
     return null;
   };
+  // 递归统计子树条目数(不含自身)
+  const countTaxa = (n: TreeNodeDTO): number => (n.ch ?? []).reduce((acc, c) => acc + 1 + countTaxa(c), 0);
   const kingdomCards = kingdomOrder
     .map((k) => {
       const t = KINGDOM_THEME[k];
       const node = findTreeNode(tree, k);
       const stat = stats?.kingdoms.find((s) => s.kingdom === k);
-      return { k, t, node, species: stat?.species ?? node?.sc ?? 0, taxa: stat?.taxa ?? 0 };
+      // 条目数优先取树数据递归统计(stats.kingdoms 仅含三域,真核四界缺失)
+      const taxa = node ? countTaxa(node) : stat?.taxa ?? 0;
+      return { k, t, node, species: node?.sc ?? stat?.species ?? 0, taxa };
     });
 
   return (
@@ -115,6 +119,15 @@ export function HomeView() {
               <Button size="lg" className="h-11 gap-2 rounded-full" onClick={() => explore(null)}>
                 <Sparkles className="h-4 w-4" />
                 开始分类探索
+              </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                className="h-11 gap-2 rounded-full border-forest/40 text-forest hover:bg-forest hover:text-primary-foreground"
+                onClick={() => openBrowse({})}
+              >
+                <LayoutGrid className="h-4 w-4" />
+                图鉴目录
               </Button>
               <Button
                 size="lg"
@@ -317,7 +330,9 @@ export function HomeView() {
                 <Shield className="h-4 w-4 text-primary" />
                 <h3 className="font-display text-lg font-bold">IUCN 保护状况</h3>
               </div>
-              <p className="mt-1 text-xs text-muted-foreground">图鉴收录物种的红色名录分布</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                图鉴收录物种的红色名录分布,点击任意等级查看对应物种
+              </p>
               <div className="mt-4 space-y-2">
                 {stats?.iucn
                   .slice()
@@ -329,20 +344,26 @@ export function HomeView() {
                     const total = stats.iucn.reduce((s, x) => s + x.count, 0) || 1;
                     const info = IUCN_INFO[i.code];
                     return (
-                      <div key={i.code} className="flex items-center gap-3">
+                      <button
+                        key={i.code}
+                        onClick={() => openBrowse({ iucn: i.code })}
+                        className="group flex w-full items-center gap-3 rounded-md px-1 py-0.5 text-left transition-colors hover:bg-accent/60"
+                        aria-label={`浏览${info?.label ?? i.code}等级的 ${i.count} 个物种`}
+                      >
                         <span className={cn("w-16 shrink-0 rounded-sm px-1.5 py-0.5 text-center text-[10px] font-bold text-white", info?.bg)}>
                           {i.code}
                         </span>
                         <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
                           <div
-                            className={cn("h-full rounded-full", info?.bg)}
+                            className={cn("h-full rounded-full transition-all group-hover:brightness-110", info?.bg)}
                             style={{ width: `${(i.count / total) * 100}%` }}
                           />
                         </div>
-                        <span className="w-8 text-right text-xs tabular-nums text-muted-foreground">
+                        <span className="w-8 text-right text-xs tabular-nums text-muted-foreground group-hover:text-foreground">
                           {i.count}
                         </span>
-                      </div>
+                        <ChevronRight className="h-3 w-3 text-muted-foreground/0 transition-colors group-hover:text-primary" />
+                      </button>
                     );
                   })}
               </div>

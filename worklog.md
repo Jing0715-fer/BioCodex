@@ -202,3 +202,44 @@ Work Log:
 Stage Summary:
 - 修复1个真实交互Bug;新增2个P1功能;配图进度 84→~125
 - 交接建议:下轮继续 BATCH=40 SCOPE=all 分批补图;可做 P2 物种对比功能或 IUCN/界聚合浏览页;首页六界卡下方可加"最近更新"时间线
+
+---
+Task ID: R3(cron 第2轮巡检, 2026-09-13 14:30)
+Agent: main
+Task: QA回归 + 修3个Bug + P2新功能(物种对比/图鉴目录) + 补图
+
+Work Log:
+- QA 发现并修复 3 个真实 Bug:
+  1. 首页真核四界卡片「0 条目」:stats.kingdoms 只含三域,改为从 tree 数据递归统计子树条目数(原生139/真菌92/植物274/动物607)
+  2. 【严重】DB 中全部 126 张配图路径双斜杠(//generated/…,协议相对URL,生产环境会碎):generate-images.ts 拼接多写了 "/",已批量修复 DB 126 条 + 修正脚本
+  3. 暗色模式 hydration 报错(Next dev overlay "1 Issue"):header 主题切换按钮 Sun/Moon 依赖 useTheme() 客户端值,SSR 不一致;改为 CSS dark:block/dark:hidden 切换,新加载 0 issue
+- 新 API:/api/species(界/IUCN/标签/配图/关键词过滤 + 4种排序 + 分页 + facets 计数),tags 正确 JSON.parse
+- P2 功能①「物种对比」:store compareIds(≤3)+ toggleCompare;底部浮动对比托盘(framer-motion,缩略图/移除/清空/开始对比);compare-view 列头卡(图+界徽章+NCBI快捷链接)+ 对比表(界/门/纲/目/科/属/形态/生境/分布/IUCN/NCBI txid/速览,含「一致/相异」徽标);入口:物种卡hover「对比」按钮(目录/探索/搜索结果卡)、详情页右上角「加入对比」
+- P2 功能②「图鉴目录」browse-view:筛选面板(6界+7 IUCN+3标签+有图+关键词+4排序,facet计数徽标)+ SpeciesCard 网格 + 无限加载;入口:顶栏导航、首页 hero 按钮、首页 IUCN 条形图逐行可点击跳转筛选
+- 入口与集成:page.tsx 挂载 browse/compare 视图+CompareTray;layout 挂 Sonner Toaster(bottom-center);agent system prompt 增加新功能指引(规范7);agent 建议问题更新;footer 功能清单更新
+- 浏览器实测全部通过:目录311物种→真菌筛选21→卡片加对比→托盘→对比视图12行表+6徽标;IUCN CR条→13物种;详情页加入对比;390px 模拟无页面级溢出(横向滚动容器正常);暗色VLM评估通过
+- P0 补图:第一批 CONCURRENCY=4 +16张(142/311),但触发严重429,后续批次全部失败,API 持续 429(账户级限流),image-search 服务仍 400 不可用
+- lint/tsc 零错误;dev.log 无错误
+
+Stage Summary:
+- 3 Bug 修复(含高危图片路径);2 个 P2 大功能上线并实测通过
+- 配图 142/311,剩 169;z-ai image API 限流中,需冷却后继续
+- 交接建议:下轮先 `timeout 90 z-ai image -p test` 探测限流恢复,然后 `BATCH=999 SCOPE=all CONCURRENCY=2 timeout 580 bun scripts/generate-images.ts` 连续跑(并发2稳定,4 会烧光配额);可再做:搜索结果页对比入口已做、可加「最近配图时间线」、compare 视图增加导出/分享
+
+---
+Task ID: R3-收尾(2026-09-13 14:55)
+Agent: main
+Task: 本轮收尾与交接
+
+Work Log:
+- 新增交叉入口:探索视图 界/门/纲 级节点标题卡新增「目录浏览该界物种」按钮(→browse 预置该界筛选),已实测真菌界→21 物种
+- Sonner Toaster 加 offset=96 避让对比托盘;agent 面板简介与建议问题更新(教用户用对比功能)
+- 最终 QA:全新加载 0 dev issue;首页六界卡条目数正确(109/39/139/92/274/607);全流程(目录→筛选→卡片加对比→托盘→对比视图 12 行表)通过;lint/tsc 零错误;dev.log 无错误
+- z-ai image API 全程 429(并发4批次疑似烧掉长窗口配额),本轮补图止步于 142/311;image-search 仍 400
+
+Stage Summary(当前项目状态):
+- 【稳定】311 物种图鉴,新增两大功能(物种对比/图鉴目录聚合浏览),3 个 Bug 修复(含高危 // 路径),配图 142/311
+- 下一轮优先:
+  1. P0 补图:先 `timeout 90 z-ai image -p test -o /tmp/t.png` 探测 429 恢复,再 `BATCH=999 SCOPE=all CONCURRENCY=2 timeout 580 bun scripts/generate-images.ts` 连续跑多批(勿用 CONCURRENCY=4)
+  2. P2 备选:对比视图导出(复制 Markdown 表格)/分享链接;首页「最近配图」时间线;对比视图支持从 Agent 引用芯片直接加对比
+  3. 风险:z-ai image 若长时间限流,可考虑生成 768x576 小图减少消耗,或等 image-search 恢复抓真实照片

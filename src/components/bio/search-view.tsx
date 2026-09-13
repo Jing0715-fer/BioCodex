@@ -1,15 +1,16 @@
 "use client";
 
 import { useSearch } from "@/hooks/use-bio";
-import { useBioStore } from "@/lib/bio-store";
+import { useBioStore, MAX_COMPARE } from "@/lib/bio-store";
 import { rankLabel, IUCN_INFO, KINGDOM_THEME } from "@/lib/bio-domain";
 import { TaxaPlaceholder, RankBadge, KingdomIcon } from "./taxa-icon";
-import { Loader2, SearchX, ChevronRight } from "lucide-react";
+import { Loader2, SearchX, ChevronRight, GitCompareArrows, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 export function SearchView({ q }: { q: string }) {
   const { data: results, isFetching } = useSearch(q, true);
-  const { openTaxon } = useBioStore();
+  const { openTaxon, compareIds, toggleCompare } = useBioStore();
 
   return (
     <div className="mx-auto w-full max-w-[1200px] px-4 py-6 sm:px-6">
@@ -42,12 +43,23 @@ export function SearchView({ q }: { q: string }) {
         {results?.map((r, i) => {
           const theme = KINGDOM_THEME[r.kingdom] || KINGDOM_THEME.Animalia;
           const isSpecies = r.rank === "species";
+          const inCompare = isSpecies && compareIds.includes(r.id);
+          const full = isSpecies && !inCompare && compareIds.length >= MAX_COMPARE;
           return (
-            <button
+            <div
               key={r.id}
+              role="button"
+              tabIndex={0}
               onClick={() => openTaxon(r.id)}
-              className="reveal-up group flex w-full items-center gap-4 rounded-xl border border-foreground/10 bg-card p-3 text-left shadow-sm transition-all hover:border-primary/40 hover:shadow"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  openTaxon(r.id);
+                }
+              }}
+              className="reveal-up group flex w-full items-center gap-4 rounded-xl border border-foreground/10 bg-card p-3 text-left shadow-sm transition-all hover:border-primary/40 hover:shadow focus-visible:outline-2 focus-visible:outline-forest"
               style={{ animationDelay: `${Math.min(i, 10) * 40}ms` }}
+              aria-label={`查看${r.chineseName}(${r.latinName})`}
             >
               {/* 缩略图 */}
               {r.image ? (
@@ -86,6 +98,33 @@ export function SearchView({ q }: { q: string }) {
                 )}
               </div>
 
+              {isSpecies && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const res = toggleCompare(r.id);
+                    if (res === "added")
+                      toast.success(`已加入对比:${r.chineseName}`, {
+                        description: `托盘 ${compareIds.length + 1}/${MAX_COMPARE}`,
+                      });
+                    else if (res === "removed") toast.info(`已移出对比:${r.chineseName}`);
+                    else toast.warning("对比托盘已满(最多 3 个)", { description: "请先移除一个物种,或直接开始对比" });
+                  }}
+                  disabled={full}
+                  aria-label={inCompare ? `移出对比:${r.chineseName}` : `加入对比:${r.chineseName}`}
+                  className={cn(
+                    "hidden h-8 shrink-0 items-center gap-1.5 rounded-full border px-2.5 text-xs font-semibold transition-all sm:flex",
+                    inCompare
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-foreground/15 text-muted-foreground hover:border-primary/50 hover:text-primary",
+                    full && "cursor-not-allowed opacity-40"
+                  )}
+                >
+                  {inCompare ? <Check className="h-3.5 w-3.5" /> : <GitCompareArrows className="h-3.5 w-3.5" />}
+                  {inCompare ? "已加入" : "对比"}
+                </button>
+              )}
+
               <span
                 className="hidden shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium sm:flex"
                 style={{ background: `${theme.color}15`, color: theme.color }}
@@ -94,7 +133,7 @@ export function SearchView({ q }: { q: string }) {
                 {theme.name}
               </span>
               <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/30 group-hover:text-primary" />
-            </button>
+            </div>
           );
         })}
       </div>

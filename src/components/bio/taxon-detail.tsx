@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { useBioStore } from "@/lib/bio-store";
+import { useBioStore, MAX_COMPARE } from "@/lib/bio-store";
 import { useTaxon } from "@/hooks/use-bio";
 import { buildDbLinks, IUCN_INFO, KINGDOM_THEME, rankLabel } from "@/lib/bio-domain";
 import { TaxaPlaceholder, KingdomIcon } from "./taxa-icon";
@@ -9,9 +9,10 @@ import { TaxonCard } from "./taxon-card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
+import { toast } from "sonner";
 import {
   ChevronRight, ArrowLeft, ArrowRight, ExternalLink, Database, Dna, Shield,
-  MapPin, Leaf, FlaskConical, BookOpen, Star, Sparkles, Microscope,
+  MapPin, Leaf, FlaskConical, BookOpen, Star, Sparkles, Microscope, GitCompareArrows, Check,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -47,7 +48,7 @@ function SectionCard({
 }
 
 export function TaxonDetail({ id }: { id: string }) {
-  const { openTaxon, explore, goBack } = useBioStore();
+  const { openTaxon, explore, goBack, compareIds, toggleCompare, openCompare } = useBioStore();
   const { data, isLoading } = useTaxon(id);
 
   const links = useMemo(
@@ -135,6 +136,50 @@ export function TaxonDetail({ id }: { id: string }) {
           <TaxaPlaceholder latinName={taxon.latinName} kingdom={taxon.kingdom} big className="h-[320px] w-full sm:h-[420px]" />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/15 to-transparent" />
+        {/* 右上角操作:加入对比(仅物种) */}
+        {isSpecies && (
+          <div className="absolute right-3 top-3 flex items-center gap-2">
+            {(() => {
+              const inCompare = compareIds.includes(taxon.id);
+              const full = !inCompare && compareIds.length >= MAX_COMPARE;
+              return (
+                <>
+                  <button
+                    onClick={() => {
+                      const res = toggleCompare(taxon.id);
+                      if (res === "added")
+                        toast.success(`已加入对比:${taxon.chineseName}`, {
+                          description: `托盘 ${compareIds.length + 1}/${MAX_COMPARE},选满 2 个即可开始`,
+                        });
+                      else if (res === "removed") toast.info(`已移出对比:${taxon.chineseName}`);
+                      else toast.warning("对比托盘已满(最多 3 个)", { description: "可先开始对比或移除一个物种" });
+                    }}
+                    disabled={full}
+                    aria-label={inCompare ? `移出对比:${taxon.chineseName}` : `加入对比:${taxon.chineseName}`}
+                    className={cn(
+                      "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold shadow transition-all",
+                      inCompare
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-black/50 text-white backdrop-blur-sm hover:bg-black/70",
+                      full && "cursor-not-allowed opacity-50"
+                    )}
+                  >
+                    {inCompare ? <Check className="h-3.5 w-3.5" /> : <GitCompareArrows className="h-3.5 w-3.5" />}
+                    {inCompare ? "已加入对比" : "加入对比"}
+                  </button>
+                  {compareIds.length >= 2 && (
+                    <button
+                      onClick={openCompare}
+                      className="hidden items-center gap-1.5 rounded-full bg-white/20 px-3 py-1.5 text-xs font-bold text-white shadow backdrop-blur-sm transition-colors hover:bg-white/35 sm:flex"
+                    >
+                      对比 {compareIds.length} 个物种
+                    </button>
+                  )}
+                </>
+              );
+            })()}
+          </div>
+        )}
         {/* 标题叠层 */}
         <div className="absolute bottom-0 left-0 right-0 p-5 sm:p-8">
           <div className="flex flex-wrap items-center gap-2">

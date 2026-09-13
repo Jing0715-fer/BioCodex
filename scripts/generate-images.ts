@@ -115,7 +115,7 @@ async function main() {
       if (done) {
         await db.taxon.update({
           where: { id: t.id },
-          data: { image: `/${t.file.replace(/^public/, "")}`, imageCaption: "复古博物学风格 AI 插图" },
+          data: { image: t.file.replace(/^public/, ""), imageCaption: "复古博物学风格 AI 插图" },
         });
         ok++;
         console.log(`[ok] ${t.latinName} -> ${t.file}`);

@@ -10,12 +10,12 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import {
-  ChevronRight, ListTree, Loader2, Filter, ArrowLeft, Info,
+  ChevronRight, ListTree, Loader2, Filter, ArrowLeft, Info, LayoutGrid,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function ExploreView({ taxonId }: { taxonId: string | null }) {
-  const { openTaxon, goBack, view } = useBioStore();
+  const { openTaxon, goBack, view, openBrowse } = useBioStore();
   const { data: tree, isLoading: treeLoading } = useTree();
   const { data: detail, isLoading: detailLoading } = useTaxon(taxonId);
 
@@ -200,6 +200,17 @@ export function ExploreView({ taxonId }: { taxonId: string | null }) {
                 <Button variant="ghost" size="sm" className="gap-1 rounded-full" onClick={goBack}>
                   <ArrowLeft className="h-4 w-4" />
                   返回
+                </Button>
+              )}
+              {detail && ["domain", "kingdom", "phylum", "class"].includes(detail.taxon.rank) && detail.taxon.kingdom && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 gap-1.5 rounded-full text-xs"
+                  onClick={() => openBrowse({ kingdom: detail.taxon.kingdom })}
+                >
+                  <LayoutGrid className="h-3.5 w-3.5" />
+                  目录浏览该界物种
                 </Button>
               )}
             </div>

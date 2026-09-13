@@ -7,13 +7,13 @@ import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  Search, Sun, Moon, Dna, MapPin, ChevronRight, Sparkles, Command,
+  Search, Sun, Moon, Dna, MapPin, ChevronRight, Sparkles, Command, LayoutGrid,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { KingdomIcon, kingdomTheme, RankBadge } from "./taxa-icon";
 
 export function BioHeader() {
-  const { view, goHome, explore, openTaxon, openSearch, setAgentOpen } = useBioStore();
+  const { view, goHome, explore, openTaxon, openSearch, openBrowse, setAgentOpen } = useBioStore();
   const { theme, setTheme } = useTheme();
   const [q, setQ] = useState("");
   const [focus, setFocus] = useState(false);
@@ -96,6 +96,15 @@ export function BioHeader() {
           >
             <Sparkles className="h-4 w-4" />
             分类探索
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className={cn("h-9 gap-1.5", active("browse") && "bg-accent text-accent-foreground")}
+            onClick={() => openBrowse({})}
+          >
+            <LayoutGrid className="h-4 w-4" />
+            图鉴目录
           </Button>
         </nav>
 
@@ -206,7 +215,9 @@ export function BioHeader() {
           onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
           aria-label="切换明暗主题"
         >
-          {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          {/* CSS 控制图标切换,避免 SSR/客户端水合不一致 */}
+          <Sun className="hidden h-4 w-4 dark:block" />
+          <Moon className="h-4 w-4 dark:hidden" />
         </Button>
       </div>
     </header>

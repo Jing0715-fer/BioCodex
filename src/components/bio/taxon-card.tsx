@@ -3,9 +3,10 @@
 import type { ChildDTO } from "@/hooks/use-bio";
 import { KINGDOM_THEME, IUCN_INFO, rankLabel } from "@/lib/bio-domain";
 import { KingdomIcon, TaxaPlaceholder } from "./taxa-icon";
-import { useBioStore } from "@/lib/bio-store";
-import { ArrowRight } from "lucide-react";
+import { useBioStore, MAX_COMPARE } from "@/lib/bio-store";
+import { ArrowRight, GitCompareArrows, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 export function TaxonCard({
   taxon,
@@ -16,13 +17,25 @@ export function TaxonCard({
   kingdom: string;
   index: number;
 }) {
-  const { openTaxon } = useBioStore();
+  const { openTaxon, compareIds, toggleCompare } = useBioStore();
   const theme = KINGDOM_THEME[kingdom] || KINGDOM_THEME.Animalia;
   const isSpecies = taxon.rank === "species";
+  const inCompare = isSpecies && compareIds.includes(taxon.id);
+  const full = isSpecies && !inCompare && compareIds.length >= MAX_COMPARE;
+
+  const activate = () => openTaxon(taxon.id);
 
   return (
-    <button
-      onClick={() => openTaxon(taxon.id)}
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={activate}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          activate();
+        }
+      }}
       className="specimen-card reveal-up group relative flex flex-col overflow-hidden rounded-xl border border-foreground/10 bg-card text-left shadow-sm focus-visible:outline-2 focus-visible:outline-forest"
       style={{ animationDelay: `${Math.min(index, 12) * 45}ms` }}
       aria-label={`查看${taxon.chineseName}(${taxon.latinName})`}
@@ -66,6 +79,33 @@ export function TaxonCard({
             {IUCN_INFO[taxon.conservation]?.label}
           </span>
         )}
+        {/* 加入对比(物种专属) */}
+        {isSpecies && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              const res = toggleCompare(taxon.id);
+              if (res === "added")
+                toast.success(`已加入对比:${taxon.chineseName}`, {
+                  description: `托盘 ${compareIds.length + 1}/${MAX_COMPARE}`,
+                });
+              else if (res === "removed") toast.info(`已移出对比:${taxon.chineseName}`);
+              else toast.warning("对比托盘已满(最多 3 个)", { description: "请先移除一个物种,或直接开始对比" });
+            }}
+            disabled={full}
+            aria-label={inCompare ? `移出对比:${taxon.chineseName}` : `加入对比:${taxon.chineseName}`}
+            className={cn(
+              "absolute left-2 top-2 flex h-7 items-center gap-1 rounded-full px-2 text-[11px] font-semibold shadow backdrop-blur-sm transition-all",
+              inCompare
+                ? "bg-primary text-primary-foreground opacity-100"
+                : "bg-black/45 text-white opacity-0 group-hover:opacity-100 focus-visible:opacity-100 hover:bg-black/65",
+              full && "cursor-not-allowed opacity-40 group-hover:opacity-40"
+            )}
+          >
+            {inCompare ? <Check className="h-3.5 w-3.5" /> : <GitCompareArrows className="h-3.5 w-3.5" />}
+            {inCompare ? "已加入" : "对比"}
+          </button>
+        )}
         {/* 阶元角标 */}
         <span className="absolute bottom-2 left-2 rounded-sm bg-black/45 px-1.5 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
           {rankLabel(taxon.rank)}
@@ -105,6 +145,6 @@ export function TaxonCard({
           <ArrowRight className="ml-auto h-3.5 w-3.5 text-muted-foreground/30 transition-all group-hover:translate-x-0.5 group-hover:text-primary" />
         </div>
       </div>
-    </button>
+    </div>
   );
 }
