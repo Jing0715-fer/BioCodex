@@ -12,7 +12,25 @@ export interface TaxonSeed {
   distribution?: string; // 地理分布(物种级, 20-60字)
   conservation?: string; // IUCN 等级代码: EX | EW | CR | EN | VU | NT | LC | DD | NE(有把握时填写)
   ncbiTaxId?: number; // NCBI Taxonomy ID(仅非常确定时填写)
+
+  // ===== 科学档案字段(增强信息量,可选) =====
+  etymology?: string; // 学名词源与命名由来(20-80字)
+  discovery?: string; // 发现与定名史(30-100字)
+  genomeInfo?: string; // 基因组与染色体概况(20-80字)
+  ecologyRole?: string; // 生态位与生态作用(20-80字)
+  researchValue?: string; // 科研与经济价值(20-80字)
+
   image?: string; // 物种配图 OSS URL(由后台批量抓取填充)
   imageCaption?: string; // 图注
   tags?: string[]; // 标签数组, 如 ["flagship", "模式生物", "入侵物种"]
+}
+
+/** 已有物种的科学档案补强条目(按拉丁名定位,scripts/enrich-taxa.ts 应用) */
+export interface EnrichEntry {
+  latin: string; // 物种拉丁名(定位键,必须已存在于 DB)
+  etymology?: string; // 学名词源与命名由来(20-80字)
+  discovery?: string; // 发现与定名史(30-100字)
+  genomeInfo?: string; // 基因组与染色体概况(20-80字)
+  ecologyRole?: string; // 生态位与生态作用(20-80字)
+  researchValue?: string; // 科研与经济价值(20-80字)
 }

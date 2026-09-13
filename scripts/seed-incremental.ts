@@ -13,6 +13,11 @@ import { expansionProtistsFungi } from "../src/data/seed/expansion-protists-fung
 import { expansionPlants } from "../src/data/seed/expansion-plants";
 import { expansionInvertebrates } from "../src/data/seed/expansion-invertebrates";
 import { expansionVertebrates } from "../src/data/seed/expansion-vertebrates";
+import { expansion2Microbes } from "../src/data/seed/expansion2-microbes";
+import { expansion2ProtistsFungi } from "../src/data/seed/expansion2-protists-fungi";
+import { expansion2Plants } from "../src/data/seed/expansion2-plants";
+import { expansion2Invertebrates } from "../src/data/seed/expansion2-invertebrates";
+import { expansion2Vertebrates } from "../src/data/seed/expansion2-vertebrates";
 
 const newTaxa: TaxonSeed[] = [
   ...expansionProkaryotes,
@@ -20,6 +25,11 @@ const newTaxa: TaxonSeed[] = [
   ...expansionPlants,
   ...expansionInvertebrates,
   ...expansionVertebrates,
+  ...expansion2Microbes,
+  ...expansion2ProtistsFungi,
+  ...expansion2Plants,
+  ...expansion2Invertebrates,
+  ...expansion2Vertebrates,
 ];
 
 function fail(msg: string): never {
@@ -39,17 +49,21 @@ async function main() {
   const existing = await db.taxon.findMany({ select: { latinName: true } });
   const existingLatin = new Set(existing.map((e) => e.latinName));
 
-  // 2. 文件内唯一性 + 与 DB 不重复
+  // 2. 文件内唯一性 + 幂等跳过(已存在于 DB 的记录跳过,支持脚本重复运行)
   const byLatin = new Map<string, TaxonSeed>();
   for (const t of newTaxa) {
     if (byLatin.has(t.latin)) fail(`新数据内部拉丁名重复: ${t.latin}`);
-    if (existingLatin.has(t.latin)) fail(`与 DB 已有记录重复: ${t.latin}`);
     byLatin.set(t.latin, t);
   }
-  console.log(`✔ 唯一性校验通过(新 ${newTaxa.length} 条,与现有 ${existingLatin.size} 条无冲突)`);
+  const skipped = newTaxa.filter((t) => existingLatin.has(t.latin)).map((t) => t.latin);
+  const toInsert = newTaxa.filter((t) => !existingLatin.has(t.latin));
+  if (skipped.length > 0) {
+    console.log(`⏭ 跳过 DB 已有记录 ${skipped.length} 条(幂等模式): ${skipped.slice(0, 3).join("、")}${skipped.length > 3 ? " 等" : ""}`);
+  }
+  console.log(`✔ 唯一性校验通过(待插 ${toInsert.length} 条,与现有 ${existingLatin.size} 条无冲突)`);
 
   // 3. 父级引用校验(必须存在于 DB 或新数据)
-  for (const t of newTaxa) {
+  for (const t of toInsert) {
     if (t.parent && !byLatin.has(t.parent) && !existingLatin.has(t.parent)) {
       fail(`parent 引用不存在: ${t.latin} -> ${t.parent}`);
     }
@@ -73,7 +87,7 @@ async function main() {
 
   // 6. 拓扑插入(父级在 DB 已存在 → 可直接插;否则等待本文件前面的先插)
   const latinToId = new Map<string, string>(); // 新插入记录 latin -> id
-  const pending = [...newTaxa];
+  const pending = [...toInsert];
   let pass = 0;
   let created = 0;
   while (pending.length > 0) {
@@ -107,6 +121,11 @@ async function main() {
             distribution: t.distribution ?? null,
             conservation: t.conservation ?? null,
             ncbiTaxId: t.ncbiTaxId ?? null,
+            etymology: t.etymology ?? null,
+            discovery: t.discovery ?? null,
+            genomeInfo: t.genomeInfo ?? null,
+            ecologyRole: t.ecologyRole ?? null,
+            researchValue: t.researchValue ?? null,
             tags: t.tags && t.tags.length ? JSON.stringify(t.tags) : null,
             sortOrder: nextOrder++,
             parentId: prismaParentId,

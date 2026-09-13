@@ -25,6 +25,11 @@ export interface TaxonDetail {
   distribution: string | null;
   conservation: string | null;
   ncbiTaxId: number | null;
+  etymology: string | null;
+  discovery: string | null;
+  genomeInfo: string | null;
+  ecologyRole: string | null;
+  researchValue: string | null;
   image: string | null;
   imageCaption: string | null;
   tags: string[] | null;

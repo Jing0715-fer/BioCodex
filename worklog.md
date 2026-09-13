@@ -562,3 +562,224 @@ Stage Summary(当前项目状态):
   1. P0 补图(275 张):探测恢复后 `BATCH=999 SCOPE=all CONCURRENCY=2 timeout 580 bun scripts/generate-images.ts` 连跑多轮(勿用并发4)
   2. P1:Agent 新物种指引实测(限流恢复后);首页可考虑「本轮新收录」庆祝横幅(基于 createdAt)
   3. P2:病毒界(Acytota)数据;物种详情页引用 BibTeX;探索视图节点卡配图缩略
+
+---
+Task ID: 3-c
+Agent: general-purpose
+Task: 植物新物种数据编写(expansion2-plants)
+
+Work Log:
+- 读 worklog 末两章(417 物种现状/本轮目标=扩物种+增强科学信息量)、/tmp/taxa-inventory.tsv 全部 1524 条清单、types.ts(新增 5 科学档案字段)、expansion-plants.ts 风格参考
+- 逐项排查推荐清单:桃 Prunus persica/桑 Morus alba/中华猕猴桃 Actinidia chinensis/小果咖啡 Coffea arabica/向日葵 Helianthus annuus/葡萄 Vitis vinifera 及水稻/小麦/玉米/大豆/拟南芥 均已在库,全部跳过;高粱/大麦/燕麦/黑麦/粟/花生/芝麻/甜菜/烟草/香蕉/可可/荔枝/芒果/苹果 14 项零冲突,全部收录(补燕麦+黑麦+苹果填满 14)
+- rg 复核全部 32 个计划拉丁名与中文名与清单零重复;Poaceae/Fabaceae/Rosaceae/Malvaceae/Solanaceae/Sapindaceae/Lamiales/Caryophyllales/Sapindales/Zingiberales 父级均在清单已有,仅需新建 4 科+14 属
+- 编写 src/data/seed/expansion2-plants.ts:14 物种+18 中间阶元,每个物种 description(60-140 字/2-3 句)/morphology/habitat/distribution(20-60 字)+ etymology/discovery/genomeInfo/ecologyRole/researchValue 五档案全填;ncbiTaxId 仅高把握值 11 个(高粱 4558/大麦 4513/燕麦 4498/黑麦 4550/粟 4555/花生 3818/苹果 3750/可可 3641/烟草 4097/甜菜 3511 等),香蕉/荔枝/芒果/芝麻略
+- 数据要点:谷类五连含高粱 C4 模式/大麦青稞/燕麦 2022 六倍体基因组/黑麦耐寒桥梁种/粟磁山 8000 年;花生地下结实;苹果塞威氏苹果驯化与 2n=34;可可蠓类传粉 2010 基因组;烟草 Jean Nicot 词源与四倍体起源;香蕉 A 基因组供体与巴拿马病品种更替史;荔枝粤语词源;芒果漆树科树脂道
+- 自写 scripts/validate-expansion2-plants.ts(全库 1524+32 合并唯一性/parent 闭合/阶元阶梯/字段长度 60-140 与 20-60/五档案齐全 20-80(30-100)/禁用 flagship/句数提示),32 条全部通过
+- bunx tsc --noEmit:expansion2-plants 零错误;全库仅剩 examples/skills 固有报错与 enrich-taxa.ts 引用兄弟任务待产出文件(与本文件无关)
+
+Stage Summary:
+- 新增 14 物种 + 18 中间阶元(共 32 条),文件 expansion2-plants.ts,自检脚本可复用,tsc 通过;待与其他 3-x 任务一并由 main 增量入库
+---
+Task ID: 3-g
+Agent: general-purpose
+Task: 真菌科学档案补强(enrich 字段数据编写)
+
+Work Log:
+- 背景阅读:worklog 末 2 章(E1 扩充轮,417 物种/1524 阶元)、/tmp/taxa-inventory.tsv 全量清单、types.ts 末尾 EnrichEntry 接口、protists-fungi.ts 代表物种(酿酒酵母/灵芝)及 expansion-protists-fungi.ts 真菌 10 种,确认写作风格与已有描述避免重复
+- 树遍历定位:写临时脚本自 11 个 seed 文件建树,导出 DB 真菌界全部物种清单——共 31 种(子囊菌 11/担子菌 17/毛霉门 1/壶菌门 1/球囊菌门 1),任务目标约 28 个,实际按"真菌界全部主力物种"全覆盖 31 种
+- 任务推荐名单核对:Schizosaccharomyces pombe、Aspergillus fumigatus、Mucor 属级以下、Cryphonectria 均不在清单,跳过(卵菌 Phytophthora 在本项目挂 Protista,归原生生物补强线);其余推荐种全部命中并收录
+- 新文件 src/data/seed/enrich-fungi.ts:导出 enrichFungi: EnrichEntry[] 共 31 条;22 条 5 字段全覆盖,9 条 4 字段(松茸/鸡油菌/牛肝菌/竹荪/毒蝇鹅膏/银耳/黑根霉/安络小皮伞/云芝——genomeInfo 无把握,按"不确定宁缺毋滥"省略)
+- 科学性把关:基因组仅录高把握值并加"约"(酿酒酵母 S288C 12.1Mb/16 染色体、粗糙脉孢菌约 40Mb、黑曲霉约 35Mb、玉米黑粉菌 20.5Mb/2006 Nature、块菌 125Mb/2010 Nature、不规则根孢囊霉 153Mb/2013 Nature、隐球酵母约 19Mb/2005 Science 等);发现史含 1928 青霉素、1960 火鸡 X 病与 1961 黄曲霉毒素、Ug99(1999)、Bd(1999 Longcore)、Blakeslee 异宗配合(1904)等真实节点;语源按通行解释(Saccharomyces=糖+真菌、Aspergillus=圣水刷、Penicillium=画笔等)
+- 校验(自写临时脚本,已删):31 条 latin 全部命中清单 species 行且全部属于真菌界、文件内无重复、字段长度 20-100 全通过、每条 ≥3 字段(22×5 + 9×4);`bunx tsc --noEmit | rg enrich-fungi` 零输出(全项目现存 8 处 error 均为 examples/skills 固有及 enrich-taxa.ts 引用其他 3-x 并行代理未产出的 4 个 enrich 文件,与本文件无关)
+- scripts/enrich-taxa.ts 第 19 行 `import { enrichFungi } from .../enrich-fungi` 因本文件落地而恢复解析,待 4 个兄弟 enrich 文件齐后统一跑 `bun scripts/enrich-taxa.ts` 入库
+
+Stage Summary:
+- 交付 enrich-fungi.ts:31 条真菌科学档案(5 字段 22 条/4 字段 9 条),latin 与清单零偏差,tsc 本文件零错误,覆盖率=真菌界 DB 全部物种 100%
+
+---
+Task ID: 3-d
+Agent: general-purpose (sub agent)
+Task: 无脊椎动物扩充数据编写(第二轮,含科学档案五字段)
+
+Work Log:
+- 读 worklog 末尾两章节(项目现状 417 物种/本轮目标扩物种+科学信息量)、/tmp/taxa-inventory.tsv 全部 1523 条清单、types.ts(注意 TaxonSeed 新增 5 个科学档案字段)、expansion-invertebrates.ts 风格参考
+- 逐项排查推荐清单:D. melanogaster/A. aegypti/A. sinensis/M. domestica/E. sinensis/P. clarkii/B. mori/C. sowerbii/O. vulgaris/O. ocellatus/O. chinensis/中华鲎/马粪海胆/多棘海盘车/紫贻贝/绿水螅/大型溞/日本三角涡虫/飞蝗/仿刺参/大腹园蛛(属已在) 等均在库跳过;Schistocerca/Bombus/Samia/Acyrthosiphon/Oncomelania/Litopenaeus/Panulirus/Rhopilema/Argonauta/Thaumoctopus/Hapalochlaena/Limulus/Strongylocentrotus 全库空白确认可新增
+- 新写 src/data/seed/expansion2-invertebrates.ts:16 物种 + 21 中间阶元(2 目 Littorinimorpha+Rhizostomeae/6 科/13 属),全部 16 物种齐备 etymology/discovery/genomeInfo/ecologyRole/researchValue 五科学档案字段
+- 物种清单:拟暗果蝇(群体遗传学经典,7237)/冈比亚按蚊(疟疾头号媒介,7165)/沙漠蝗(相变蝗灾,7004)/地熊蜂(商业授粉+入侵,30195)/樗蚕(蓖麻蚕驯化史)/豌豆蚜(首个蚜虫基因组)/湖北钉螺(血吸虫唯一中间宿主)/十字园蛛(Clerck 1757 蜘蛛学起点)/凡纳滨对虾(养殖虾王,6689)/锦绣龙虾/海蜇/船蛸/拟态章鱼(2005 定名)/蓝环章鱼(TTX 毒理)/美洲鲎(LAL 诺奖,VU,6898)/紫海胆(首个棘皮基因组,7668)
+- 高把握数据:authority 14 处真实定名者、ncbiTaxId 7 个、conservation 仅美洲鲎 VU;低把握处(龙虾/海蜇基因组规模等)用"约/量级/近年"软化表述或省略
+- 新写 scripts/validate-expansion2-invertebrates.ts(合并全库 11 个种子文件=1561 条):唯一性/parent 闭合/阶元阶梯/基础字段长度/科学档案五字段必填+长度(20-80,discovery 30-100)/禁 flagship,全部通过;修复 1 处 etymology 82→80 字
+- bunx tsc --noEmit:expansion2-invertebrates.ts 与校验脚本零错误(仅 examples/skills 固有报错 + enrich-taxa.ts 引用其他并行任务待产出文件,与本任务无关);校验合并数 1561=DB 1524+37,与清单完全闭合
+
+Stage Summary:
+- 新增 16 物种 + 21 中间阶元(共 37 条)于 expansion2-invertebrates.ts,tsc 通过,校验脚本 scripts/validate-expansion2-invertebrates.ts 可复用
+- 每个物种均含 5 个科学档案字段,补齐模式生物/医学媒介/经济物种/入侵物种科学信息维度
+- 待主代理统一接入 seed-incremental.ts(该脚本尚未写 etymology 等 5 字段,需扩展后再入库)
+---
+Task ID: 3-f
+Agent: general-purpose
+Task: 原核与原生生物科学档案补强数据编写(enrich-prokaryotes-protists)
+
+Work Log:
+- 读 worklog 末章(E1 收尾:417 物种/1524 分类单元,本轮目标为增强介绍信息科学性)、/tmp/taxa-inventory.tsv 全部 417 条 species 行、types.ts 的 EnrichEntry 接口、prokaryotes.ts/protists-fungi.ts/expansion-prokaryotes.ts 既有描述风格(确认所有种子文件均尚无 etymology 等 5 个科学字段,补强不会冲突)
+- 逐个核对优先清单与 inventory species 行:25 个高优先细菌全部命中;古菌清单共 9 物种全部纳入(含上轮 expansion 新增的詹氏甲烷球菌/乙酸甲烷八叠球菌/深海火球菌);原生生物按推荐命中 11 种(恶性/间日疟原虫、布氏/克氏锥虫、杜氏利什曼原虫、双小核草履虫、莱茵衣藻、纤细眼虫、盘基网柄菌、多头绒泡菌、大变形虫),Thermococcus/Leishmania 属级名与 Amoeba/Dunaliella 等泛称不在清单故弃
+- 编写 src/data/seed/enrich-prokaryotes-protists.ts:导出 enrichProkaryotesProtists: EnrichEntry[],共 45 条(细菌 25+古菌 9+原生生物 11)
+- 数据纪律:仅收录高把握史实——大肠杆菌 K-12 4.64Mb/GC50.8%、鼠疫杆菌 1894 北里与耶尔森香港各自分离、流感嗜血杆菌 1995 首个自由生活物种全基因组、詹氏甲烷球菌 1996 首个古菌基因组、汤飞凡 1957 分离沙眼衣原体、Avery 1944 以肺炎链球菌证明 DNA 遗传物质等;基因组数字全部采用广为引用参考株(MG1655/PAO1/H37Rv/CO92/3D7/TREU927/EGD-e/N315/MC58/Tohama I 等);不确定处从略(如变形虫巨型基因组只述其大而未给可疑精确值)
+- 字段覆盖:etymology 45、discovery 45、genomeInfo 44、ecologyRole 45、researchValue 45(仅大变形虫 genomeInfo 从略,其余全部 5 字段齐备)
+- 自写临时校验脚本 /tmp/validate-enrich.ts(bun 运行):45 条 latin 逐一精确匹配 inventory species 行、文件内零重复、各字段中文长度 20-100(discovery 30-100)全部通过
+- bunx tsc --noEmit -p tsconfig.json:enrich-prokaryotes-protists 零错误;enrich-taxa.ts 对本文件的 import(第 18/25 行)恢复解析;现存 7 个报错均为 examples/skills 固有及 enrich-taxa.ts 等待并行代理的 enrich-plants/invertebrates/vertebrates 三文件(enrich-fungi 已由并行代理产出并解析)
+
+Stage Summary:
+- 产出 45 条科学档案补强(细菌 25/古菌 9/原生生物 11),文件 src/data/seed/enrich-prokaryotes-protists.ts,latin 与清单零偏差,tsc 通过;待 3-4/3-d/3-e 各 enrich 文件齐后由 scripts/enrich-taxa.ts 统一入库(enrich-taxa.ts 已预挂本文件导出)
+---
+Task ID: 3-a
+Agent: general-purpose
+Task: 微生物新物种(全科学档案字段)
+
+Work Log:
+- 背景阅读:worklog 末两章(项目现状 417 物种/本轮扩物种+增强科学信息量)、/tmp/taxa-inventory.tsv 全部 1524 条清单、types.ts(TaxonSeed 新增 5 个科学档案字段)、expansion-prokaryotes.ts 风格参考
+- 逐项排查推荐物种:铜绿假单胞菌/枯草芽孢杆菌/霍乱弧菌/盐生盐杆菌/S. acidocaldarius 已在库跳过;激烈火球菌(P. furiosus)亦已在库,故古菌选 S. solfataricus+M. fervidus;推荐其余 9 种(putida/syringae/licheniformis/anthracis/agalactiae/acidophilus/glutamicum/multocida/fluvialis)经 rg 核对清单全部不存在
+- 编写 src/data/seed/expansion2-microbes.ts:细菌 9 种+古菌 2 种共 11 物种(10±1 上限),每物种 5 项科学档案字段(etymology/discovery/genomeInfo/ecologyRole/researchValue)全部必填且内容取自高把握科学事实(权威命名串仅保留 Trevisan 1889/van Hall 1904/Cohn 1872/Lehmann & Neumann 1896/Lee et al. 1981 等高置信条目,不确定一律省略)
+- 新中间阶元 3 条:genus Pasteurella(挂清单已有 Pasteurellaceae)、family Methanothermaceae+genus Methanothermus(挂清单已有 Methanobacteriales);其余 8 物种直接挂清单已有属(Pseudomonas/Bacillus/Streptococcus/Lactobacillus/Corynebacterium/Vibrio/Sulfolobus)
+- ncbiTaxId 仅 4 个高把握值(P. putida=303/B. anthracis=1392/S. agalactiae=1311/C. glutamicum=196927);IUCN 不填;标签用 模式生物/人类病原/动物病原/植物病原/人畜共患/工业菌种/极端环境/生物安全,无 flagship
+- 自写校验脚本 scripts/validate-expansion2-microbes.ts 并执行:14 条(11 物种+3 阶元)文件内唯一、与 1524 清单零重复、parent 全部闭合且定义顺序正确、物种 parent 均为 genus、5 档案字段齐备、description 60-140/morphology·habitat·distribution·genomeInfo 等 20-80/discovery 30-100/中间阶元 30-80 全通过(修复 2 处过短 distribution)
+- bunx tsc --noEmit:expansion2-microbes 相关零错误(现存 7 处报错均为 examples/skills 固有及 enrich-taxa.ts 引用其他并行代理未产出文件)
+
+Stage Summary:
+- 新增 11 物种 + 3 阶元,文件 expansion2-microbes.ts,校验脚本 scripts/validate-expansion2-microbes.ts 可复用,tsc 通过;seed-incremental.ts 未挂本文件导出,待主控统一注册入库
+
+---
+Task ID: 3-e
+Agent: general-purpose(数据编写子代理)
+Task: 脊椎动物扩充数据编写 II(expansion2-vertebrates.ts)
+
+Work Log:
+- 读 worklog 末两章(现状:417 物种/1524 分类单元/48 门,本轮目标=扩物种+增强科学信息量)、/tmp/taxa-inventory.tsv 全部 1524 条清单、types.ts(5 个科学档案字段)、expansion-vertebrates.ts 风格参考
+- 逐项查重推荐名单:小家鼠/褐家鼠/红原鸡/绿头鸭/鲤/鲫/虹鳟/褐牙鲆/泥鳅/穴兔 已在库(全部跳过);斑马鱼/青鳉/非洲爪蟾/墨西哥钝口螈/金黄地鼠/豚鼠/尼罗罗非鱼/大菱鲆/红耳彩龟/原鸽/白鹭/日本鹌鹑/马来豪猪/中华竹鼠/长爪沙鼠等 18 物种及全部 34 个中间阶元经 rg 核查与清单零冲突(中文名亦无重名)
+- 编写 src/data/seed/expansion2-vertebrates.ts:18 物种 + 34 中间阶元(2 目:颌针鱼目/鸽形目;14 科:青鳉/慈鲷/太阳鱼/菱鲆/叉尾鮰/钝口螈/负子蟾/泽龟/鸠鸽/鹭/仓鼠/豚鼠/豪猪/鼹形鼠;18 属),全部 5 科学档案字段(etymology/discovery/genomeInfo/ecologyRole/researchValue)90/90 齐备
+- 主题覆盖:模式实验动物 9(斑马鱼/青鳉/非洲爪蟾/墨西哥钝口螈/金黄地鼠/豚鼠/长爪沙鼠/日本鹌鹑/原鸽)、经济养殖物种 8(尼罗罗非鱼/大口黑鲈/大菱鲆/斑点叉尾鮰/细鳞鲑/中华竹鼠/马来豪猪/日本鹌鹑兼)、入侵物种 2(红耳彩龟/非洲爪蟾);真实科学史实嵌入(爪蟾 1930 年代妊娠检验与格登 2012 诺奖、金黄地鼠 1930 阿勒颇奠基种群、白鹭羽饰贸易催生 RSPB、竹鼠 2020 禁食转型等)
+- ncbiTaxId 仅收高把握 11 个:斑马鱼 7955/青鳉 8090/罗非鱼 8664/大口黑鲈 4081/爪蟾 8355/钝口螈 8296/豚鼠 10141/金仓鼠 10029/叉尾鮰 7998/原鸽 8932/日本鹌鹑 93957;基因组数据按高把握标注(钝口螈 32 Gb 最大动物基因组、爪蟾异源四倍体 2n=36、斑马鱼 2n=50 等)
+- 自写 scripts/validate-expansion2-vertebrates.ts:与 1524 清单合并唯一性(拉丁+中文)/parent 闭合/阶元阶梯单调(兼容目挂辐鳍亚纲)/物种描述 60-140 字 2-3 句/三字段 20-60 字/五档案字段 20-80(discovery 30-100)/conservation 与 ncbiTaxId 合法性/禁用 flagship,全部通过(0 错误 0 警告)
+- bunx tsc --noEmit -p tsconfig.json:expansion2-vertebrates 零错误(全库仅剩 examples/skills 固有报错 7 条与 enrich-taxa.ts 引用待产出文件,均与本文件无关)
+
+Stage Summary:
+- 新增 18 物种 + 34 中间阶元(共 52 条),文件 expansion2-vertebrates.ts,校验脚本 validate-expansion2-vertebrates.ts 可复用,tsc 通过
+- 待办移交:seed-incremental.ts 尚未导入 expansion2Vertebrates(本任务未改共享文件以避免与并行子代理冲突),主代理收口时需追加 import {...expansion2Vertebrates} 并数组展开,再执行增量入库
+---
+Task ID: 3-h
+Agent: general-purpose
+Task: 植物界物种科学档案补强数据编写
+
+Work Log:
+- 背景阅读:worklog 末 2 章节(现状 417 物种/1524 分类单元)、/tmp/taxa-inventory.tsv 全量清单、types.ts EnrichEntry 接口、plants.ts 代表物种(水稻/拟南芥/银杏)风格
+- 逐项核对清单排查目标物种:Populus/Medicago/Physcomitrella/Nicotiana/Ricinus/Lycium/Salvia/Abies/Cathaya/Taxus chinensis/Picea abies 等不在库 → 按"不重复+近价值替换"原则处理(苔类模式以 Marchantia polymorpha 顶 Physcomitrella 之缺,红豆杉用 Taxus cuspidata,云杉用 Picea asperata);Gossypium 取种级 Gossypium hirsutum;Chlamydomonas 按嘱不归植物域
+- 编写 src/data/seed/enrich-plants.ts:export const enrichPlants: EnrichEntry[],42 个已在库植物物种 × 最多 5 个科学档案字段:
+  - 模式与作物主力 12:拟南芥/水稻/小麦/玉米/大豆/番茄/马铃薯/葡萄/陆地棉/茶/小果咖啡/地钱(苔类模式)
+  - 旗舰经济与药用 18:人参/银杏/水杉/苏铁/东北红豆杉/玉兰/莲/草麻黄/马尾松/云杉/樟/肉桂/三七/山茶/桃/月季/毛竹/芦荟
+  - 濒珍与名花代表 12:牡丹/芍药/大花杓兰/铁皮石斛/蝴蝶兰/春兰/珙桐/攀枝花苏铁/桫椤/中华水韭/华盖木/捕蝇草
+- 数据质量:仅收录高把握史实(拟南芥 1873 突变体-1907 染色体数-1943 模式提案、水杉 1941 干铎发现/1948 胡先骕郑万钧定名、珙桐 1869 谭卫道采集、麻黄碱 1885 长井长义、紫杉醇 1971 Wani&Wall、松材线虫 1982 南京等);基因组数据 19 条(拟南芥 135Mb/2000 首株、水稻 430Mb/2002、小麦 17Gb 六倍体、玉米 2.3Gb/B73、大豆 1.1Gb/2010、葡萄 487Mb/2007 首个果树、银杏 10.6Gb/4.2 万基因、茶 3.0Gb/2018 双组、陆地棉 TM-1 2015、莲 929Mb/2013、桃 2013、月季 2018、桫椤 2022 树蕨等);不确定一律省略(genomeInfo 仅 19/42 覆盖即为此故);字段长度全部 20-100 字
+- 自写 bun 校验脚本:42 条文件内唯一、latin 全部命中清单 species 行(零偏差)、每条 3-5 字段非空、字段长度区间全过 → ALL CHECKS PASSED;字段覆盖 etymology 42/discovery 41/genomeInfo 19/ecologyRole 42/researchValue 42
+- 与并行代理产物交叉查重:enrich-fungi(31)/enrich-invertebrates(42)/enrich-prokaryotes-protists(45) 与本文件零 latin 重复
+- `bunx tsc --noEmit -p tsconfig.json`:enrich-plants.ts 零类型错误(现存 5 条报错均为 examples/skills 固有 + enrich-taxa.ts 引用尚缺的 enrich-vertebrates(3-x 并行未产出),与本文件无关);scripts/enrich-taxa.ts 第 20 行已预挂 enrichPlants 导入,命名匹配
+
+Stage Summary:
+- 产出 src/data/seed/enrich-plants.ts:42 物种科学档案补强条目(每条 3-5 字段),latin 与清单 100% 命中,tsc 零错误;待 enrich-vertebrates.ts 落地后由 `bun scripts/enrich-taxa.ts` 统一入库(不入库不碰 image/tags)
+---
+Task ID: 3-i
+Agent: general-purpose
+Task: 无脊椎动物科学档案补强数据编写
+
+Work Log:
+- 阅读 worklog 末尾 2 个章节(项目目标 417 物种、本轮目标=增强介绍信息科学性)与 /tmp/taxa-inventory.tsv(1524 条,species 417 行)、types.ts 末尾 EnrichEntry 接口、invertebrates.ts 3 个代表物种风格
+- 逐个核对任务推荐清单与库存:Rhopilema esculentum(海蜇)清单中不存在,跳过;Lissachatina 无独立种,以清单现有 Achatina fulica(褐云玛瑙螺)替代并在语源中注明 Lissachatina 属新归类;Anopheles 取清单的 A. sinensis;其余目标种全部命中
+- 编写 src/data/seed/enrich-invertebrates.ts:42 条 EnrichEntry(全部 latin 与清单逐字一致),按任务四组分块:
+  - 模式生物 5:黑腹果蝇/秀丽隐杆线虫/西方蜜蜂/家蚕/大型溞
+  - 医学与农业重器 9:中华按蚊/埃及伊蚊/日本血吸虫/猪带绦虫/似蚓蛔线虫/台湾乳白蚁/红火蚁/飞蝗/美洲大蠊
+  - 海洋经济与代表 18:普通章鱼/金乌贼/皱纹盘鲍/长牡蛎/栉孔扇贝/虾夷扇贝/中华绒螯蟹/克氏原螯虾/日本沼虾/罗氏沼虾/三疣梭子蟹/中国对虾/海月水母/加勒比鹿角珊瑚/中华鲎/沙蚕/褐云玛瑙螺/仿刺参
+  - 濒危与科普明星 10:金斑喙凤蝶/中华虎凤蝶/柑橘凤蝶/神农洁蜣螂/双斑蟋/印度竹节虫/中华通草蛉/中国圆田螺/河蚬/泥蚶
+- 数据质量:etymology/discovery/ecologyRole/researchValue 四字段 42/42 全覆盖;genomeInfo 25 条仅填高把握数据(果蝇 180 Mb/2000、线虫 100 Mb/1998 首个多细胞、蜜蜂 236 Mb/2006 首个社会性昆虫、家蚕 432 Mb/2004 中国团队、伊蚊 1.38 Gb/2007、长牡蛎 559 Mb/2012 首个软体动物、红火蚁 2011+社会染色体 2013、飞蝗 6.3 Gb/2014 等),不确定者一律略;命名史仅写较有把握者(Meigen 1830/Maupas 1900/桂田 1904/素木 1909/Shiraki 等);1988 上海甲肝事件谨慎表述为毛蚶(近缘种)而非泥蚶本种
+- 自写 scripts/validate-enrich-invertebrates.ts:42 条全部命中清单 species 行、文件内零重复、每条 ≥3 字段、每字段长度 20-100 字全通过(实测 5 字段全覆盖 25 条、其余 17 条为 4 字段)
+- 校验:cd /home/z/my-project && bunx tsc --noEmit -p tsconfig.json 2>&1 | rg "enrich-invertebrates" | head -5 → 空(零相关错误);enrich-taxa.ts 第 21 行的 enrich-invertebrates 导入恢复解析,仅剩 enrich-vertebrates(并行代理 3-v 未产出)等既有报错;本任务不执行入库(由主代理统一跑 bun scripts/enrich-taxa.ts)
+
+Stage Summary:
+- 产出 42 条无脊椎物种科学档案补强(4 字段 42/42 + genomeInfo 25),文件 src/data/seed/enrich-invertebrates.ts,tsc 与清单命中校验全部通过,校验脚本 scripts/validate-enrich-invertebrates.ts 可复用;待各域补强文件齐后由 scripts/enrich-taxa.ts 统一应用
+
+---
+Task ID: 3-j
+Agent: general-purpose
+Task: 脊椎动物科学档案补强数据编写
+
+Work Log:
+- 背景阅读:worklog 末两章节(E1 轮 417 物种现状)、/tmp/taxa-inventory.tsv 全部 417 条 species 行、types.ts 末尾 EnrichEntry 接口、vertebrates.ts 三个代表物种(大熊猫/虎/小家鼠)风格
+- 逐个核查推荐名单与清单:Danio rerio、Xenopus、Oryzias latipes、Cavia porcellus、Mesocricetus auratus、Panthera leo、Loxodonta africana、Gorilla gorilla、Pongo spp.、Delphinapterus leucas、Physeter macrocephalus、Orcinus orca、Balaenoptera physalus、Saiga tatarica 共 14 个推荐名不在清单,按硬性规则全部跳过;模式动物改以清单中的 Macaca mulatta、Homo sapiens、Ciona intestinalis、Branchiostoma belcheri 补位(玻璃海鞘/文昌鱼即脊椎动物种子文件所辖脊索动物模式种)
+- 编写 src/data/seed/enrich-vertebrates.ts,导出 enrichVertebrates: EnrichEntry[] 共 50 条:
+  - 模式与驯化 12:小家鼠/褐家鼠/红原鸡/智人/猕猴/黑猩猩/狼/野猪/穴兔/鸭嘴兽/玻璃海鞘/白氏文昌鱼
+  - 全球旗舰 11:大熊猫/虎/雪豹/云豹/猞猁/赤狐/棕熊/北极熊/亚洲象/川金丝猴/蓝鲸
+  - 中国濒危旗舰 15:白鱀豚/长江江豚/白鲟/达氏鳇/中华鲟/大鲵/扬子鳄/丹顶鹤/白鹤/朱鹮/梅花鹿/藏羚/中华穿山甲/麋鹿/普氏野马
+  - 海洋与其他 12:矛尾鱼/噬人鲨/鲸鲨/红鳍东方鲀/太平洋蓝鳍金枪鱼/翻车鱼/线纹海马/日本海马/楔齿蜥/帝企鹅/雪鸮/游隼
+- 质量控制:45/50 条五字段全覆盖,其余 5 条(海马两种等)3-4 字段;每字段 20-100 字;科学事实逐条自查——高把握史实(大熊猫 1869 谭卫道/白鱀豚 1918 Miller/朱鹮 1981 洋县七只/普氏野马波泰古 DNA 2018/银狐驯化 1959 别利亚耶夫/近畿大学蓝鳍全周期 2002 等)直书,不确定项(云豹/穿山甲/藏羚属名词源、丹顶鹤基因组数值)以或谓/约/近年模糊化或直接略去;基因组数值仅收高把握者(小鼠 2.7Gb/2n=40·2002,大鼠 2.75Gb/2n=42·2004,黑猩猩 3.3Gb/2n=48·1.2% 差异,腔棘鱼 2.9Gb/2n=48·2013,楔齿蜥 ~4.5-5Gb·2020,鸡 1.1Gb/2n=78·2004 首种鸟类等)
+- 校验:自写 bun 脚本(已删)——50 条 latin 全命中清单 species 行、文件内零重复、字段长度 20-100 全合规、每条≥3 字段 → 全部通过;与并行四份 enrich 文件交叉核对零冲突(合计 160 条无重复);bunx tsc --noEmit 全项目仅剩 examples/skills 固有 4 错误,enrich-vertebrates 零错误;scripts/enrich-taxa.ts 预置的 enrichVertebrates 导入随之恢复解析
+
+Stage Summary:
+- 新增 enrich-vertebrates.ts:50 条补强(45 条五字段全覆盖),tsc 通过;与其他四域 110 条合并共 160 条,待统一执行 bun scripts/enrich-taxa.ts 入库
+- 14 个推荐种因不在清单而跳过,可在下轮扩充物种时优先补入(Danio rerio/Xenopus/Oryzias/Cavia/Mesocricetus/Panthera leo/Gorilla/Pongo/Orcinus/Physeter/Delphinapterus/Loxodonta/B. physalus/Saiga)
+---
+Task ID: 3-b
+Agent: general-purpose
+Task: 原生生物+真菌第二轮扩充数据编写(expansion2,科学档案字段全量配齐)
+
+Work Log:
+- 背景阅读:worklog 末 2 章段(417 物种/1524 单元现状)、/tmp/taxa-inventory.tsv 全量 1524 条清单、types.ts(TaxonSeed 含 5 个科学档案新字段)、expansion-protists-fungi.ts(第一轮风格参照)
+- 逐项排查推荐名单:嗜热四膜虫/刚地弓形虫/间日疟原虫/银耳/新型隐球酵母/产黄青霉 均已在库自动跳过;黑木耳/茯苓/猪苓/烟曲霉/白色念珠菌/杜氏盐藻/梨形四膜虫 全部缺位可新增;点青霉与产黄青霉为同物异名改选娄地青霉(蓝纹奶酪);"红色颤藻"推荐位按现代分类采用浮丝藻属 Planktothrix(旧红色颤藻),挂既有颤藻科,零新阶元
+- web_search 探测一次仍 429(与 worklog 记录的账户级限流一致),改保守策略:authority 仅 8 个高置信项(P. rubescens/D. salina/S. microadriaticum/C. albicans/A. fumigatus/P. roqueforti/P. umbellatus/B. bassiana),黑木耳/茯苓/禾谷镰刀菌/梨形四膜虫 4 项不确定者省略、以 discovery 字段承载定名史;ncbiTaxId 仅 C. albicans=5476 与 A. fumigatus=746128(任务书给定)
+- 编写 src/data/seed/expansion2-protists-fungi.ts:26 条 = 12 物种 + 14 中间阶元(2 目 Suessiales/Auriculariales、4 科 Dunaliellaceae/Symbiodiniaceae/Debaryomycetaceae/Auriculariaceae、8 属 Planktothrix/Dunaliella/Symbiodinium/Candida/Beauveria/Auricularia/Wolfiporia/Polyporus)
+- 物种构成:原生生物 4(红色浮丝藻 Bacteria 域补位、杜氏盐藻极端环境、虫黄藻珊瑚共生、梨形四膜虫模式生物)+ 真菌 8(白色念珠菌/烟曲霉人类病原、娄地青霉食品发酵、禾谷镰刀菌植物病原+真菌毒素、白僵菌生物防治、黑木耳食用菌、茯苓/猪苓药用)
+- 科学性把关:12 物种 5 档案字段全配齐且全部为真实科学内容(端粒酶/核酶诺贝尔奖体系、Af293 29Mb/8 染色体、PH-1 36Mb/4 染色体、C. albicans 14.3Mb/8 对二倍体、苏黎世湖磷削减-低磷回升史、Bassi 1835 首证微生物致病、Fhb1 克隆等),模糊记忆处一律降级为定性表述或省略;描述 60-140 字、三字段 20-60 字、阶元 30-80 字
+- 自写 scripts/validate-expansion2-protists-fungi.ts:与 11 个种子文件合并 1524+26=1550 条,latin 全库零重复、parent 全闭合、文件内定义先于引用、12 条阶元链全通(真核链止于 Eukarya、蓝细菌链止于 Bacteria)、5 字段长度区间全过、无 flagship → 全部通过
+- 跨文件冲突自查(临时脚本已删):与并行的 expansion2-microbes/plants/invertebrates/vertebrates 135 条零拉丁冲突、零中文非物种同名、互不引用对方新阶元,入库无顺序耦合
+- bunx tsc --noEmit:expansion2-protists-fungi 零类型错误(仅剩 examples/skills 固有 4 条报错,均与本文件无关)
+
+Stage Summary(项目状态):
+- 新增 12 物种 + 14 中间阶元(共 26 条),文件 expansion2-protists-fungi.ts,tsc 通过,校验脚本 scripts/validate-expansion2-protists-fungi.ts 可复用
+- ⚠ 集成提示(待主代理处理):scripts/seed-incremental.ts 尚未引用 5 个 expansion2 导出,且其 create() 未写入 etymology/discovery/genomeInfo/ecologyRole/researchValue 5 列(schema 已有列)——直接跑会把本轮全部科学档案字段丢弃,须先补齐再增量入库,或入库后用 enrich-taxa.ts 回填
+- 蓝细菌 P. rubescens 归细菌域(主代理指定补位"红色颤藻"槽位),原生生物实为 3 + 蓝细菌 1,物种总数仍为 12
+
+---
+Task ID: E2(用户指令轮:补物种+增强科学性, 2026-09-14 12:00)
+Agent: main
+Task: 物种再扩充 +71 + 科学档案体系(5 结构化字段全站落地) + 210 物种档案补强
+
+Work Log:
+- 【schema 扩展】Prisma Taxon 新增 5 个科学档案字段:etymology(学名词源)/discovery(发现与定名史)/genomeInfo(基因组概况)/ecologyRole(生态位与作用)/researchValue(科研与经济价值);db:push 无损(SQLite 加列,417 物种/142 配图完整);types.ts TaxonSeed+EnrichEntry 同步扩展
+- 【前端落地】use-bio.ts TaxonDetail 加 5 字段;taxon-detail.tsx 新增「科学档案 Profilum Scientificum」区块(形态生境分布之后):琥珀主题头带+5 小节双列布局(图标+中文标签+拉丁小注+内容,有值才渲染,暗色适配)
+- 【新物种+71】10 子代理并行(其中 5 个 expansion2-*,全带 5 档案字段):
+  - 3-a 微生物 11(恶臭假单胞菌/炭疽杆菌/谷氨酸棒杆菌/硫化叶菌等)
+  - 3-b 原生真菌 12(白色念珠菌/烟曲霉/禾谷镰刀菌/黑木耳/茯苓/猪苓/虫黄藻等)
+  - 3-c 植物 14(高粱/大麦/燕麦/黑麦/粟/花生/苹果/可可/烟草/芝麻/甜菜/荔枝/芒果/香蕉)
+  - 3-d 无脊椎 16(冈比亚按蚊/沙漠蝗/地熊蜂/蓝环章鱼/美洲鲎/紫海胆/拟态章鱼/湖北钉螺等)
+  - 3-e 脊椎 18(斑马鱼/青鳉/罗非鱼/墨西哥钝口螈/非洲爪蟾/原鸽/白鹭/豚鼠/金仓鼠等)
+  - 全部子代理自查清单零重复+tsc 零错误+worklog 已各自追加
+- 【已有物种档案补强 210】5 个 enrich-* 文件(EnrichEntry 按 latinName 定位,只更新 5 档案字段):
+  - 3-f 原核原生 45(大肠杆菌/结核杆菌/全部 9 古菌/恶性疟原虫等)
+  - 3-g 真菌 31(DB 真菌界 100% 覆盖)
+  - 3-h 植物 42(拟南芥/水稻/银杏/珙桐/拟兰科等)
+  - 3-i 无脊椎 42(果蝇/线虫/蜜蜂/血吸虫/牡蛎/梭子蟹等)
+  - 3-j 脊椎 50(大熊猫/虎/雪豹/白鱀豚/蓝鲸/小鼠/黑猩猩等)
+  - 数据质量:子代理被严格要求「科学性第一,不确定宁缺毋滥」——genomeInfo 仅 155 条(其余不确定省略)
+- 【脚本升级】seed-incremental.ts:挂 5 个 expansion2 import+create 写入 5 新字段+改幂等模式(已存在 latinName 跳过而非 fail,可重复运行);新写 scripts/enrich-taxa.ts(定位校验+逐条 update,不触碰 image/tags)
+- 【入库】tsc 零错误→seed-incremental(417→488 物种,1685 条,配图 142 无损)→enrich-taxa(210 物种更新,281/488 物种有档案)
+- 【⚠重要发现:dev server 生命周期】schema 变更后 dev server 内存中的 Prisma Client 不含新字段(API 返回 null)→必须重启;但**沙箱现在每次 Bash 调用结束会 SIGKILL 该调用启动的所有进程(setsid/nohup/disown 均无效,cgroup 级清理)**→验证策略改为「单次 Bash 调用内:启动 server→agent-browser 全链路测试→完成」;SPA 首次加载后前端视图切换无需 server,但 API 请求(搜索建议/详情)需要
+- 【QA】单调用组合测试全部通过:API(stats 488/E.coli+斑马鱼档案字段)→浏览器(大肠杆菌详情 5 字段档案完整渲染:1885 Escherich 发现史/4.64Mb 基因组;斑马鱼新物种 Hamilton 1822+NCBI 7955;大熊猫 1869 谭卫道档案)→lint/tsc 零错误→console 零错误
+- z-ai image API 仍 429(补图继续由 cron 轮巡接管)
+
+Stage Summary(当前项目状态):
+- 【稳定】488 物种(本轮 +71)/1685 分类单元/48 门/配图 142/科学档案覆盖 281 物种(57.6%)
+- 新交付:①科学档案体系(schema+API+前端「科学档案」区块)②71 全字段新物种③210 已有物种档案补强④幂等增量入库+enrich 双脚本⑤占位图上轮已雕版化
+- 用户核心诉求完成度:补物种 ✓(+177 累计);增强科学性信息量 ✓(词源/发现史/基因组/生态位/科研价值 5 维)
+- 未解决/风险:
+  1. z-ai image API 429 持续(缺图 346 张),cron 轮巡自动探测补图
+  2. 剩余 207 物种(488-281)无科学档案(非旗舰非重点物种,下轮可继续 enrich)
+  3. dev server 每次 Bash 调用被清理——QA 需单调用内完成;页面生产运行由系统自动管理(用户访问走的进程非 bash 启动)
+- 下一阶段优先:
+  1. P0 补图(429恢复后,操作见前)
+  2. P1:剩余 207 物种档案补强(再来 4-5 个 enrich 文件可全覆盖);科学档案区块可加「引用文献」小节
+  3. P2:对比视图纳入科学档案字段;Agent 提示词教它使用档案信息回答;目录卡档案覆盖徽标

@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import {
   ChevronRight, ArrowLeft, ArrowRight, ExternalLink, Database, Dna, Shield,
   MapPin, Leaf, FlaskConical, BookOpen, Star, Sparkles, Microscope, GitCompareArrows, GitBranch, Check, X, ZoomIn, Bookmark, Quote, Copy,
+  BookMarked, Compass, Network, ScrollText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -408,6 +409,41 @@ export function TaxonDetail({ id }: { id: string }) {
                 )}
               </dl>
             </SectionCard>
+          )}
+
+          {/* ====== 科学档案 SCIENTIFIC PROFILE ====== */}
+          {(taxon.etymology || taxon.discovery || taxon.genomeInfo || taxon.ecologyRole || taxon.researchValue) && (
+            <section className="overflow-hidden rounded-xl border border-primary/20 bg-card shadow-sm">
+              <div className="flex items-center gap-2.5 border-b border-foreground/10 bg-primary/5 px-5 py-3.5">
+                <ScrollText className="h-5 w-5 text-primary" />
+                <h3 className="font-display text-base font-bold text-foreground">科学档案</h3>
+                <span className="latin text-sm font-normal text-muted-foreground">Profilum Scientificum</span>
+              </div>
+              <dl className="grid gap-0 px-5 py-4 sm:grid-cols-2">
+                {[
+                  { key: "etymology", label: "学名词源", la: "Etymologia", icon: BookMarked, text: taxon.etymology },
+                  { key: "discovery", label: "发现与定名史", la: "Detectio", icon: Compass, text: taxon.discovery },
+                  { key: "genomeInfo", label: "基因组概况", la: "Genoma", icon: Dna, text: taxon.genomeInfo },
+                  { key: "ecologyRole", label: "生态位与作用", la: "Oecologia", icon: Network, text: taxon.ecologyRole },
+                  { key: "researchValue", label: "科研与经济价值", la: "Utilitas", icon: FlaskConical, text: taxon.researchValue },
+                ].map(
+                  (row) =>
+                    row.text && (
+                      <div
+                        key={row.key}
+                        className="profile-row relative border-b border-foreground/5 py-3 pl-9 pr-3 last:border-b-0 sm:border-b-0 sm:odd:border-r sm:odd:border-foreground/5 [&:nth-last-child(-n+1)]:border-b-0"
+                      >
+                        <row.icon className="absolute left-0 top-3.5 h-4.5 w-4.5 text-primary/60" />
+                        <dt className="flex items-baseline gap-2">
+                          <span className="text-xs font-bold tracking-widest text-muted-foreground">{row.label}</span>
+                          <span className="latin text-[11px] font-normal italic text-primary/50">{row.la}</span>
+                        </dt>
+                        <dd className="mt-1 text-sm leading-6 text-foreground/90">{row.text}</dd>
+                      </div>
+                    )
+                )}
+              </dl>
+            </section>
           )}
 
           {iucn && taxon.conservation && (

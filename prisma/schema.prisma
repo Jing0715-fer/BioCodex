@@ -24,6 +24,14 @@ model Taxon {
   distribution  String?  // 分布
   conservation  String?  // IUCN 代码: EX|EW|CR|EN|VU|NT|LC|DD|NE
   ncbiTaxId     Int?     // NCBI Taxonomy ID(仅确定时填写)
+
+  // ===== 科学档案字段(增强信息量) =====
+  etymology     String?  // 学名词源与命名由来(属名/种加词的拉丁/希腊语源)
+  discovery     String?  // 发现与定名史(首次采集/命名者/年代背景)
+  genomeInfo    String?  // 基因组与染色体概况(基因组大小/染色体数/参考基因组)
+  ecologyRole   String?  // 生态位与生态作用(营养级/传粉/分解/捕食关系)
+  researchValue String?  // 科研与经济价值(模式生物/疾病/作物/工业应用)
+
   image         String?  // OSS 图片 URL
   imageCaption  String?
   tags          String?  // JSON 数组,如 ["flagship","模式生物"]
