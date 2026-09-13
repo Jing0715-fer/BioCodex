@@ -215,7 +215,7 @@ export function TaxonDetail({ id }: { id: string }) {
           <button
             onClick={() => setLightbox(true)}
             aria-label="放大查看物种插图"
-            className="group/img absolute inset-0 h-full w-full cursor-zoom-in"
+            className="group/img block w-full cursor-zoom-in"
           >
             <img
               src={taxon.image}
@@ -232,11 +232,28 @@ export function TaxonDetail({ id }: { id: string }) {
           kingdom={taxon.kingdom}
           className="absolute left-4 top-3 hidden h-8 w-36 text-white/40 drop-shadow-sm sm:block"
         />
-        {/* 放大提示角标(有图时) */}
+        {/* 图片信息角标组(右下):AI 插图声明 + 真实影像外链 + 放大提示 */}
         {taxon.image && (
-          <span className="pointer-events-none absolute bottom-3 right-3 flex items-center gap-1 rounded-full bg-black/50 px-2.5 py-1 text-[11px] font-medium text-white/90 opacity-0 backdrop-blur-sm transition-opacity duration-300 group-hover/img:opacity-100 sm:bottom-5 sm:right-5">
-            <ZoomIn className="h-3 w-3" />
-            点击放大
+          <span className="absolute bottom-3 right-3 flex items-center gap-1.5 sm:bottom-5 sm:right-5">
+            <span className="flex items-center gap-1 rounded-full bg-black/55 px-2.5 py-1 text-[11px] font-medium text-white/85 backdrop-blur-sm">
+              <Sparkles className="h-3 w-3 text-amber-300/90" />
+              AI 生成插图
+            </span>
+            <a
+              href={`https://www.inaturalist.org/taxa/search?q=${encodeURIComponent(taxon.latinName)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              title={`在 iNaturalist 查看 ${taxon.chineseName} 的野外真实照片`}
+              className="pointer-events-auto flex items-center gap-1 rounded-full bg-black/55 px-2.5 py-1 text-[11px] font-medium text-emerald-200 underline-offset-2 backdrop-blur-sm transition-colors hover:bg-black/80 hover:text-emerald-100"
+            >
+              真实影像
+              <ExternalLink className="h-3 w-3" />
+            </a>
+            <span className="flex items-center gap-1 rounded-full bg-black/50 px-2.5 py-1 text-[11px] font-medium text-white/90 opacity-0 backdrop-blur-sm transition-opacity duration-300 group-hover/img:opacity-100">
+              <ZoomIn className="h-3 w-3" />
+              点击放大
+            </span>
           </span>
         )}
         {/* 右上角操作:加入对比 + 收藏(仅物种) */}
@@ -834,12 +851,23 @@ export function TaxonDetail({ id }: { id: string }) {
             onClick={(e) => e.stopPropagation()}
             className="nh-scroll max-h-[78vh] max-w-full rounded-lg object-contain shadow-2xl"
           />
-          <figcaption className="pointer-events-none max-w-2xl text-center">
+          <figcaption className="max-w-2xl text-center">
             <p className="font-display text-xl font-bold text-white">{taxon.chineseName}</p>
             <p className="latin mt-1 text-sm italic text-white/70">{taxon.latinName}</p>
-            {taxon.imageCaption && (
-              <p className="mt-2 text-xs text-white/50">{taxon.imageCaption} · Esc 或点击空白处关闭</p>
-            )}
+            <p className="mt-2 flex items-center justify-center gap-1 text-xs text-white/50">
+              <Sparkles className="h-3 w-3 text-amber-300/80" />
+              复古博物学风格 AI 生成插图,形态特征以文字档案与外部数据库为准
+            </p>
+            <a
+              href={`https://www.inaturalist.org/taxa/search?q=${encodeURIComponent(taxon.latinName)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-emerald-300 underline-offset-2 transition-colors hover:text-emerald-200 hover:underline"
+            >
+              在 iNaturalist 查看真实影像
+              <ExternalLink className="h-3 w-3" />
+            </a>
+            <p className="mt-1.5 text-[10px] text-white/35">Esc 或点击空白处关闭</p>
           </figcaption>
         </div>
       )}

@@ -1155,3 +1155,31 @@ Stage Summary(当前项目状态):
   1. P0 补图(依赖 API 恢复;cron 已接管)
   2. P1:LLM 恢复后 Agent 在线模式实测(含对比指令+档案引用质量)
   3. P2:expansion5(环节/多毛、蜘蛛深扩、等足目);物种卡片档案徽标;红色名录/目录页新物种自动收录验证
+
+---
+Task ID: E5(用户指令轮:图片科学性校验+详情页图片修复, 2026-09-15)
+Agent: main
+Task: 修复详情页图片不显示 bug + 点击放大 + AI 插图科学性校验体系 + UI 透明度声明
+
+Work Log:
+- 【开工健康检查】dev server 200 OK;读 worklog E4 尾章(789 物种/2432 单元/142 配图,GitHub 已同步)
+- 【P0 修复:详情页图片不可见】agent-browser 实测 E.coli 详情页定位根因:主图区包裹 button 使用 `absolute inset-0` 脱离文档流→容器高度塌陷至 2px→img 被 overflow-hidden 裁成细缝(imgLoaded:true 但 parentH:2);修复:button 改 `block w-full` 正常流(img 撑起 320/420px 高度);修复后 parentH:422,图片可见,点击放大 lightbox(600x450)与 Esc 关闭均正常(此前 lightbox 代码已存在,因主图不可见而不可达)
+- 【图片科学性校验·三线体系】
+  线1(已执行):启发式质量审计 scripts/audit-images.ts(sharp 像素级)——142 张全过:尺寸全部 1152x864 合规、无空白/纯色/损坏/超小文件(报告 /tmp/image-audit.jsonl,verdict ok=142/warn=0/fail=0)→ 文件层无问题,用户所见问题在内容层(物种身份/特征错误),需 VLM 判定
+  线2(已执行):UI 透明度改进——详情页主图右下角新增常显角标组[✦ AI 生成插图][真实影像↗ iNaturalist 外链新窗][🔍 点击放大 hover];lightbox caption 增免责声明「复古博物学风格 AI 生成插图,形态特征以文字档案与外部数据库为准」+「在 iNaturalist 查看真实影像」链接;无图物种不显示 AI 徽章(逻辑正确)
+  线3(已就绪,待 API):VLM 科学性审计 scripts/audit-images-vlm.ts——每图注入「物种描述+形态档案」与图像给 VLM,判定 match/anatomy_errors/garbled_text → ok|warn|fail;JSONL 断点续跑+429 三连退避中止;APPLY=1 模式自动下架 fail 图(清 DB 引用回退雕版占位图+文件移 rejected/);实测仍 429(限流持续),恢复后运行:`LIMIT=999 bun scripts/audit-images-vlm.ts` 查看 → `APPLY=1 LIMIT=999 ...` 执行下架
+- 【QA 回归】详情页有图(E.coli:img 1230x420+徽章+外链+lightbox 全链)/详情页无图(美味牛肝菌:占位 SVG,无 AI 徽章)/首页(10 图零破损)/目录(24 img+132 svg 零破损)/移动端 390px(img 356x320 响应式,徽章可见,无横向溢出)/console 零错误
+- 【校验】bun run lint 零输出;bunx tsc --noEmit 过滤 examples/skills 后零错误(修复审计脚本 ?? 不可达与 vision model 必填两处)
+- 【cron】发现旧巡检任务(381986/381699)已消失→本轮重建 15 分钟 webDevReview 巡检(含补图探测+VLM 审计恢复执行)
+
+Stage Summary(当前项目状态):
+- 【稳定】789 物种/2432 分类单元/142 配图;详情页主图显示+放大+AI 声明+真实影像外链全链可用;图片文件层质量审计 142/142 通过
+- 本轮交付:①详情页图片塌陷 bug 修复(button absolute→正常流)②AI 插图三重透明度标注(主图徽章/lightbox 免责/iNaturalist 真实影像直达)③audit-images.ts 启发式审计(已跑,全过)④audit-images-vlm.ts VLM 科学性审计基础设施(断点续跑/退避/APPLY 下架,待 API 恢复)
+- 未解决/风险:
+  1. z-ai 全家桶(image/vision)仍 429:VLM 内容层科学性审计未实际执行,42 张问题图识别待 API 恢复;补图(缺 647/789)同样等待
+  2. AI 生成插图的物种身份准确性未经内容校验,用户已感知部分图片"有问题"——恢复后第一时间跑 VLM 审计+APPLY 下架,问题图回退雕版占位图(占位图有拉丁名/界徽记,科学性零风险)
+  3. cron 巡检已重建,但 z-ai 恢复前的轮次只能做 QA 与探测
+- 下一阶段优先:
+  1. P0:z-ai vision 恢复后立即 `APPLY=1 LIMIT=999 bun scripts/audit-images-vlm.ts`(VLM 审计+fail 下架)
+  2. P1:补图恢复 `BATCH=999 SCOPE=all CONCURRENCY=2 timeout 580 bun scripts/generate-images.ts`
+  3. P2:新审计出的空缺位与 expansion5 物种扩充(环节/多毛、蜘蛛深扩、等足目)并行推进
