@@ -288,7 +288,7 @@ export function HomeView() {
                   </span>
                 </div>
               </div>
-              <div className="grid grid-cols-1 divide-y divide-foreground/8 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+              <div className="grid grid-cols-1 divide-y divide-foreground/8 sm:grid-cols-2 lg:grid-cols-4 sm:divide-x sm:divide-y-0">
                 <DataRing
                   value={stats.images}
                   total={stats.species}
@@ -309,6 +309,13 @@ export function HomeView() {
                   label="NCBI 锚定"
                   hint="直连分类学数据库"
                   color="#0d7a6b"
+                />
+                <DataRing
+                  value={stats.profiled ?? stats.species}
+                  total={stats.species}
+                  label="科学档案"
+                  hint="词源·发现史·基因组·生态位·科研价值"
+                  color="#7c2d12"
                 />
               </div>
             </div>

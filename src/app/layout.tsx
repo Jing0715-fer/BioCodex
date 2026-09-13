@@ -1,36 +1,10 @@
 import type { Metadata, Viewport } from "next";
-import { Playfair_Display, Noto_Serif_SC, Noto_Sans_SC, Geist_Mono } from "next/font/google";
+// 离线安全:沙箱无法访问 fonts.gstatic.com,改用 globals.css 中的系统字体栈变量
+// (--font-playfair/--font-noto-serif-sc/--font-noto-sans/--font-geist-mono)
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
-
-const playfair = Playfair_Display({
-  variable: "--font-playfair",
-  subsets: ["latin"],
-  style: ["normal", "italic"],
-  weight: ["400", "500", "600", "700", "800"],
-  display: "swap",
-});
-
-const notoSerifSC = Noto_Serif_SC({
-  variable: "--font-noto-serif-sc",
-  subsets: ["latin"],
-  weight: ["400", "600", "700", "900"],
-  display: "swap",
-});
-
-const notoSansSC = Noto_Sans_SC({
-  variable: "--font-noto-sans",
-  subsets: ["latin"],
-  weight: ["400", "500", "700"],
-  display: "swap",
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: "BioCodex 生物图鉴 — 从原核生物到高等脊椎动物的专业百科",
@@ -68,7 +42,7 @@ export default function RootLayout({
   return (
     <html lang="zh-CN" suppressHydrationWarning>
       <body
-        className={`${playfair.variable} ${notoSerifSC.variable} ${notoSansSC.variable} ${geistMono.variable} antialiased bg-background text-foreground font-sans`}
+        className="antialiased bg-background text-foreground font-sans"
       >
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
           {children}

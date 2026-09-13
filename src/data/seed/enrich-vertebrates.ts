@@ -585,24 +585,6 @@ export const enrichVertebrates: EnrichEntry[] = [
       "自毫米级幼体长至数米巨鱼,生长速率居脊椎动物前列;应激敏感、运输困难,是水族展示与兽医技术的难题物种。",
   },
   {
-    latin: "Hippocampus erectus",
-    etymology:
-      "Hippocampus 为希腊语马加弯曲的海怪,指其马首鱼身之奇形;erectus 为拉丁语直立的,指垂直游姿。",
-    ecologyRole:
-      "西北大西洋海草床栖居种,以卷尾锚定鳗草与柳珊瑚;雄性育儿袋孵卵的雄性怀孕为生殖角色反转的经典案例。",
-    researchValue:
-      "海马属全列 CITES 附录 II,本种为贸易量最大的海马之一;海草床退化连带受胁,栖息地保护与养殖替代并行推进。",
-  },
-  {
-    latin: "Hippocampus japonicus",
-    etymology:
-      "属名意为希腊语马加海怪;japonicus 为拉丁语日本的,指定名产地;中名按产地称日本海马,为常见小型种。",
-    ecologyRole:
-      "西北太平洋浅海小型海马,常不足八厘米,尾部缠绕鳗草与马尾藻固着;口吸式捕食桡足类,近岸越冬。",
-    researchValue:
-      "传统药典海马药材的来源种之一,资源衰退推动养殖与替代研究;小型种繁殖生物学与低温耐受研究材料。",
-  },
-  {
     latin: "Sphenodon punctatus",
     etymology:
       "Sphenodon 为希腊语楔加齿,指上颌双列楔形齿与前后滑剪式咬合;punctatus 为拉丁语具斑点的。",

@@ -188,6 +188,12 @@ export const useBioStore = create<BioState>((set, get) => ({
   hydrateFromHash: () => {
     if (typeof window === "undefined") return false;
     const h = window.location.hash;
+    // 物种详情直链: #taxon=<id>(刷新/分享链接均可恢复详情视图)
+    const mt = h.match(/^#taxon=([a-zA-Z0-9]+)/);
+    if (mt) {
+      set({ view: { type: "taxon", id: mt[1] }, historyStack: [] });
+      return true;
+    }
     // 标本收藏夹: #favorites
     if (h === "#favorites" || h.startsWith("#favorites?")) {
       set({ view: { type: "favorites" }, historyStack: [] });

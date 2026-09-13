@@ -489,15 +489,6 @@ export const enrichPlants: EnrichEntry[] = [
       "现存少数具乔木主干的真蕨之一,为蕨类木质化与体型演化研究的活体参照;生态保育与科普的旗舰蕨类。",
   },
   {
-    latin: "Isoetes sinensis",
-    etymology:
-      "属名Isoetes或源自希腊语isos(均等)+etos(年),意指叶常年同形;种加词sinensis意为'中国的'。",
-    ecologyRole:
-      "淡水浅水沼泽的沉水草本;水韭类行景天酸代谢(CAM),在低二氧化碳水中夜间固碳,为植物生理学经典案例;孢子二型。",
-    researchValue:
-      "孑遗异孢蕨类,兼具演化与生态生理研究价值;因水田化与栖息地破坏致居群锐减,为极小种群保护对象。",
-  },
-  {
     latin: "Manglietiastrum sinicum",
     etymology:
       "属名Manglietiastrum为木莲属名Manglietia加后缀-astrum(近似)构成,'似木莲者';种加词sinicum意为'中国的'。",

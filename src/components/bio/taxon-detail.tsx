@@ -19,7 +19,7 @@ import { toast } from "sonner";
 import {
   ChevronRight, ArrowLeft, ArrowRight, ExternalLink, Database, Dna, Shield,
   MapPin, Leaf, FlaskConical, BookOpen, Star, Sparkles, Microscope, GitCompareArrows, GitBranch, Check, X, ZoomIn, Bookmark, Quote, Copy,
-  BookMarked, Compass, Network, ScrollText,
+  BookMarked, Compass, Network, ScrollText, Link2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -695,6 +695,7 @@ export function TaxonDetail({ id }: { id: string }) {
                   const retrieveDate = new Date().toLocaleDateString("zh-CN", { year: "numeric", month: "long", day: "numeric" });
                   const taxoCite = `${taxon.latinName}${taxon.authority ? ` ${taxon.authority}` : ""}`;
                   const fullCite = `${taxon.chineseName} ${taxoCite}. 载于: BioCodex 生物图鉴[在线图鉴]. 检索于 ${retrieveDate}.`;
+                  const pageUrl = `${window.location.origin}${window.location.pathname}#taxon=${taxon.id}`;
                   const onCopy = async (text: string, label: string) => {
                     const ok = await copyText(text);
                     if (ok) toast.success(`已复制${label}`, { description: text.length > 60 ? text.slice(0, 60) + "…" : text });
@@ -734,6 +735,13 @@ export function TaxonDetail({ id }: { id: string }) {
                           >
                             <Copy className="h-3 w-3" />
                             复制完整引用
+                          </button>
+                          <button
+                            onClick={() => onCopy(pageUrl, "本页链接")}
+                            className="mt-2 ml-2 flex h-7 items-center gap-1 rounded-full border border-foreground/15 bg-card px-3 text-[11px] font-semibold text-muted-foreground transition-all hover:border-primary/40 hover:text-primary"
+                          >
+                            <Link2 className="h-3 w-3" />
+                            复制本页链接
                           </button>
                         </div>
                       </div>

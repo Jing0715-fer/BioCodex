@@ -11,7 +11,68 @@ interface ChatMsg {
   content: string;
 }
 
+const IUCN_CN: Record<string, string> = {
+  EX: "灭绝", EW: "野外灭绝", CR: "极危", EN: "濒危", VU: "易危",
+  NT: "近危", LC: "无危", DD: "数据缺乏",
+};
+
+/** 离线降级:LLM 不可用时,基于库内检索结果合成回答(保留 [[id]] 引用芯片,含科学档案) */
+function buildFallbackReply(
+  userText: string,
+  cands: {
+    id: string; latinName: string; chineseName: string; rank: string;
+    description: string | null; conservation: string | null;
+    etymology?: string | null; discovery?: string | null; genomeInfo?: string | null;
+    ecologyRole?: string | null; researchValue?: string | null;
+  }[],
+  speciesTotal: number
+): string {
+  const head = "**[离线检索模式]** 阿博的「大脑」(大语言模型)暂时限流,以下回答由本地图鉴数据库直接检索生成:";
+  if (!cands.length) {
+    return [
+      head,
+      "",
+      `本次未直接命中「${userText.slice(0, 24)}」相关条目。建议:`,
+      "- 换成更具体的名称,如「大熊猫」「大肠杆菌」「中华鲟」",
+      "- 使用顶栏全局搜索(按 ⌘K/Ctrl+K),支持拉丁学名、中文名与关键词",
+      "- 稍后再来,阿博恢复后可回答开放性问题",
+    ].join("\n");
+  }
+  const lines: string[] = [head, ""];
+  for (const c of cands.slice(0, 5)) {
+    const cons = c.conservation ? `,IUCN ${c.conservation}${IUCN_CN[c.conservation] ? `(${IUCN_CN[c.conservation]})` : ""}` : "";
+    const desc = (c.description || "图鉴收录条目").replace(/\s+/g, "").slice(0, 60);
+    const rankTag = c.rank === "species" ? "" : `〔${c.rank === "phylum" ? "门" : c.rank === "class" ? "纲" : c.rank === "order" ? "目" : c.rank === "family" ? "科" : c.rank === "genus" ? "属" : c.rank}〕`;
+    lines.push(`- [[${c.id}]] **${c.chineseName}**${rankTag}(*${c.latinName}*)${cons}——${desc}…`);
+    const facts: string[] = [];
+    if (c.etymology) facts.push(`词源:${c.etymology.slice(0, 50)}`);
+    if (c.discovery) facts.push(`发现史:${c.discovery.slice(0, 50)}`);
+    if (c.genomeInfo) facts.push(`基因组:${c.genomeInfo.slice(0, 50)}`);
+    if (facts.length) lines.push(`  - ${facts.join(";")}`);
+  }
+  lines.push("");
+  const hit = cands.length > 5 ? `仅展示前 5 条(共命中 ${cands.length} 条,` : "(";
+  lines.push(`${hit}全库 ${speciesTotal} 物种)。点击条目名可直达图鉴页,下方卡片可加入对比或收进标本夹。`);
+  return lines.join("\n");
+}
+
 // 从用户消息中提取检索词(中英混合)
+interface Candidate {
+  id: string;
+  latinName: string;
+  chineseName: string;
+  rank: string;
+  description: string | null;
+  image: string | null;
+  conservation: string | null;
+  parentId: string | null;
+  etymology?: string | null;
+  discovery?: string | null;
+  genomeInfo?: string | null;
+  ecologyRole?: string | null;
+  researchValue?: string | null;
+}
+
 function extractTerms(text: string): string[] {
   const cleaned = text.replace(/[,.?!;:、,。?!;:""''()\[\]{}]/g, " ");
   const raw = cleaned.split(/\s+/).filter(Boolean);
@@ -27,7 +88,7 @@ function extractTerms(text: string): string[] {
   return [...new Set(terms)].slice(0, 12);
 }
 
-async function searchCandidates(terms: string[]) {
+async function searchCandidates(terms: string[]): Promise<Candidate[]> {
   if (!terms.length) return [];
   const seen = new Map<string, number>();
   for (const term of terms) {
@@ -39,6 +100,10 @@ async function searchCandidates(terms: string[]) {
           { description: { contains: term } },
           { habitat: { contains: term } },
           { morphology: { contains: term } },
+          { etymology: { contains: term } },
+          { discovery: { contains: term } },
+          { ecologyRole: { contains: term } },
+          { researchValue: { contains: term } },
         ],
       },
       select: {
@@ -83,7 +148,7 @@ export async function POST(req: NextRequest) {
 
     // ===== 检索库内相关分类单元 =====
     const terms = extractTerms(lastUser.content);
-    let candidates = await searchCandidates(terms);
+    let candidates: Candidate[] = await searchCandidates(terms);
     const lowerMsg = lastUser.content;
 
     // 保护状况关键词命中时,补充相应等级的物种
@@ -120,9 +185,33 @@ export async function POST(req: NextRequest) {
     }
     const paths = await getKingdomPaths();
 
+    // ===== 检索候选补全科学档案字段(LLM 与降级回答均可用) =====
+    if (candidates.length) {
+      const profileRows = await db.taxon.findMany({
+        where: { id: { in: candidates.map((c) => c.id) } },
+        select: {
+          id: true, etymology: true, discovery: true, genomeInfo: true,
+          ecologyRole: true, researchValue: true,
+        },
+      });
+      const profMap = new Map(profileRows.map((p) => [p.id, p]));
+      candidates = candidates.map((c) => {
+        const p = profMap.get(c.id);
+        return p ? { ...c, ...p } : c;
+      });
+    }
+
     const brief = candidates.slice(0, 12).map((c) => {
       const path = (paths.get(c.id) || []).join("/");
-      return `- [[${c.id}]] ${c.chineseName}(${c.latinName}),分类:${path},阶元:${c.rank}${c.conservation ? `,IUCN:${c.conservation}` : ""}。简介:${(c.description || "暂无").slice(0, 80)}…`;
+      const parts: string[] = [
+        `- [[${c.id}]] ${c.chineseName}(${c.latinName}),分类:${path},阶元:${c.rank}${c.conservation ? `,IUCN:${c.conservation}` : ""}。简介:${(c.description || "暂无").slice(0, 80)}…`,
+      ];
+      if (c.etymology) parts.push(`  词源:${c.etymology.slice(0, 70)}`);
+      if (c.discovery) parts.push(`  发现史:${c.discovery.slice(0, 70)}`);
+      if (c.genomeInfo) parts.push(`  基因组:${c.genomeInfo.slice(0, 70)}`);
+      if (c.ecologyRole) parts.push(`  生态位:${c.ecologyRole.slice(0, 70)}`);
+      if (c.researchValue) parts.push(`  科研价值:${c.researchValue.slice(0, 70)}`);
+      return parts.join("\n");
     });
 
     // ===== 旗舰物种速查表(供推荐时引用) =====
@@ -159,6 +248,7 @@ ${brief.length ? brief.join("\n") : "(未检索到直接匹配的条目,可依�
 ${flagshipList}
 
 回答规范:
+0. 《本轮检索到的库内条目》中附有「词源/发现史/基因组/生态位/科研价值」科学档案摘要——用户问及学名由来、发现历史、基因组数据、生态作用或科研价值时,优先引用这些档案信息(全站 488 物种档案已全覆盖),并注明可在物种详情页「科学档案」区块查看全文。
 1. 用中文回答;物种名首次出现时给出中文+斜体拉丁学名(拉丁名用 *斜体*)。
 2. [[id]] 引用标记只能使用上述两个清单中真实出现的 id,绝对不要编造、也不要写"[[需确认id]]"之类的占位符——清单里没有的物种,直接用普通文字提及并说明"图鉴暂未收录"。
 3. 引用标记应紧跟物种名,如:大熊猫 [[id]] 是熊科的旗舰物种。
@@ -173,19 +263,41 @@ ${flagshipList}
 12. 「红色名录专题」:首页 IUCN 保护状况卡下方有「红色名录专题 Rubrum Index」入口,进入后按受威胁等级(EW野外灭绝/CR极危/EN濒危/VU易危)分组展示全部受威胁物种,附危机统计带与低危折叠区;专题页顶部可按界筛选,每个等级分组有「全部加入对比」按钮。物种详情页的 IUCN 徽章、保护状况区的等级牌、以及目录卡片右上角的等级角标均可点击,直达红色名录对应等级分组(自动滚动高亮)。用户问"濒危/极危/受威胁/保护动物"等话题时,优先推荐此专题。另外:收藏夹与图鉴目录都有「卡片/列表」密度切换(共用偏好);对比视图支持导出 Markdown/CSV/JSON 三种格式(JSON 为结构化数据,适合程序分析)。
 13. 「引用格式」:物种详情页右栏有「引用格式 CITATIO」区块,可一键复制分类学引用(斜体学名+命名人,如 *Panthera tigris* (Linnaeus, 1758))或图鉴条目完整引用(含检索日期);用户写论文、做笔记、查学名时提示该功能。对比视图内点「搜索添加一个物种」可弹出快速选择器,搜索后直接加入托盘,无需离开对比页;收藏夹支持「导出备份/导入备份」JSON 文件,可跨设备迁移标本。`;
 
-    // ===== 调用 LLM =====
+    // ===== 调用 LLM(失败自动重试一次,仍失败则降级为本地检索回答) =====
+    let content = "";
+    let degraded = false;
     const zai = await ZAI.create();
-    const completion = await zai.chat.completions.create({
-      messages: [
-        { role: "assistant", content: system },
-        ...messages.slice(-12).map((m) => ({
-          role: m.role,
-          content: m.content,
-        })),
-      ],
-      thinking: { type: "disabled" },
-    });
-    const content = completion.choices[0]?.message?.content || "";
+    const callLlm = async () => {
+      const completion = await zai.chat.completions.create({
+        messages: [
+          { role: "assistant", content: system },
+          ...messages.slice(-12).map((m) => ({
+            role: m.role,
+            content: m.content,
+          })),
+        ],
+        thinking: { type: "disabled" },
+      });
+      return completion.choices[0]?.message?.content || "";
+    };
+    try {
+      content = await callLlm();
+    } catch (e1) {
+      console.error("agent LLM first attempt failed:", e1 instanceof Error ? e1.message : e1);
+      try {
+        await new Promise((r) => setTimeout(r, 1500));
+        content = await callLlm();
+      } catch (e2) {
+        console.error("agent LLM retry failed, fallback to local retrieval mode");
+        degraded = true;
+        content = buildFallbackReply(lastUser.content, candidates, speciesTotal);
+      }
+    }
+    if (!content.trim() && !degraded) {
+      // LLM 返回空内容时也降级,避免空白回答
+      degraded = true;
+      content = buildFallbackReply(lastUser.content, candidates, speciesTotal);
+    }
 
     // ===== 附带可跳转的匹配条目(供前端渲染卡片) =====
     const citedIds = [...content.matchAll(/\[\[([a-zA-Z0-9]+)\]\]/g)].map((m) => m[1]);
@@ -195,7 +307,7 @@ ${flagshipList}
           where: { id: { in: allIds } },
           select: {
             id: true, latinName: true, chineseName: true, rank: true,
-            image: true, conservation: true, description: true, parentId: true,
+            description: true, image: true, conservation: true, parentId: true,
           },
         })
       : [];
@@ -212,7 +324,7 @@ ${flagshipList}
         kingdom: (paths.get(r.id) || []).slice(-1)[0] || "",
       }));
 
-    return NextResponse.json({ success: true, content, matches });
+    return NextResponse.json({ success: true, content, matches, degraded });
   } catch (e: any) {
     console.error("agent error", e);
     return NextResponse.json(

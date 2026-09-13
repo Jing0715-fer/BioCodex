@@ -20,6 +20,19 @@ export async function GET() {
       where: { rank: "species", conservation: { not: null } },
     });
     const ncbi = await db.taxon.count({ where: { ncbiTaxId: { not: null } } });
+    // 科学档案覆盖(词源/发现史/基因组/生态位/科研价值任一非空即计入)
+    const profiled = await db.taxon.count({
+      where: {
+        rank: "species",
+        OR: [
+          { etymology: { not: null } },
+          { discovery: { not: null } },
+          { genomeInfo: { not: null } },
+          { ecologyRole: { not: null } },
+          { researchValue: { not: null } },
+        ],
+      },
+    });
 
     // 各界物种数
     const tree = await getTree();
@@ -62,6 +75,7 @@ export async function GET() {
         images,
         flagship,
         ncbiLinked: ncbi,
+        profiled,
         iucn: iucn.map((i) => ({ code: i.conservation, count: i._count })),
         kingdoms: kingdomStats,
       },

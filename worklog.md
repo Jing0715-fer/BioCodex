@@ -783,3 +783,108 @@ Stage Summary(当前项目状态):
   1. P0 补图(429恢复后,操作见前)
   2. P1:剩余 207 物种档案补强(再来 4-5 个 enrich 文件可全覆盖);科学档案区块可加「引用文献」小节
   3. P2:对比视图纳入科学档案字段;Agent 提示词教它使用档案信息回答;目录卡档案覆盖徽标
+
+---
+Task ID: 5-b
+Agent: general-purpose
+Task: 植物 56 物种科学档案补强数据编写(enrich2 轮)
+
+Work Log:
+- 背景阅读:worklog 末两章节(E2 收尾:488 物种、科学档案 281 覆盖、剩余 207 无档案)、types.ts 末尾 EnrichEntry 接口、enrich-plants.ts 开头风格模板(字段写法/长度/科学性标准)
+- 读 /tmp/list-plants.tsv(56 物种清单,格式 id/latin/中文名/界),并用 prisma 交叉核对 DB:56 个 latin 全部在库,其中 55 个无任何档案字段;Isoetes sinensis 已有 3 字段(上轮 enrich-plants 旧条目,缺 discovery),主代理清单将其纳入本轮系因档案不完整
+- 编写 src/data/seed/enrich2-plants.ts:export const enrich2Plants: EnrichEntry[],56 条与清单逐字一致,按类群分六块:苔藓与苔类 4(泥炭藓/金发藓/葫芦藓/蛇苔)、石松类与蕨类 10(石松/卷柏/中华水韭/问荆/蕨/铁线蕨/绵马鳞毛蕨/肾蕨/鹿角蕨/苹)、裸子植物 5(百岁兰/北美红杉/侧柏/香榧/红松)、木兰类 4(鳄梨/山鸡椒/胡椒/蕺菜)、单子叶 8(水仙/棕榈/椰子/姜/姜黄/卷丹/郁金香/墨兰)、真双子叶 25(甜橙/宽皮橘、梅/玫瑰/向日葵/菊/黄花蒿/绣球/猪笼草/圆叶茅膏菜/板栗/荷花玉兰/何首乌等)
+- 数据纪律:四字段(etymology/discovery/ecologyRole/researchValue)56 条全覆盖;genomeInfo 仅 16 条高把握收录(百岁兰 2021 约 70 亿 bp、北美红杉六倍体 2n=66 逾 250 亿 bp、鳄梨 2n=24 约 9 亿 bp 2019、水仙三倍体 2n=30 不育、椰子 2n=32、姜 2n=22、姜黄三倍体 2n=63、卷丹三倍体 2n=36 珠芽、猕猴桃 2013 '红阳'约 6 亿 bp、向日葵 36 亿 bp 2017《自然》、栽培菊六倍体 2n=54、宽皮橘约 3 亿 bp、甜橙 3 亿余 bp 橘×柚杂交起源、郁金香数百亿 bp 巨型、红松 2n=24 松属通例等);其余 40 条一律省略 genomeInfo
+- 科学史实仅取高把握者直书(赫德维希 1801《藓类志》藓类命名起点、百岁兰 1859 维尔维契采集 1862 虎克发表、哈斯鳄梨 1926 实生苗 1935 专利、郁金香狂热 1630 年代、屠呦呦 1972 青蒿素 2015 诺奖、陈俊愉 1998 梅国际登录权威、523 任务、澳大利亚仙人掌生物防治 1920 年代、黄花蒿/贯众等本草源流),不确定处一律定性或省略(蕨类/兰科/樟科等多数基因组数值未写即为此故);每字段 20-100 字,discovery 均 ≥30 字
+- ⚠ 集成提示(移交主代理):Isoetes sinensis 在 enrich-plants.ts 第 491-499 行有旧 3 字段条目,与本文件新条目 latin 重复——enrich-taxa.ts 合并数组的文件内重复校验会因此 fail,集成时请删除旧条目保留本轮完整版(或去重)
+- 自写校验脚本 scripts/validate-enrich2-plants.ts 并运行:56 条与 TSV latin 双向逐字一致、文件内零重复、每条 ≥3 字段(实际四必备全配)、字段长度 20-100(discovery≥30)全部通过 → ALL CHECKS PASSED
+- bunx tsc --noEmit -p tsconfig.json 2>&1 | rg "enrich2-plants" → 空(零类型错误);全库仅剩 4 条 examples/skills 固有报错,与本文件无关;临时 DB 核对脚本已删,validate 脚本保留可复用
+
+Stage Summary:
+- 产出 src/data/seed/enrich2-plants.ts:56 条补强,字段覆盖 etymology 56 / discovery 56 / ecologyRole 56 / researchValue 56 / genomeInfo 16(宁缺毋滥);每条 ≥4 字段
+- tsc 零错误(enrich2-plants 相关);清单命中校验 56/56 通过,校验脚本 scripts/validate-enrich2-plants.ts 可复用
+- 待主代理集成:enrich-taxa.ts 追加 import {...enrich2Plants} 并展开入数组(注意先移除 enrich-plants.ts 中 Isoetes sinensis 旧条目避免重复校验失败),再统一执行 bun scripts/enrich-taxa.ts 入库;植物界无档案物种将由此归零(281+56 → 337/488)
+---
+Task ID: 5-c
+Agent: general-purpose
+Task: 无脊椎动物 56 物种科学档案补强数据编写(enrich2 轮)
+
+Work Log:
+- 背景阅读:worklog 末两章节(现状 488 物种/1685 单元/281 有档案,本轮目标=补齐剩余无档案物种)、types.ts 末尾 EnrichEntry 接口、enrich-invertebrates.ts 开头风格模板(块注释/中文名注释/四字段保底+genomeInfo 宁缺毋滥)
+- 逐行核对 /tmp/list-inverts.tsv(tab 三列 id/latin/中文名,cat -A 确认分隔符),56 物种覆盖海绵 3、刺胞 7、扁形线虫环节 7、软体 12、昆虫 15、蛛形甲壳多足 7、棘皮半索 4、头足 3、桡足 1 等门类
+- 编写 src/data/seed/enrich2-invertebrates.ts:export const enrich2Invertebrates: EnrichEntry[],56 条 latin 与清单逐字一致,每条 etymology/discovery/ecologyRole/researchValue 四字段全覆盖
+- 科学性把关:高把握史实直书(偕老同穴欧文 1841 定名、佩吉特 1835 发现旋毛虫、特伦布利 1744 水螅再生实验、素木得一 1909 黑翅土白蚁、萨维尼 19 世纪 20 年代赤子爱胜蚓、通贝里 1824 稻蝗、拉马克 1819 紫贻贝、1988 上海甲肝毛蚶事件、红珊瑚 2021 列一级、鹦鹉螺 2017 CITES 附录 II、金环胡蜂 2020 北美入侵、斑衣蜡蝉 2014 入侵宾州、多棘海盘车塔斯马尼亚入侵并列入百大入侵种等);把握不足的定名者/年份一律模糊化为世纪区间或省略(脉红螺属名、朱砂叶螨与二斑叶螨种界争议等用定性表述)
+- genomeInfo 仅 1 条(Acropora millepora 定性写法,已发布参考基因组/白化研究模式种),其余 55 条全部主动省略——本批物种无足够把握的基因组大小/测序年份,严格执行宁缺毋滥
+- 自写 scripts/validate-enrich2-inverts.ts 并运行通过:56 条与清单 latin 逐字一致(双向核对)、文件内零重复、每条 ≥3 字段(实测 4-5 字段)、每字段 20-100 字全过
+- 交叉查重:与 enrich-invertebrates.ts(42 条)latin 零重复;bunx tsc --noEmit 全项目仅剩 examples/skills 固有 4 处报错,enrich2-invertebrates 相关零类型错误
+
+Stage Summary:
+- 产出 src/data/seed/enrich2-invertebrates.ts:56 条补强,字段覆盖 etymology 56/discovery 56/genomeInfo 1/ecologyRole 56/researchValue 56(四字段 100%,genomeInfo 1.8% 系宁缺毋滥原则所致)
+- 校验结果:清单命中 56/56、零重复、长度区间全过、tsc 零错误;校验脚本 scripts/validate-enrich2-inverts.ts 保留可复用
+- 待主代理集成:scripts/enrich-taxa.ts 需追加 import { enrich2Invertebrates } 并展开进待应用数组后统一入库(本任务未修改共享文件)
+
+---
+Task ID: 5-a
+Agent: general-purpose
+Task: 原核+原生生物 35 物种科学档案补强数据编写(enrich2 轮)
+
+Work Log:
+- 背景阅读:worklog 末 2 章(488 物种、科学档案 281/488 覆盖、本轮目标=补齐剩余无档案物种)、types.ts 末尾 EnrichEntry 接口、enrich-prokaryotes-protists.ts 前 30 行风格模板(字段写法/长度/科学性标准)
+- 读 /tmp/list-proto.tsv(35 条:id/latin/中文名/界,其中细菌古菌 12、原生生物 23),确认清单 latin 为定位键;rg 核查 35 物种全部存在于 seed 库且与 5 个 enrich-*/2 个 enrich2-* 文件零重复
+- 编写 src/data/seed/enrich2-prokaryotes-protists.ts:导出 enrich2ProkaryotesProtists: EnrichEntry[](EnrichEntry 自 "../types" type import),35 条全部覆盖;结构与前轮一致:细菌 11 + 古菌 1(海洋亚硝化细小古菌)+ 原生生物 23
+- 科学性把关(高把握史实直书、不确定即省略/定性):Hellriegel-Wilfarth 1886-1888/Beijerinck 1888/Frank 1889 根瘤菌定名链、Behring-北里 1890 抗毒素首届诺奖、Freeman 1951 β 噬菌体溶原化、Könneke 2005 西雅图水族馆分离氨氧化古菌、Chisholm 1988/1992 原绿球藻、Burgdorfer 1982 莱姆病、藤野 1950 大阪中毒/坂崎 1963 弧菌、Donk 1920 平酸变质/2001 地芽孢杆菌属、Rosenbach 1884 化脓链球菌、Drew-Baker 1949 紫菜生活史、de Bary 1876 疫霉属、Nicolle-Manceaux 1908-1909 弓形虫、Ashford 1979/1996 美国覆盆子暴发环孢子虫、曾呈奎 1950s 海带筏式养殖、2000 年国务院禁发菜令等;基因组仅录高把握参考株(MED4 1.66Mb/MIT9313 2.4Mb 2003、B31 1997、RIMD2210633 双染色体 2003、SF370 2001、3841 2006、NCTC13129 2003、NIES-39 2010、四膜虫大核 104Mb 2006、海链藻 34Mb 2004 首个硅藻、褐指藻 27.4Mb 2008、水云约 200Mb 2010 首个褐藻、海带约 540Mb 2015、疫霉双速基因组 2009、弓形虫约 65Mb 等 19 条),数值均加"约";无把握的 16 条(念珠藻/地芽孢杆菌/喇叭虫/钟虫/夜光藻/亚历山大藻/团藻/石莼/巨藻/羊栖菜/紫菜/龙须菜/珊瑚藻/卷转虫/单领虫/环孢子虫)genomeInfo 一律省略
+- 写校验脚本 scripts/validate-enrich2-proto.ts(bun 运行,保留可复用):① 35 条与 /tmp/list-proto.tsv latin 双向集合相等 ② 文件内零重复 ③ 每条 ≥3 字段且 etymology/discovery/ecologyRole/researchValue 四必备字段非空 ④ 每非空字段 20-100 字(Unicode 码点计数);首跑揪出 1 处 discovery 105 字超限(Rhizobium),删"A. B."前缀缩至 99 字后复跑 ALL CHECKS PASSED
+- bunx tsc --noEmit -p tsconfig.json 2>&1 | rg "enrich2-prokaryotes" → 空(零类型错误);顺手修复校验脚本自身 3 处 TS2352 断言写法(Record cast 改为 keyof 取值函数),全项目现存 4 处 error 均为 examples/skills 固有,与本任务无关
+- 与 7 个既有 enrich 文件(enrich-fungi/invertebrates/plants/prokaryotes-protists/vertebrates + enrich2-invertebrates)交叉查重:latin 零重复
+
+Stage Summary:
+- 产出 src/data/seed/enrich2-prokaryotes-protists.ts:35 条补强(细菌 11/古菌 1/原生生物 23),字段覆盖 etymology 35/discovery 35/ecologyRole 35/researchValue 35(四字段 100%)+ genomeInfo 19(其余 16 条按"宁缺毋滥"省略)
+- 校验结果:清单命中 35/35、文件内零重复、每字段 20-100 字全过、tsc 零错误;校验脚本 scripts/validate-enrich2-proto.ts 保留可复用
+- 待主代理集成:scripts/enrich-taxa.ts 需追加 import { enrich2ProkaryotesProtists } 并展开进待应用数组后统一入库(本任务未修改任何共享文件)
+
+---
+Task ID: 5-d
+Agent: general-purpose
+Task: 脊椎动物 63 物种科学档案补强数据编写(enrich2 轮)
+
+Work Log:
+- 背景阅读:worklog 末 2 章节(488 物种、科学档案 281/488 覆盖、本轮目标=补齐剩余无/不全档案物种)、types.ts 末尾 EnrichEntry 接口、enrich-vertebrates.ts 开头与代表物种(小家鼠/褐家鼠)风格模板(字段写法/长度/科学性标准)
+- 读 /tmp/list-verts.tsv(63 条:id/latin/中文名,涵盖圆口类/软骨鱼/鲤科养殖鱼/鲑鳟鳕鲆海马鳗鲡/两栖/龟鳖蛇鳄蜥/鸟类/哺乳与尾索柄海鞘),latin 为定位键;rg 核对发现 E1 enrich-vertebrates.ts 中 Hippocampus erectus/japonicus 两条 latin 与本清单交叉
+- 只读 DB 核查(临时脚本,已删):488 物种、281 有档案、207 无;63 清单实为"档案不全"物种——海马两种已有 etymology/ecologyRole/researchValue 三字段(E1 部分条目遗留),独缺 discovery,其余 61 种五字段全空,本文件可全部补齐
+- 编写 src/data/seed/enrich2-vertebrates.ts:导出 enrich2Vertebrates: EnrichEntry[](EnrichEntry 自 "../types" import),63 条全覆盖,条目顺序与清单一致,按圆口/软骨鱼/鲤科淡水/海洋渔业/两栖/龟鳖/蛇蜥/鸟类/哺乳尾索分块注释
+- 科学性把关(高把握直书,不确定定性/省略):Dybowski 1869 东北七鳃鳗、Cantor 1842 定名三连(中华蟾蜍/中华眼镜蛇/泥鳅,舟山论文)、林奈 1758/1766 系、Walbaum 1792 虹鳟、Kaup 1856 日本海马、Perry 1810 线纹海马、Temminck & Schlegel 1846/1848、塚本 1990s 马里亚纳产卵场、2010 鳗鲡全周期育苗、钟麟 1958 家鱼人工繁殖、1958 除四害与麻雀、1992 纽芬兰鳕禁渔、2022 儒艮功能性灭绝、Przewalski 1878-83 野骆驼、α-银环蛇毒素奠基 nAChR 研究、Autumn 2002 壁虎范德华黏附、远东山雀组合鸣声句法、2008 喜鹊镜子测试、考拉 P450 扩张等;Reeves/dennysi 人物生平、Rhacophorus 定名人、鸟类基因组数值等不确定项一律省略或模糊化;genomeInfo 仅 17 条(鲤 1.7-1.8Gb/2n=100、鲫约 1.8Gb、草鱼 0.9Gb/2n=48、鲢 1.1Gb、鳕 830Mb/2011 且缺 MHC-II、虹鳟 1.9Gb/2014、鲑约 3Gb/2n=58、绿头鸭 1.2Gb/2n=80、东方蝾螈估逾 15Gb、绿海龟 2n=56、中华鳖较早测序龟类、树袋熊 2018、野骆驼 2n=74/约 2Gb、眼镜王蛇 2013、虎皮鹦鹉 2014 年 48 鸟基因组计划、大黄鱼与牙鲆定性收录)
+- 写校验脚本 scripts/validate-enrich2-verts.ts(bun 运行,保留可复用):① 63 条与 /tmp/list-verts.tsv latin 双向集合相等 ② 文件内零重复 ③ etymology/discovery/ecologyRole/researchValue 四必备字段非空 ④ 每非空字段 20-100 字;首跑即全通过(实测长度区间 33-89 字),另对 E1 交叉重复仅警告不判失败
+- bunx tsc --noEmit -p tsconfig.json 2>&1 | rg "enrich2-vertebrates" → 空(零类型错误);全项目现存 4 处 error 均为 examples/skills 固有,与本文件无关;零共享文件修改(未动 enrich-taxa.ts/seed-incremental.ts/schema/页面组件)
+
+Stage Summary:
+- 产出 src/data/seed/enrich2-vertebrates.ts:63 条补强(圆口纲 2、软骨鱼 3、硬骨鱼 15、两栖 5、龟鳖 4、蛇蜥 7、鳄 1、鸟类 18、兽类 7、尾索 1),字段覆盖 etymology 63/discovery 63/ecologyRole 63/researchValue 63(四字段 100%)+ genomeInfo 17(其余 46 条按宁缺毋滥省略)
+- 校验结果:清单双向命中 63/63、文件内零重复、每字段 33-89 字(区间 20-100 全过)、tsc 零相关错误;校验脚本 scripts/validate-enrich2-verts.ts 保留可复用
+- ⚠ 待主代理集成:① enrich-taxa.ts 追加 import { enrich2Vertebrates } 并展开进待应用数组;② E1 enrich-vertebrates.ts 的 Hippocampus erectus/japonicus 两条与本文件 latin 重复,enrich-taxa.ts 跨文件唯一性检查会 fail——建议删除 E1 中该两条(本文件版本四字段更全)后再统一入库;③ 入库后无档案物种预计 207→146(海马两种由三字段补齐为四字段)
+
+---
+Task ID: E3(用户指令轮:页面未加载修复+Agent E2E+项目优化, 2026-09-15)
+Agent: main
+Task: 修复首页 500 / Agent 助手 E2E 全链路测试并新增离线降级模式 / 210 物种科学档案补齐至 100% / hash 直链分享
+
+Work Log:
+- 【P0 修复:首页 500】根因:沙箱无法访问 fonts.gstatic.com(日志 816 次 woft2 连接超时),next/font/google 在渲染时阻塞致 500/7 秒。修复:layout.tsx 移除 4 个 Google Fonts 导入;globals.css @theme 直接定义系统字体栈(--font-playfair→Georgia/Didot 兜底、--font-noto-serif-sc→Noto/思源宋/SimSun、--font-noto-sans→PingFang/微软雅黑、--font-geist-mono→ui-monospace)。验证:500→200,7s→0.08s,页面完整渲染
+- 【Agent E2E 测试(用户核心诉求)】agent-browser 全链路实测:面板开关/建议提问/对话流/[[id]] 引用芯片跳转详情/匹配卡片(对比+收藏按钮)/重置对话;发现 z-ai LLM 仍 429→Agent 完全瘫痪问题
+- 【新功能:Agent 离线降级模式】LLM 429/超时自动重试一次(1.5s 退避),仍失败则切换「离线检索模式」:buildFallbackReply 用库内检索候选合成 markdown 回答(含 [[id]] 芯片/IUCN 中文等级/科学档案摘要),响应带 degraded 标志;前端 agent-panel 显示琥珀色「离线检索模式·点击条目名仍可跳转」徽标+标题栏状态切换。降级实测:小家鼠提问返回词源/发现史/基因组档案+5 张匹配卡片
+- 【Agent 检索升级】searchCandidates 的 OR 条件扩展至 5 个档案字段;检索候选批量补全档案字段注入 LLM 上下文(brief 含词源/发现史/基因组/生态位/科研价值摘要);system prompt 新增规范 0(教 LLM 优先引用档案回答)
+- 【210 物种档案补齐】4 子代理并行(5-a 原核原生 35/5-b 植物 56/5-c 无脊椎 56/5-d 脊椎 63)产出 enrich2-*.ts 四文件;处理 3 条 latin 冲突(删旧 Isoetes sinensis/Hippocampus erectus/japonicus 旧条目保留新版);enrich-taxa.ts 挂 4 导入统一入库→488/488 物种档案 100% 覆盖(genomeInfo 208 条)
+- 【stats API+首页徽章墙】新增 profiled 计数(5 档案字段任一非空);首页数据完备度徽章墙 3 环→4 环(sm:2/lg:4 布局),新增「科学档案 488/488·词源·发现史·基因组·生态位·科研价值」环形图
+- 【新功能:hash 直链】发现 hydrateFromHash 不支持 #taxon=<id>(详情页刷新回首页、无法分享)→bio-store 加 #taxon 分支;page.tsx hashchange 正则与 subscribe hash 同步均纳入 taxon;详情页引用区块新增「复制本页链接」按钮(Link2 图标)。实测 #taxon=直链恢复完整详情页(含科学档案)
+- 【QA 回归】agent-browser:首页/分类探索/详情/搜索(fill+Enter 建议下拉+搜索视图)/红色名录/对比托盘(1/3→2/3)/对比视图(并排表/只看差异开关/导出三格式/快搜)/芯片跳转/浏览足迹全部通过;控制台零错误;lint/tsc 零错误;dev.log 无新增错误(字体错误消失)
+- z-ai image API 仍 429(探测失败);旧 cron 381699 已失效,重建 job 381986(fixed_rate 900s webDevReview)
+
+Stage Summary(当前项目状态):
+- 【稳定】首页 0.08s 加载/488 物种/1685 分类单元/48 科学档案 100%(488/488)/配图 142/NCBI 100
+- 本轮交付:①字体离线修复(P0)②Agent 离线降级模式(LLM 限流不瘫痪)③Agent 档案检索+prompt 增强④210 物种档案补齐⑤首页第 4 环形图⑥#taxon hash 直链+复制本页链接
+- E2E 验证:Agent 全链路/对比/搜索/红名录/直链恢复全部通过,零 console 错误
+- 未解决/风险:
+  1. z-ai image API 429 持续(缺图 346/488),cron job 381986 每 15 分钟巡检自动接管
+  2. Agent 在线模式(非降级)因 LLM 429 无法端到端实测——降级路径已验证,LLM 恢复后建议实测在线问答质量
+  3. 首页 hero 图等静态资源正常,配图完备度 29% 仍是短板(依赖 image API)
+- 下一阶段优先:
+  1. P0 补图(429 恢复后:BATCH=999 SCOPE=all CONCURRENCY=2 timeout 580 bun scripts/generate-images.ts,分多轮)
+  2. P1:LLM 恢复后实测 Agent 在线模式(含档案引用质量);搜索建议下拉可加档案字段高亮
+  3. P2:详情页「科学档案」区块可加锚点跳转(引用区块链接到档案);对比视图纳入 5 档案字段对比;目录卡片档案徽标

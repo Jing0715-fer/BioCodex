@@ -78,6 +78,7 @@ export interface StatsResponse {
     images: number;
     flagship: number;
     ncbiLinked: number;
+    profiled: number;
     iucn: { code: string; count: number }[];
     kingdoms: { kingdom: string; chinese: string; species: number; taxa: number; image: string | null }[];
   };

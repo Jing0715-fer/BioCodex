@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { KingdomIcon } from "./taxa-icon";
 import ReactMarkdown from "react-markdown";
-import { Sparkles, Send, X, RotateCcw, Bot, User, ChevronRight, GitCompareArrows, Bookmark } from "lucide-react";
+import { Sparkles, Send, X, RotateCcw, Bot, User, ChevronRight, GitCompareArrows, Bookmark, WifiOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useFavorites, toggleFavorite } from "@/lib/favorites";
@@ -28,6 +28,7 @@ interface Msg {
   role: "user" | "assistant";
   content: string;
   matches?: MatchDTO[];
+  degraded?: boolean;
 }
 
 const SUGGESTIONS = [
@@ -131,7 +132,7 @@ export function AgentPanel() {
       });
       const j = await r.json();
       if (j?.success) {
-        setMessages([...next, { role: "assistant", content: j.content, matches: j.matches }]);
+        setMessages([...next, { role: "assistant", content: j.content, matches: j.matches, degraded: !!j.degraded }]);
       } else {
         setMessages([
           ...next,
@@ -186,7 +187,11 @@ export function AgentPanel() {
             <div className="flex-1 text-left">
               <SheetTitle className="text-base font-bold">阿博 · AI 博物学家</SheetTitle>
               <SheetDescription className="text-xs">
-                {busy ? "正在翻阅图鉴与文献……" : "在线 · 可查询图鉴收录的全部条目"}
+                {busy
+                  ? "正在翻阅图鉴与文献……"
+                  : messages.some((m) => m.degraded)
+                  ? "离线检索模式 · 回答由本地数据库生成"
+                  : "在线 · 可查询图鉴收录的全部条目"}
               </SheetDescription>
             </div>
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={reset} title="清空对话">
@@ -217,6 +222,11 @@ export function AgentPanel() {
                   >
                     {m.role === "assistant" ? (
                       <>
+                        {m.degraded && (
+                          <span className="mb-2 inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400">
+                            <WifiOff className="h-3 w-3" /> 离线检索模式 · 点击条目名仍可跳转
+                          </span>
+                        )}
                         <AssistantMarkdown content={m.content} matches={m.matches} />
                         {/* 匹配条目卡片 */}
                         {m.matches && m.matches.length > 0 && (

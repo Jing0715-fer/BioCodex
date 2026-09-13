@@ -20,6 +20,11 @@ import { enrichFungi } from "../src/data/seed/enrich-fungi";
 import { enrichPlants } from "../src/data/seed/enrich-plants";
 import { enrichInvertebrates } from "../src/data/seed/enrich-invertebrates";
 import { enrichVertebrates } from "../src/data/seed/enrich-vertebrates";
+// ===== enrich2 轮:补齐剩余无档案物种(210 条,2026-09-15) =====
+import { enrich2ProkaryotesProtists } from "../src/data/seed/enrich2-prokaryotes-protists";
+import { enrich2Plants } from "../src/data/seed/enrich2-plants";
+import { enrich2Invertebrates } from "../src/data/seed/enrich2-invertebrates";
+import { enrich2Vertebrates } from "../src/data/seed/enrich2-vertebrates";
 
 const entries: EnrichEntry[] = [
   ...enrichProkaryotesProtists,
@@ -27,6 +32,10 @@ const entries: EnrichEntry[] = [
   ...enrichPlants,
   ...enrichInvertebrates,
   ...enrichVertebrates,
+  ...enrich2ProkaryotesProtists,
+  ...enrich2Plants,
+  ...enrich2Invertebrates,
+  ...enrich2Vertebrates,
 ];
 
 function fail(msg: string): never {

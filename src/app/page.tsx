@@ -41,14 +41,16 @@ function AppShell() {
     // 用户在地址栏粘贴分享链接(同页 hash 变化,不触发重载)时也恢复会话;
     // 内部同步用 replaceState,不会触发 hashchange,故无循环风险
     const onHashChange = () => {
-      if (/^#(compare|browse|favorites|redlist)/.test(window.location.hash)) {
+      if (/^#(compare|browse|favorites|redlist|taxon)/.test(window.location.hash)) {
         useBioStore.getState().hydrateFromHash();
       }
     };
     window.addEventListener("hashchange", onHashChange);
     const unsub = useBioStore.subscribe((s) => {
       let h = "";
-      if (s.view.type === "compare" && s.view.ids.length >= 2) {
+      if (s.view.type === "taxon") {
+        h = `#taxon=${s.view.id}`;
+      } else if (s.view.type === "compare" && s.view.ids.length >= 2) {
         h = `#compare=${s.view.ids.join(",")}`;
       } else if (s.view.type === "browse") {
         const sp = browseFilterToParams({
