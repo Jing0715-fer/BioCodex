@@ -568,7 +568,7 @@ export function HomeView() {
                 <span className="latin text-lg font-normal text-muted-foreground">Novissima</span>
               </h2>
               <p className="mt-1.5 text-sm text-muted-foreground">
-                图鉴最近描绘完成的物种——博物学画室每天都在补充新的版画插图
+                图鉴最新收录与描绘的物种——画室的雕版与标本柜每天都在增添新页
               </p>
             </div>
             {/* 插画进度 */}

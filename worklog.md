@@ -419,3 +419,146 @@ Stage Summary(当前项目状态):
   2. Agent 实测(限流恢复后):验证规范13新功能指引(引用格式/红色名录聚焦/快搜选择器)
   3. 备选新功能:对比视图「交换物种」便捷操作;详情页「引用格式」增加 BibTeX 导出;红色名录聚焦时给该等级加"本等级全部对比"已做,可加"只看有图物种"开关;首页六界卡点击直达红色名录对应界过滤;探索视图节点卡配图缩略
   4. 已知取舍:redlist 界筛选为客户端过滤(六个等级查询已含全部字段,无额外请求);hashchange 恢复重置浏览历史栈(既有取舍);dev server 偶被沙箱清理,需 `setsid bun run dev` 重启
+
+---
+Task ID: 2-a
+Agent: general-purpose
+Task: 原核生物扩充数据编写
+
+Work Log:
+- 阅读 worklog/types.ts/prokaryotes.ts 与 /tmp/taxa-inventory.tsv,确认清单已含枯草芽孢杆菌、T. pallidum、C. trachomatis、S. acidocaldarius、N. maritimus、M. mazei 等推荐种,故按"不重复"原则替换为新种
+- 编写 src/data/seed/expansion-prokaryotes.ts:细菌 12 种(肉毒梭菌、嗜肺军团菌、幽门螺杆菌、鲍曼不动杆菌、淋病奈瑟菌、嗜热脂肪地芽孢杆菌、百日咳鲍特菌、单核细胞增生李斯特菌、流感嗜血杆菌、副溶血性弧菌、化脓性链球菌、麻风分枝杆菌)+ 古菌 3 种(詹氏甲烷球菌、乙酸甲烷八叠球菌、深海火球菌)
+- 新增中间阶元 22 条:class Epsilonproteobacteria(挂 Pseudomonadota)/Methanococci(挂 Euryarchaeota),order Campylobacterales/Legionellales/Pasteurellales/Burkholderiales/Methanococcales,family Helicobacteraceae/Legionellaceae/Moraxellaceae/Pasteurellaceae/Alcaligenaceae/Listeriaceae/Methanocaldococcaceae,genus Helicobacter/Legionella/Acinetobacter/Haemophilus/Bordetella/Geobacillus/Listeria/Methanocaldococcus
+- 7 个既有属下直接加种(Clostridium/Neisseria/Vibrio/Streptococcus/Mycobacterium/Methanosarcina/Pyrococcus);ncbiTaxId 8 个高把握值(859/485/520/1639/727/1491/470/1314);标签仅用 人类病原/工业菌种/模式生物,无 flagship
+- 自写 bun 校验脚本(已删):37 条内部无重复、与清单 1266 条无冲突、parent 全部闭合且定义顺序正确、物种四字段齐备 → 全部通过
+- bunx tsc --noEmit:expansion-prokaryotes.ts 无类型错误(现存报错均为 skills/examples 固有及 seed-incremental.ts 引用其他并行代理未产出的文件);grep 复核全部 parent 挂接点无误
+
+Stage Summary:
+- 新增 15 物种 + 22 中间阶元,文件 expansion-prokaryotes.ts,tsc 通过;seed-incremental.ts 已预挂本文件导出,待其他扩充文件齐后统一入库
+---
+Task ID: 2-b
+Agent: general-purpose
+Task: 原生生物+真菌扩充数据编写
+
+Work Log:
+- 背景阅读:worklog 项目目标/架构、/tmp/taxa-inventory.tsv 全量 1267 条清单、types.ts TaxonSeed 接口、protists-fungi.ts 现有风格
+- 逐项排查推荐物种:布氏锥虫/盘基网柄菌/恶性疟原虫/产黄青霉/黑曲霉/粗糙脉孢菌/香菇/灵芝 均已存在于清单,自动跳过并改用同阶元近缘种(克氏锥虫、间日疟原虫、黄曲霉等)
+- 原生生物 6 新物种:克氏锥虫(挂现有 Trypanosoma 属)、杜氏利什曼原虫(新 Leishmania 属挂现有锥虫科)、间日疟原虫(挂现有 Plasmodium 属)、卡耶塔环孢子虫(新 Eimeriidae+Cyclospora 挂现有真球虫目)、卵形单领虫(新领鞭动物门→领鞭毛虫纲→领鞭毛虫目→单领虫科→Monosiga,动物近亲补位)、卡氏棘阿米巴(新 Discosea/Flabellinia/Acanthamoebidae/Acanthamoeba 挂现有变形虫门)
+- 真菌 10 新物种:松茸(新 Tricholoma 属挂现有口蘑科)、猴头菌(新红菇目/猴头菌科/Hericium 挂现有伞菌纲)、鸡油菌(新鸡油菌目/鸡油菌科/Cantharellus)、长裙竹荪(新鬼笔目/鬼笔科/Phallus)、黄曲霉(挂现有 Aspergillus 属)、安络小皮伞(新小皮伞科/Marasmius 挂现有伞菌目)、云芝(新多孔菌科/Trametes 挂现有多孔菌目)、尖孢镰刀菌(新丛赤壳科/Fusarium 挂现有肉座菌目,植物病原)、蛹虫草(新虫草科/Cordyceps 挂现有肉座菌目)、毒鹅膏(挂现有 Amanita 属)
+- 质量:物种 description 60-140 字 2-3 句、morphology/habitat/distribution 20-60 字;新阶元 30-80 字;authority 仅高置信填写(Chagas 1909 等 13 项);ncbiTaxId 4 个(5693/5855/5755/5059);未填 conservation;无 flagship 标签
+- 校验:bun 自查脚本(46 条 = 16 物种 + 30 中间阶元)——文件内无重复、与 1267 清单无重复、parent 全闭合(清单∪本文件)、物种 parent 均为 genus 级、长度区间全通过;`bunx tsc --noEmit` 无本文件相关错误(仅 examples/skills 固有报错及 seed-incremental.ts 引用其他未落地的 expansion-* 文件)
+- 契合性:scripts/seed-incremental.ts 已按 `expansionProtistsFungi` 导出名引用本文件,后续与其他域扩充文件合并入库即可,本任务不执行入库
+
+Stage Summary:
+- 新增 16 物种 + 30 中间阶元,文件 expansion-protists-fungi.ts,tsc 通过
+---
+Task ID: 2-c
+Agent: general-purpose
+Task: 植物界扩充数据编写
+
+Work Log:
+- 阅读 worklog 开头(项目目标/架构)/types.ts(TaxonSeed)/plants.ts 前 150 行(风格参考)
+- 逐项核对 /tmp/taxa-inventory.tsv(1267 条)与 plants.ts 全部 75 物种,确认推荐名单中蝴蝶兰、铁皮石斛、捕蝇草、陆地棉、月季、菊、莲、木樨、山茶(C. sinensis 已有)、水杉、百岁兰、攀枝花苏铁、银杏、人参等 13 个推荐种已存在,全部跳过,按不重复原则替换为同级新种
+- 编写 src/data/seed/expansion-plants.ts:22 物种 + 16 中间阶元(1 目 Saxifragales/4 科 Nepenthaceae·Paeoniaceae·Nyssaceae·Polygonaceae/11 属)
+  - 兰科:大花杓兰(新属 Cypripedium,EN)、墨兰(挂已有 Cymbidium)
+  - 食虫:猪笼草(新科+新属,挂 Caryophyllales)、圆叶茅膏菜(新属,挂已有 Droseraceae)
+  - 牡丹/芍药(新目 Saxifragales 新链挂 Eudicotyledoneae);名花:山茶/梅/玫瑰/郁金香(新属 Tulipa 挂 Liliaceae)/荷花玉兰
+  - 经济作物:甜橙/马铃薯/板栗(新属 Castanea 挂 Fagaceae)/量天尺(新属挂 Cactaceae)/红松/肉桂;药用:三七/何首乌(新科 Polygonaceae+新属)/肉桂
+  - 珍稀孑遗:珙桐(新科 Nyssaceae+新属,VU)、华盖木(新属挂 Magnoliaceae,CR)
+- 自写校验脚本 scripts/validate-expansion-plants.ts(与全库 7 个种子文件合并):内部+全库 latin 零重复(1267+38=1305)、parent 全闭合、22 物种链条 species→genus→family→order→class→phylum→kingdom 全通、物种 description 60-160 字/其余字段 20-60 字齐备、无 flagship 禁用标签
+- conservation 4 个(大花杓兰 EN、金琥 VU、珙桐 VU、华盖木 CR);ncbiTaxId 仅马铃薯 4113(高把握);标签含 药用/经济作物/观赏花卉/食虫植物/孑遗植物/极危
+- bunx tsc --noEmit:expansion-plants.ts 与 validate 脚本零类型错误(现存报错均为 examples/skills 固有及 seed-incremental.ts 引用其他并行代理未产出的 expansion-invertebrates/vertebrates);seed-incremental.ts 第 13 行已预挂本文件导出 expansionPlants,命名匹配
+
+Stage Summary:
+- 新增 22 物种 + 16 中间阶元(1 目/4 科/11 属),文件 expansion-plants.ts,tsc 通过;校验脚本 scripts/validate-expansion-plants.ts 可复用;待其他扩充文件齐后由 seed-incremental.ts 统一增量入库
+
+---
+Task ID: 2-e
+Agent: general-purpose
+Task: 脊椎动物扩充数据编写
+
+Work Log:
+- 读 worklog 项目背景、/tmp/taxa-inventory.tsv 全部 1267 条清单、types.ts、vertebrates.ts 风格
+- 逐项排查推荐清单:鲸鲨/红鳍东方鲀/大壁虎/绿海龟/玳瑁/中华鳖/扬子鳄/白鹤/金雕/游隼/普通翠鸟/家燕/麻雀/鸳鸯/川金丝猴等已在库,全部跳过,改选清单中不存在的新物种
+- 编写 src/data/seed/expansion-vertebrates.ts:28 新物种 + 38 新中间阶元(4 目/3 科/4 属及以下)
+- 新物种构成:鱼类 6(白鲟 EX/达氏鳇 CR/线纹海马 VU/太平洋蓝鳍金枪鱼 EN/翻车鱼 VU/泥鳅 LC)、爬行 3(眼镜王蛇 VU/竹叶青蛇 LC/暹罗鳄 CR)、鸟类 6(帝企鹅 NT/雪鸮 VU/虎皮鹦鹉 LC/鸿雁 VU/白冠长尾雉 EN/长耳鸮 LC)、哺乳 13(雪豹 VU/云豹 VU/猞猁 NT/棕熊 LC/北极熊 VU/亚洲黑熊 VU/马来熊 VU/白鱀豚 CR/中华穿山甲 CR/穴兔 NT/梅花鹿 LC/赤狐 LC/藏羚 NT)
+- 新中间阶元:Polyodontidae/Psephurus/Huso/Scombridae/Thunnus/Molidae/Mola/Cobitidae/Misgurnus/Ophiophagus/Trimeresurus/Crocodylidae/Crocodylus/Sphenisciformes/Spheniscidae/Aptenodytes/Psittaciformes/Psittaculidae/Melopsittacus/Anser/Syrmaticus/Asio/Neofelis/Lynx/Ursus/Helarctos/Lipotidae/Lipotes/Pholidota/Manidae/Manis/Lagomorpha/Leporidae/Oryctolagus/Cervus/Vulpes/Bovidae/Pantholops
+- IUCN 28/28 全填;ncbiTaxId 5 个高把握值(forsteri=92319/uncia=29074/arctos=9644/maritimus=29073/cuniculus=9986);tags 用国家保护等级/药用/模式生物/经济物种/驯化祖先/剧毒/活化石/中国特有等,未用 flagship
+- 自写 bun 校验脚本:与库存 1267 条无重复、文件内唯一、parent 闭合(DB∪文件)、阶元链正确、物种描述 60-140 字/三字段 20-60 字/中间阶元 30-80 字,全部通过
+- bunx tsc --noEmit:本文件零错误(仅 examples/skills 固有报错,及 seed-incremental.ts 引用尚不存在的 expansion-invertebrates.ts——同类 2-d-2 待产出,与本文件无关)
+
+Stage Summary:
+- 新增 28 物种 + 38 中间阶元(共 66 条),文件 expansion-vertebrates.ts,tsc 通过,seed-incremental.ts 已预置其导入
+
+---
+Task ID: 2-d-2
+Agent: general-purpose
+Task: 无脊椎动物扩充数据编写
+
+Work Log:
+- 读 worklog 项目背景(开头目标与架构段)、/tmp/taxa-inventory.tsv 全部 1267 条清单、types.ts、invertebrates.ts 前 150 行风格参考
+- 逐项排查推荐方向:七星瓢虫/中华大刀螳/中华蜜蜂/西方蜜蜂/皱纹盘鲍/普通章鱼/金乌贼/鹦鹉螺/长牡蛎/褐云玛瑙螺/海月水母/鹿角珊瑚(A. millepora)/日本血吸虫/猪带绦虫/蛔虫/秀丽隐杆线虫 已在库,全部跳过;家白蚁所属鼻白蚁科、竹节虫目、脉翅目、蟋蟀科、扇贝科、蚶科、蚬科、田螺科、巨蚓科、长臂虾科、桡足类等门类全库空白,确认可新增
+- rg 复核全部计划拉丁名与清单零冲突;web_search/LLM 校验尝试均 429(与 worklog 记录的服务限流一致),改用保守策略:仅收录高把握真实物种、authority 不确定即省略、ncbiTaxId 仅保留红火蚁 13692
+- 编写 src/data/seed/expansion-invertebrates.ts:25 新物种 + 45 新中间阶元(1 纲 Maxillopoda/1 亚纲 Copepoda/8 目/13 科/22 属)
+- 昆虫 9:中华虎凤蝶 EN(新属 Luehdorfia)、金斑喙凤蝶 CR 国家一级(新属 Teinopalpus)、红火蚁入侵(新属 Solenopsis)、台湾乳白蚁(新科鼻白蚁科+新属)、双斑蟋模式生物(新科蟋蟀科+新属)、中华稻蝗、印度竹节虫模式生物(新目竹节虫目新链)、中华通草蛉(新目脉翅目新链)、神农洁蜣螂药用
+- 软体 9:曼氏无针乌贼(新属 Sepiella)、短蛸(已有属 Octopus)、中国枪乌贼(新目闭眼目新链)、栉孔扇贝+虾夷扇贝(新目扇贝目新链)、泥蚶+毛蚶(新目蚶目新链,含 1988 上海甲肝公共卫生史实)、河蚬(新科蚬科)、中国圆田螺(新目主扭舌目新链)
+- 刺胞 2:加勒比鹿角珊瑚 CR(已有属 Acropora)、桃花水母(新目淡水水母目新链)
+- 环节 2:参环毛蚓药材地龙(新科巨蚓科+新属)、沙蚕 Nereis virens(新属)
+- 甲壳 3:日本沼虾青虾+罗氏沼虾(新科长臂虾科+新属)、中华哲水蚤(新纲颚足纲/新亚纲桡足亚纲新链)
+- 修复 2 条超长描述(Acropora cervicornis 141→、Craspedacusta sowerbii 142→);自写 scripts/validate-expansion-invertebrates.ts(全库 1337 条合并唯一性/parent 闭合/阶元阶梯单调含 subclass-subphylum/字段长度 60-140 与 20-60/禁用 flagship),全部通过
+- bunx tsc --noEmit:src 与 scripts 零错误,仅剩 examples/skills 固有报错;seed-incremental.ts 预置的 expansion-invertebrates 导入因本文件产出而恢复解析
+
+Stage Summary:
+- 新增 25 物种 + 45 中间阶元(共 70 条),文件 expansion-invertebrates.ts,tsc 通过,校验脚本 scripts/validate-expansion-invertebrates.ts 可复用,待与其他扩充文件一并由 seed-incremental.ts 增量入库
+
+---
+Task ID: E1(用户指令轮:补图+扩物种, 2026-09-14 10:15)
+Agent: main
+Task: 物种大规模扩充 + 占位图雕版化升级 + 补图探测
+
+Work Log:
+- 读取 worklog 掌握现状:311 物种/142 配图/z-ai 全 API 429 多轮
+- 【关键防御】发现 seed.ts 会 deleteMany 清库重灌(会丢 142 张配图的 DB 记录) → 新写 scripts/seed-incremental.ts 增量入库脚本(唯一性/父级/环校验+拓扑插入,只增不删)
+- 【物种扩充】导出 1267 条清单至 /tmp/taxa-inventory.tsv,5 个子代理并行编写:
+  - 2-a expansion-prokaryotes.ts(15 物种+22 阶元:幽门螺杆菌/军团菌/不动杆菌/李斯特菌/深海火球菌等)
+  - 2-b expansion-protists-fungi.ts(16 物种+30 阶元:克氏锥虫/间日疟原虫/猴头菌/鸡油菌/松茸/黄曲霉/鹅膏菌等)
+  - 2-c expansion-plants.ts(22 物种+16 阶元:杓兰/猪笼草/茅膏菜/牡丹/珙桐/华盖木/三七等)
+  - 2-d expansion-invertebrates.ts(25 物种+45 阶元:中华虎凤蝶/金斑喙凤蝶/红火蚁/竹节虫/血吸虫等)
+  - 2-e expansion-vertebrates.ts(28 物种+38 阶元:白鲟EX/雪豹/云豹/白鱀豚/帝企鹅/藏羚等)
+  - 各子代理均自查与清单零重复、tsc 零错误、已按模板追加 worklog
+- 【入库】tsc 全量零错误 → bun scripts/seed-incremental.ts 成功:1267→1524 条,311→417 物种(+106),48 门,配图 142 完整保留
+- 【API 探测】z-ai image/image-search/VLM 轮询多轮均仍 429(账户级);孤儿文件检查:public/generated 143 张全部被 DB 引用(无遗漏可补录)
+- 【占位图升级】275 个无图物种的 TaxaPlaceholder 重写为复古雕版印章风:双线古籍边框+版画网点底纹(密度/倾角按物种名 hash 确定性变化)+圆形雕章(属名前两字母+Gen.字样)+拉丁名微缩+四角定位十字(仅大图)
+- 【浏览器 QA】agent-browser 全链路:首页 417 物种统计✓/搜索雪豹→详情(谱系/描述/VU/猫科4种)✓/目录 417 卡分页✓/受威胁优先排序见新物种占位图✓/白鲟详情(10级谱系+IUCN EX+Martens 1862)✓/红色名录 62 受威胁+CR20✓/console 零错误✓/lint 零错误✓
+
+Stage Summary(当前项目状态):
+- 【稳定】417 物种(新增 106,原核15/原生真菌16/植物22/无脊椎25/脊椎28),1524 分类单元,48 门
+- 配图仍 142/417(缺 275);z-ai 全 API(image/image-search/VLM/LLM)持续 429,补图被环境阻塞
+- 占位图已雕版化升级,无图物种视觉体验显著提升
+- 下一轮优先:
+  1. P0 补图(429恢复后):`timeout 90 z-ai image -p "test" -o /tmp/t.png` 探测,恢复则 `BATCH=999 SCOPE=all CONCURRENCY=2 timeout 580 bun scripts/generate-images.ts` 连跑(勿用并发4);注意新物种占位图无需删改,generate-images.ts 会自动补
+  2. 首页/探索视图可能需检查 417 物种的统计与性能
+  3. 备选:病毒界数据(Acytota);首页"新物种速递"区块展示本轮+106;Agent 旗舰速查表需纳入新物种
+
+---
+Task ID: E1-收尾(2026-09-14 10:45)
+Agent: main
+Task: 本轮收尾与交接
+
+Work Log:
+- 累计探测 z-ai image API 约 25 分钟(每 90-100s 一次),整轮 429 未恢复;image-search/VLM 同样 429
+- 微调 home-view「新页速递」文案(现在时间线展示新收录物种:"图鉴最新收录与描绘的物种——画室的雕版与标本柜每天都在增添新页")
+- 树 API 验证:细菌域 36/古菌域 10/真核域 371=417 物种全部进树 ✓;六界卡统计自动更新 ✓
+- 最终 QA:lint 零错误/tsc 零错误/console 零错误/dev.log 无错误;首页/目录/详情/红色名录全链路通过
+
+Stage Summary(当前项目状态):
+- 【稳定】417 物种(+106)/1524 分类单元/48 门/84 旗舰/97 物种有 IUCN 等级/配图 142+雕版占位图兜底
+- 本轮交付:①增量入库脚本(防清库丢图) ②106 新物种全链路数据(5 文件,含中间阶元 151 个) ③占位图复古雕版印章化升级 ④文案与统计联动更新
+- 未解决/风险:
+  1. z-ai 全 API(image/image-search/VLM/LLM)账户级 429 持续约 18h+,补图(缺 275 张)与 Agent 端到端实测被环境阻塞——恢复后操作见上方「下一轮优先」
+  2. Agent 旗舰速查表基于 DB 查询则自动含新物种,若是硬编码需纳入(下轮检查 /api/agent 实现)
+  3. 新物种全部无图(106),占位图已美化但真实感仍待配图补齐
+- 下一阶段优先:
+  1. P0 补图(275 张):探测恢复后 `BATCH=999 SCOPE=all CONCURRENCY=2 timeout 580 bun scripts/generate-images.ts` 连跑多轮(勿用并发4)
+  2. P1:Agent 新物种指引实测(限流恢复后);首页可考虑「本轮新收录」庆祝横幅(基于 createdAt)
+  3. P2:病毒界(Acytota)数据;物种详情页引用 BibTeX;探索视图节点卡配图缩略
