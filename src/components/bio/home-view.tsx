@@ -2,14 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useBioStore } from "@/lib/bio-store";
-import { useStats, useFeatured, useTree, type TreeNodeDTO } from "@/hooks/use-bio";
+import { useStats, useFeatured, useTree, useRecent, type TreeNodeDTO } from "@/hooks/use-bio";
 import { KINGDOM_THEME, IUCN_INFO } from "@/lib/bio-domain";
 import { KingdomIcon } from "./taxa-icon";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  ArrowRight, ChevronRight, Sparkles, Dna, BookOpen, Shield, Database, Shuffle, RefreshCw, LayoutGrid,
+  ArrowRight, ChevronRight, Sparkles, Dna, BookOpen, Shield, Database, Shuffle, RefreshCw, LayoutGrid, History,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -51,6 +51,7 @@ export function HomeView() {
   const { data: stats } = useStats();
   const { data: featured, refetch: refetchFeatured } = useFeatured();
   const { data: tree } = useTree();
+  const { data: recent } = useRecent(12);
 
   // 随机漫游
   const [rand, setRand] = useState<{ id: string; chineseName: string; latinName: string; image: string | null } | null>(null);
@@ -315,6 +316,131 @@ export function HomeView() {
                   )}
                 </button>
               ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* ============ 新页速递(最近配图时间线) ============ */}
+      <section className="border-t border-foreground/10 bg-muted/30">
+        <div className="mx-auto w-full max-w-[1400px] px-4 py-12 sm:px-6">
+          <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 className="flex items-center gap-2 font-display text-2xl font-bold text-foreground sm:text-3xl">
+                <History className="h-6 w-6 text-primary" />
+                新页速递
+                <span className="latin text-lg font-normal text-muted-foreground">Novissima</span>
+              </h2>
+              <p className="mt-1.5 text-sm text-muted-foreground">
+                图鉴最近描绘完成的物种——博物学画室每天都在补充新的版画插图
+              </p>
+            </div>
+            {/* 插画进度 */}
+            <div className="min-w-52 rounded-xl border border-foreground/10 bg-card px-4 py-2.5 shadow-sm">
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="text-xs text-muted-foreground">插画完成度</span>
+                <span className="font-display text-sm font-bold tabular-nums text-foreground">
+                  {stats?.images ?? 0}
+                  <span className="text-muted-foreground/60">/{stats?.species ?? 0}</span>
+                </span>
+              </div>
+              <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-primary to-amber-600 transition-all duration-700"
+                  style={{ width: `${stats ? Math.min(100, Math.round((stats.images / Math.max(1, stats.species)) * 100)) : 0}%` }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {!recent && (
+            <div className="flex gap-3 overflow-hidden">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Skeleton key={i} className="h-40 w-36 shrink-0 rounded-xl sm:w-44" />
+              ))}
+            </div>
+          )}
+
+          {recent && recent.length > 0 && (
+            <div className="nh-scroll -mx-1 flex gap-3 overflow-x-auto px-1 pb-2">
+              {recent.map((r, i) => {
+                const theme = KINGDOM_THEME[r.kingdom] || KINGDOM_THEME.Animalia;
+                const d = new Date(r.updatedAt);
+                const today = new Date();
+                const isToday = d.toDateString() === today.toDateString();
+                const yesterday = new Date(today.getTime() - 86400000);
+                const timeStr = isToday
+                  ? `今天 ${d.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}`
+                  : d.toDateString() === yesterday.toDateString()
+                    ? "昨天"
+                    : d.toLocaleDateString("zh-CN", { month: "numeric", day: "numeric" });
+                return (
+                  <button
+                    key={r.id}
+                    onClick={() => openTaxon(r.id)}
+                    className="reveal-up group relative w-36 shrink-0 overflow-hidden rounded-xl border border-foreground/10 bg-card text-left shadow-sm transition-shadow hover:shadow-md sm:w-44"
+                    style={{ animationDelay: `${Math.min(i, 8) * 50}ms` }}
+                    aria-label={`查看${r.chineseName}详情,${timeStr}更新`}
+                  >
+                    <div
+                      className="h-1 opacity-80"
+                      style={{ background: `linear-gradient(90deg, ${theme.color}, ${theme.color}66)` }}
+                    />
+                    <div className="relative h-24 overflow-hidden sm:h-28">
+                      {r.image ? (
+                        <img
+                          src={r.image}
+                          alt={r.chineseName}
+                          className="img-fade-in h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div
+                          className="flex h-full w-full items-center justify-center"
+                          style={{ background: `linear-gradient(140deg, ${theme.color}26, var(--parchment))` }}
+                        >
+                          <span className="latin text-3xl text-foreground/20">{r.latinName.charAt(0)}</span>
+                        </div>
+                      )}
+                      <span
+                        className="absolute left-1.5 top-1.5 flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-bold text-white shadow"
+                        style={{ background: theme.color }}
+                      >
+                        <KingdomIcon kingdom={r.kingdom} className="h-2.5 w-2.5" />
+                        {theme.name}
+                      </span>
+                      {r.conservation && (
+                        <span
+                          className={cn(
+                            "absolute right-1.5 top-1.5 rounded-sm px-1 py-0.5 text-[9px] font-bold text-white shadow",
+                            IUCN_INFO[r.conservation]?.bg
+                          )}
+                        >
+                          {r.conservation}
+                        </span>
+                      )}
+                    </div>
+                    <div className="p-2.5">
+                      <p className="truncate text-[13px] font-semibold text-foreground group-hover:text-primary">
+                        {r.chineseName}
+                      </p>
+                      <p className="latin truncate text-[11px] text-muted-foreground">{r.latinName}</p>
+                      <p className="mt-1.5 flex items-center gap-1 text-[10px] tabular-nums text-muted-foreground/70">
+                        <span className="h-1 w-1 rounded-full bg-primary/60" />
+                        {timeStr} 描绘
+                      </p>
+                    </div>
+                  </button>
+                );
+              })}
+              <button
+                onClick={() => openBrowse({})}
+                className="flex w-36 shrink-0 flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-foreground/15 bg-muted/20 text-muted-foreground transition-colors hover:border-primary/50 hover:bg-primary/5 hover:text-primary sm:w-44"
+                aria-label="浏览图鉴目录"
+              >
+                <LayoutGrid className="h-5 w-5" />
+                <span className="text-xs font-medium">浏览全部物种</span>
+              </button>
             </div>
           )}
         </div>

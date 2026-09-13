@@ -38,6 +38,8 @@ interface BioState {
   toggleCompare: (id: string) => "added" | "removed" | "full";
   removeCompare: (id: string) => void;
   clearCompare: () => void;
+  /** 从 URL hash(#compare=id1,id2)恢复对比会话,用于分享链接 */
+  hydrateFromHash: () => boolean;
 }
 
 export const useBioStore = create<BioState>((set, get) => ({
@@ -86,6 +88,47 @@ export const useBioStore = create<BioState>((set, get) => ({
     set({ compareIds: [...compareIds, id] });
     return "added";
   },
-  removeCompare: (id) => set((s) => ({ compareIds: s.compareIds.filter((x) => x !== id) })),
-  clearCompare: () => set({ compareIds: [] }),
+  removeCompare: (id) =>
+    set((s) => ({
+      compareIds: s.compareIds.filter((x) => x !== id),
+      // 若当前正在对比视图,同步移除列,避免残留
+      view: s.view.type === "compare" ? { type: "compare", ids: s.view.ids.filter((x) => x !== id) } : s.view,
+    })),
+  clearCompare: () =>
+    set((s) => ({
+      compareIds: [],
+      view: s.view.type === "compare" ? { type: "compare", ids: [] } : s.view,
+    })),
+  hydrateFromHash: () => {
+    if (typeof window === "undefined") return false;
+    const h = window.location.hash;
+    // 对比分享链接: #compare=id1,id2
+    const mc = h.match(/^#compare=([a-zA-Z0-9]+(?:,[a-zA-Z0-9]+)+)/);
+    if (mc) {
+      const ids = mc[1].split(",").filter(Boolean).slice(0, MAX_COMPARE);
+      if (ids.length >= 2) {
+        set({ view: { type: "compare", ids }, compareIds: ids, historyStack: [] });
+        // 规范化 hash(截断到上限后回写,避免地址栏与实际状态不一致)
+        window.history.replaceState(null, "", window.location.pathname + window.location.search + `#compare=${ids.join(",")}`);
+        return true;
+      }
+      return false;
+    }
+    // 目录筛选分享链接: #browse?kingdom=Fungi&iucn=CR
+    if (/^#browse(\?.*)?$/.test(h)) {
+      const qs = h.split("?")[1] || "";
+      const sp = new URLSearchParams(qs);
+      set({
+        view: {
+          type: "browse",
+          kingdom: sp.get("kingdom") || null,
+          iucn: sp.get("iucn") || null,
+          tag: sp.get("tag") || null,
+        },
+        historyStack: [],
+      });
+      return true;
+    }
+    return false;
+  },
 }));

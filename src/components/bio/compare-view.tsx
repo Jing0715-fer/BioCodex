@@ -1,18 +1,21 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useBioStore, MAX_COMPARE } from "@/lib/bio-store";
 import { useTaxaBatch, type TaxonDetailResponse } from "@/hooks/use-bio";
 import { buildDbLinks, IUCN_INFO, KINGDOM_THEME, rankLabel } from "@/lib/bio-domain";
 import { TaxaPlaceholder, KingdomIcon } from "./taxa-icon";
+import { ShareDialog } from "./share-dialog";
+import { copyText } from "@/lib/clipboard";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import {
   ChevronRight, ArrowLeft, X, Microscope, Leaf, MapPin, Shield, GitCompareArrows,
-  Dna, Database, Plus, Star, Sparkles, Columns2,
+  Dna, Database, Plus, Star, Sparkles, Columns2, ClipboardCopy, Link2, Check,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 
 interface CompareRow {
   key: string;
@@ -27,14 +30,71 @@ interface CompareRow {
 const LINEAGE_KEYS = ["kingdom", "phylum", "class", "order", "family", "genus"];
 
 export function CompareView({ ids }: { ids: string[] }) {
-  const { goBack, explore, removeCompare, openBrowse, compareIds } = useBioStore();
+  const { goBack, explore, removeCompare, openBrowse, openTaxon, compareIds } = useBioStore();
   const { data, isLoading } = useTaxaBatch(ids);
+  const { toast } = useToast();
+  const [copied, setCopied] = useState<"md" | "link" | null>(null);
+  /** 剪贴板不可用时的手动复制兑底 */
+  const [fallback, setFallback] = useState<{ kind: "md" | "link"; text: string } | null>(null);
 
   const taxa = data || [];
 
-  // 提取谱系指定阶元中文名
+  // 提取谱系指定阶元中文名(原核生物无界级,回退到域)
   const lineageOf = (t: TaxonDetailResponse, key: string) =>
     t.lineage.find((l) => l.rank === key)?.chineseName || "—";
+  const kingdomOrDomain = (t: TaxonDetailResponse) => {
+    const k = lineageOf(t, "kingdom");
+    return k !== "—" ? k : lineageOf(t, "domain");
+  };
+
+  /** 导出:对比表格转 Markdown 文本(便于笔记/论文引用) */
+  const buildMarkdown = () => {
+    const header = ["| 属性 |", ...taxa.map((t) => ` **${t.taxon.chineseName}** *${t.taxon.latinName}* |`)];
+    const divider = ["| --- |", ...taxa.map(() => " --- |")];
+    const line = (label: string, fn: (t: TaxonDetailResponse) => string) =>
+      [`| ${label} |`, ...taxa.map((t) => ` ${fn(t).replace(/\|/g, "\\|").replace(/\n/g, " ")} |`)].join("");
+    const rows = [
+      header.join(""),
+      divider.join(""),
+      line("界/域", (t) => kingdomOrDomain(t)),
+      line("门", (t) => lineageOf(t, "phylum")),
+      line("纲", (t) => lineageOf(t, "class")),
+      line("目", (t) => lineageOf(t, "order")),
+      line("科", (t) => lineageOf(t, "family")),
+      line("属", (t) => lineageOf(t, "genus")),
+      line("形态特征", (t) => t.taxon.morphology || "暂无记录"),
+      line("生境", (t) => t.taxon.habitat || "暂无记录"),
+      line("分布", (t) => t.taxon.distribution || "暂无记录"),
+      line("保护等级", (t) => (t.taxon.conservation ? `${t.taxon.conservation} ${IUCN_INFO[t.taxon.conservation]?.label ?? ""}`.trim() : "未评估")),
+      line("NCBI 分类", (t) => (t.taxon.ncbiTaxId ? `txid${t.taxon.ncbiTaxId}` : "未锚定")),
+      line("物种速览", (t) => t.taxon.description || ""),
+    ];
+    return [`# 物种对比 · BioCodex 生物图鉴`, ``, `> ${taxa.map((t) => `**${t.taxon.chineseName}** *${t.taxon.latinName}*`).join(" vs ")}`, ``, ...rows, ``, `*数据来源:BioCodex 生物图鉴 · ${new Date().toLocaleDateString("zh-CN")} 导出*`].join("\n");
+  };
+
+  const exportMarkdown = async () => {
+    const md = buildMarkdown();
+    const ok = await copyText(md);
+    if (ok) {
+      setCopied("md");
+      setTimeout(() => setCopied(null), 2000);
+      toast({ title: "已复制 Markdown 对比表", description: "可直接粘贴到笔记、文档或论坛" });
+    } else {
+      setFallback({ kind: "md", text: md });
+    }
+  };
+
+  const shareLink = async () => {
+    const url = `${window.location.origin}${window.location.pathname}#compare=${taxa.map((t) => t.taxon.id).join(",")}`;
+    const ok = await copyText(url);
+    if (ok) {
+      setCopied("link");
+      setTimeout(() => setCopied(null), 2000);
+      toast({ title: "分享链接已复制", description: "对方打开后将自动还原这份对比" });
+    } else {
+      setFallback({ kind: "link", text: url });
+    }
+  };
 
   const rows = useMemo<CompareRow[]>(() => {
     if (taxa.length < 1) return [];
@@ -45,7 +105,7 @@ export function CompareView({ ids }: { ids: string[] }) {
       return { key, label, icon, values, uniform: new Set(norm).size === 1 && norm[0] !== "—" };
     };
     return [
-      build("kingdom", "界", Database, (t) => lineageOf(t, "kingdom")),
+      build("kingdom", "界/域", Database, (t) => kingdomOrDomain(t)),
       build("phylum", "门", Database, (t) => lineageOf(t, "phylum")),
       build("class", "纲", Database, (t) => lineageOf(t, "class")),
       build("order", "目", Database, (t) => lineageOf(t, "order")),
@@ -178,10 +238,20 @@ export function CompareView({ ids }: { ids: string[] }) {
             并排比较 {taxa.length} 个物种的分类地位、形态特征、生境分布与保护等级——像博物学家摊开标本台纸一样研究差异
           </p>
         </div>
-        <Button variant="outline" size="sm" className="gap-1.5 rounded-full" onClick={goBack}>
-          <ArrowLeft className="h-4 w-4" />
-          返回
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" size="sm" className="gap-1.5 rounded-full" onClick={exportMarkdown}>
+            {copied === "md" ? <Check className="h-4 w-4 text-emerald-600" /> : <ClipboardCopy className="h-4 w-4" />}
+            {copied === "md" ? "已复制" : "导出 Markdown"}
+          </Button>
+          <Button variant="outline" size="sm" className="gap-1.5 rounded-full" onClick={shareLink}>
+            {copied === "link" ? <Check className="h-4 w-4 text-emerald-600" /> : <Link2 className="h-4 w-4" />}
+            {copied === "link" ? "已复制" : "复制分享链接"}
+          </Button>
+          <Button variant="outline" size="sm" className="gap-1.5 rounded-full" onClick={goBack}>
+            <ArrowLeft className="h-4 w-4" />
+            返回
+          </Button>
+        </div>
       </div>
 
       {/* ====== 物种列头(横向滚动) ====== */}
@@ -200,16 +270,27 @@ export function CompareView({ ids }: { ids: string[] }) {
                 className="reveal-up group relative overflow-hidden rounded-xl border border-foreground/10 bg-card shadow-sm"
               >
                 <div className="relative h-40 overflow-hidden sm:h-44">
-                  {t.image ? (
-                    <img
-                      src={t.image}
-                      alt={`${t.chineseName}(${t.latinName})`}
-                      className="img-fade-in h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    />
-                  ) : (
-                    <TaxaPlaceholder latinName={t.latinName} kingdom={t.kingdom} className="h-full w-full" />
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                  <button
+                    onClick={() => openTaxon(t.id)}
+                    aria-label={`查看${t.chineseName}图鉴详情`}
+                    className="absolute inset-0 h-full w-full cursor-pointer"
+                  >
+                    {t.image ? (
+                      <img
+                        src={t.image}
+                        alt={`${t.chineseName}(${t.latinName})`}
+                        className="img-fade-in h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      />
+                    ) : (
+                      <TaxaPlaceholder latinName={t.latinName} kingdom={t.kingdom} className="h-full w-full" />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                    {/* hover 查看详情提示 */}
+                    <span className="absolute inset-x-0 bottom-11 flex translate-y-1 items-center justify-center gap-1 bg-black/45 py-1.5 text-[11px] font-semibold text-white opacity-0 backdrop-blur-sm transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
+                      查看图鉴详情
+                      <ChevronRight className="h-3 w-3" />
+                    </span>
+                  </button>
                   <span
                     className="absolute left-2 top-2 flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold text-white shadow"
                     style={{ background: theme.color }}
@@ -233,7 +314,13 @@ export function CompareView({ ids }: { ids: string[] }) {
                     </button>
                   )}
                   <div className="absolute bottom-2 left-3 right-3">
-                    <p className="truncate font-display text-lg font-bold text-white drop-shadow-sm">{t.chineseName}</p>
+                    <button
+                      onClick={() => openTaxon(t.id)}
+                      className="block w-full truncate text-left font-display text-lg font-bold text-white drop-shadow-sm transition-colors hover:text-primary-foreground hover:underline"
+                      aria-label={`查看${t.chineseName}图鉴详情`}
+                    >
+                      {t.chineseName}
+                    </button>
                     <p className="latin truncate text-xs italic text-white/85">{t.latinName}</p>
                   </div>
                 </div>
@@ -366,6 +453,20 @@ export function CompareView({ ids }: { ids: string[] }) {
       <p className="mt-3 text-center text-[11px] text-muted-foreground/60">
         对比数据与图鉴条目同源;「一致/相异」徽标提示该阶元或字段在所选物种间是否相同。详细数据库入口见各列头部快捷链接。
       </p>
+
+      {/* 剪贴板不可用时的手动复制兑底 */}
+      <ShareDialog
+        open={!!fallback}
+        onOpenChange={(o) => !o && setFallback(null)}
+        title={fallback?.kind === "md" ? "Markdown 对比表" : "分享链接"}
+        text={fallback?.text || ""}
+        onCopied={() => {
+          if (fallback) {
+            setCopied(fallback.kind);
+            setTimeout(() => setCopied(null), 2000);
+          }
+        }}
+      />
     </div>
   );
 }

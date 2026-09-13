@@ -54,8 +54,8 @@ export function BioFooter() {
           <ul className="mt-3 space-y-1.5 text-xs leading-5 text-muted-foreground">
             <li>分类树探索 · 全局搜索(⌘K)</li>
             <li>图鉴目录:按界/等级/标签筛选</li>
-            <li>物种对比:最多 3 个并排比较</li>
-            <li>AI 博物学家助手 · 图鉴轮盘</li>
+            <li>物种对比:并排比较 · 导出表格 · 分享链接</li>
+            <li>AI 博物学家助手 · 图鉴轮盘 · 新页速递</li>
           </ul>
         </div>
       </div>

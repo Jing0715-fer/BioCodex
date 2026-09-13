@@ -31,6 +31,38 @@ function AppShell() {
     window.scrollTo({ top: 0 });
   }, [view]);
 
+  // 分享链接:进入时从 #compare=id1,id2 / #browse?kingdom=Fungi 恢复会话;视图变化时同步 hash
+  useEffect(() => {
+    useBioStore.getState().hydrateFromHash();
+    // 用户在地址栏粘贴分享链接(同页 hash 变化,不触发重载)时也恢复会话;
+    // 内部同步用 replaceState,不会触发 hashchange,故无循环风险
+    const onHashChange = () => {
+      if (/^#(compare|browse)/.test(window.location.hash)) {
+        useBioStore.getState().hydrateFromHash();
+      }
+    };
+    window.addEventListener("hashchange", onHashChange);
+    const unsub = useBioStore.subscribe((s) => {
+      let h = "";
+      if (s.view.type === "compare" && s.view.ids.length >= 2) {
+        h = `#compare=${s.view.ids.join(",")}`;
+      } else if (s.view.type === "browse") {
+        const sp = new URLSearchParams();
+        if (s.view.kingdom) sp.set("kingdom", s.view.kingdom);
+        if (s.view.iucn) sp.set("iucn", s.view.iucn);
+        if (s.view.tag) sp.set("tag", s.view.tag);
+        h = `#browse${sp.toString() ? `?${sp.toString()}` : ""}`;
+      }
+      if (window.location.hash !== h) {
+        window.history.replaceState(null, "", window.location.pathname + window.location.search + h);
+      }
+    });
+    return () => {
+      window.removeEventListener("hashchange", onHashChange);
+      unsub();
+    };
+  }, []);
+
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <BioHeader />

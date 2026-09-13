@@ -166,23 +166,21 @@ Stage Summary:
 ## 项目当前状态(交接必读)
 
 **已稳定运行**:dev server 3000 端口,lint/tsc 零错误,浏览器实测所有核心交互通过。
+**核心功能**:分类树探索 / 全局搜索(⌘K) / 图鉴目录(多维筛选) / 物种对比(≤3,可导出Markdown/分享链接) / 首页新页速递时间线 / 详情页灯箱+←/→键盘导航 / AI 助手(限流时优雅降级) / 分享链接恢复(#compare=… 与 #browse?… 两种 hash 路由,支持重载+同页hashchange)。
 
-**数据规模**:1267 分类单元 / 311 物种 / 47 门 / 84 旗舰物种(全部有插画)/ IUCN 62 种。
+**数据规模**:1267 分类单元 / 311 物种 / 47 门 / 84 旗舰物种 / IUCN 62 种 / 配图 142/311。
 
 **未完成/风险**:
-1. 剩余 227 个非旗舰物种无配图(占位图兜底)。两条补图路径:
-   - `BATCH=40 SCOPE=all timeout 500 bun scripts/generate-images.ts`(生成插画,已验证可行)
-   - `timeout 500 bun scripts/fetch-images.ts`(真实照片,image-search 服务恢复后可用;曾 400/429)
-   - 后台进程会被沙箱杀,请分段前台跑,每批约 8-9 分钟 20 张
-2. fetch-images 的图片质量未复核(服务恢复后建议抽查)
-3. Agent 回答偶有口语化波动,引用芯片已可靠
+1. 剩余 169 个非旗舰物种无配图(占位图兜底)。z-ai 全部 API(image/image-search/LLM/VLM)在 2026-09-13 15:00 轮仍账户级 429。恢复后:
+   - `timeout 90 z-ai image -p test -o /tmp/t.png` 探测 → 恢复则 `BATCH=999 SCOPE=all CONCURRENCY=2 timeout 580 bun scripts/generate-images.ts` 连跑多批(勿用并发4)
+   - image-search 已从 400 变 429(服务存活),恢复后可 `timeout 500 bun scripts/fetch-images.ts` 抓真实照片
+2. Agent 引用卡「加对比」按钮因 LLM 限流未做浏览器端到端实测(代码路径与其他对比按钮一致,类型/lint 通过)
+3. Agent 回答口语化波动(已知,非阻塞)
 
 **下一阶段建议(优先级)**:
-1. P0:补齐非旗舰物种配图(分批跑上述脚本,每 15 分钟 cron 轮巡时可推进一批)
-2. P1:首页 hero 增加插画横幅(可 z-ai image 生成"生命之树"版画长卷 1440x720)
-3. P1:物种详情增加"同属近亲"推荐、相关文献卡片
-4. P2:对比功能(选 2-3 物种并排对比形态/分布)
-5. P2:按 IUCN/界/标签的聚合浏览页
+1. P0:补齐非旗舰物种配图(探测→分批前台跑,每批约20张)
+2. P1:Agent 新功能指引(规范8)实测;VLM 抽查配图质量
+3. P2:对比视图列hover高亮;探索视图物种计数徽章;首页数据徽章墙
 
 ---
 Task ID: R2(cron 第1轮巡检, 2026-09-13 13:38)
@@ -243,3 +241,33 @@ Stage Summary(当前项目状态):
   1. P0 补图:先 `timeout 90 z-ai image -p test -o /tmp/t.png` 探测 429 恢复,再 `BATCH=999 SCOPE=all CONCURRENCY=2 timeout 580 bun scripts/generate-images.ts` 连续跑多批(勿用 CONCURRENCY=4)
   2. P2 备选:对比视图导出(复制 Markdown 表格)/分享链接;首页「最近配图」时间线;对比视图支持从 Agent 引用芯片直接加对比
   3. 风险:z-ai image 若长时间限流,可考虑生成 768x576 小图减少消耗,或等 image-search 恢复抓真实照片
+
+---
+Task ID: R4(cron 第3轮巡检, 2026-09-13 15:00)
+Agent: main
+Task: QA回归 + 4大新功能(分享链接/新页速递/灯箱键盘导航/Agent加对比) + 3处修复
+
+Work Log:
+- 【QA回归】agent-browser 全链路实测:首页/目录筛选(真菌21)/对比托盘3上限/对比视图12行表/详情全区块/搜索(银杏)/暗色切换 全部通过,全程零 console 错误
+- 【环境判断】z-ai 全部 API(LLM/image/image-search/VLM)账户级 429 限流整轮未恢复;Agent 面板优雅降级正常(显示"暂时失联");P0 补图被迫搁置,转入纯代码功能开发
+- 【新功能A:对比分享链接】hash 路由 `#compare=id1,id2`:进入/同页hashchange 均自动还原对比会话(截断≤3并规范化hash);「复制分享链接」按钮;页面订阅 store 同步 hash
+- 【新功能A:对比导出】「导出 Markdown」按钮:完整对比表(界/域→属+形态/生境/分布/IUCN/NCBI/速览)转 Markdown 复制到剪贴板,可直接贴笔记/文档
+- 【新功能B:首页「新页速递 Novissima」】新 API /api/recent(3min内存缓存)+ useRecent hook + 首页时间线区块:12张最近配图物种卡(界徽章/IUCN/相对时间"今天HH:mm/昨天/M-D"),配「插画完成度 142/311」进度条,卡片点击直达详情(实测双孢蘑菇)
+- 【新功能C:Agent引用卡一键加对比】agent-panel 匹配条目卡片右侧新增 GitCompareArrows 按钮,toggleCompare+toast(已加/已移/已满三态);系统提示词规范8教阿博新功能
+- 【新功能D:详情页灯箱+键盘导航】主图点击全屏放大(zoom光标/hover提示"点击放大"/Esc或点空白关闭/caption含imageCaption);←/→键盘切换同属上/下物种(输入框聚焦时忽略),导航区加kbd提示徽标(实测中华蜜蜂↔西方蜜蜂)
+- 【新功能E:目录筛选分享】hash 路由 `#browse?kingdom=Fungi&iucn=CR&tag=flagship&hasImage=1&q=..&sort=..`:筛选变化300ms防抖同步hash;「分享筛选」按钮;重载/同页hashchange均恢复完整筛选(实测动物界+CR→6卡)
+- 【修复1】store.removeCompare/clearCompare 在对比视图时同步更新 view.ids(此前对比视图内移除物种列不消失)
+- 【修复2】对比表「界」行原核生物显示"—":改为 kingdom 缺失时回退 domain,行标签改「界/域」(实测细菌域正确显示)
+- 【修复3】QA发现的UX缺口:对比视图列头卡无法跳详情——列头图片与名称均可点击跳转(hover浮层"查看图鉴详情→")
+- 【共享组件】src/lib/clipboard.ts(copyText 带execCommand降级 + browseFilterToParams);src/components/bio/share-dialog.tsx(剪贴板不可用时手动复制兜底,compare/browse复用);无头浏览器剪贴板被权限拦截时自动弹兜底框(实测Markdown 1052字符完整)
+- 【重构】browse hash恢复用 lazy useState 初始化(修复 react-compiler lint 报错 setState-in-effect);taxon-detail 键盘导航 hooks 移到 early return 之前(修复条件hook违规)
+- lint/tsc 零错误;dev.log 无新增错误(仅编辑中途瞬态 LayoutGrid 未定义,最终代码已含import)
+
+Stage Summary(当前项目状态):
+- 【稳定】新增5大功能(对比分享/对比导出/新页速递/灯箱+键盘导航/目录筛选分享)+3修复,全部浏览器实测通过
+- 配图仍 142/311;z-ai 全 API 整轮 429,Agent/补图/VLM评估均环境性阻塞(非代码问题)
+- 下一轮优先:
+  1. P0 补图(429恢复后):`timeout 90 z-ai image -p test -o /tmp/t.png` 探测,恢复则 `BATCH=999 SCOPE=all CONCURRENCY=2 timeout 580 bun scripts/generate-images.ts` 连跑;同时重测 image-search(本轮从400变为429,说明服务活着,限流或已减轻)
+  2. Agent 回答实测(429恢复后):验证规范8新功能指引与引用卡加对比按钮
+  3. 备选新功能:对比视图列hover高亮;探索视图面包屑显示物种计数;首页 hero 数据徽章;VLM 抽查最近配图质量
+  4. 已知边界:hashchange 恢复会重置浏览历史栈(设计取舍);browse 内部筛选在导航离开再返回时 q/sort/hasImage 重置(kingdom/iucn/tag 由store保留)

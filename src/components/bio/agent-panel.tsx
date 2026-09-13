@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { KingdomIcon } from "./taxa-icon";
 import ReactMarkdown from "react-markdown";
-import { Sparkles, Send, X, RotateCcw, Bot, User, ChevronRight } from "lucide-react";
+import { Sparkles, Send, X, RotateCcw, Bot, User, ChevronRight, GitCompareArrows } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
@@ -34,7 +34,7 @@ const SUGGESTIONS = [
   "帮我找一些极危(CR)的物种",
   "真菌界有哪些明星物种?",
   "大肠杆菌和古菌有什么区别?",
-  "怎么对比两个物种?教我用图鉴的对比功能",
+  "怎么把两个物种加入对比并导出表格?",
 ];
 
 /** 把 [[id]] 替换为 markdown 链接,便于 react-markdown 渲染成跳转芯片;清除一切无效标记 */
@@ -90,7 +90,7 @@ function AssistantMarkdown({ content, matches }: { content: string; matches?: Ma
 }
 
 export function AgentPanel() {
-  const { agentOpen, setAgentOpen, openTaxon, agentUnread, clearUnread } = useBioStore();
+  const { agentOpen, setAgentOpen, openTaxon, agentUnread, clearUnread, toggleCompare, compareIds } = useBioStore();
   const [messages, setMessages] = useState<Msg[]>([
     {
       role: "assistant",
@@ -224,15 +224,16 @@ export function AgentPanel() {
                             <div className="space-y-1.5">
                               {m.matches.slice(0, 6).map((mt) => {
                                 const theme = KINGDOM_THEME[mt.kingdom] || KINGDOM_THEME.Animalia;
+                                const inCompare = compareIds.includes(mt.id);
                                 return (
-                                  <button
-                                    key={mt.id}
-                                    onClick={() => {
-                                      openTaxon(mt.id);
-                                      setAgentOpen(false);
-                                    }}
-                                    className="flex w-full items-center gap-2.5 rounded-lg border border-foreground/10 bg-muted/40 p-2 text-left transition-all hover:border-primary/40 hover:bg-primary/5"
-                                  >
+                                  <div key={mt.id} className="flex items-center gap-1.5">
+                                    <button
+                                      onClick={() => {
+                                        openTaxon(mt.id);
+                                        setAgentOpen(false);
+                                      }}
+                                      className="flex min-w-0 flex-1 items-center gap-2.5 rounded-lg border border-foreground/10 bg-muted/40 p-2 text-left transition-all hover:border-primary/40 hover:bg-primary/5"
+                                    >
                                     {mt.image ? (
                                       <img
                                         src={mt.image}
@@ -269,7 +270,36 @@ export function AgentPanel() {
                                       </span>
                                     </span>
                                     <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/40" />
-                                  </button>
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        const r = toggleCompare(mt.id);
+                                        if (r === "added")
+                                          toast({
+                                            title: `已将「${mt.chineseName}」加入对比托盘`,
+                                            description: `当前 ${compareIds.length + 1}/3 个物种,可继续挑选后开始并排比较`,
+                                          });
+                                        else if (r === "removed")
+                                          toast({ title: `已将「${mt.chineseName}」移出对比托盘` });
+                                        else
+                                          toast({
+                                            title: "对比托盘已满(3/3)",
+                                            description: "请先移除一个物种,或直接开始对比",
+                                            variant: "destructive",
+                                          });
+                                      }}
+                                      aria-label={inCompare ? `将${mt.chineseName}移出对比` : `将${mt.chineseName}加入对比`}
+                                      title={inCompare ? "移出对比" : "加入对比"}
+                                      className={cn(
+                                        "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition-all",
+                                        inCompare
+                                          ? "border-primary/50 bg-primary/15 text-primary"
+                                          : "border-foreground/10 bg-muted/40 text-muted-foreground/60 hover:border-primary/40 hover:text-primary"
+                                      )}
+                                    >
+                                      <GitCompareArrows className="h-4 w-4" />
+                                    </button>
+                                  </div>
                                 );
                               })}
                             </div>

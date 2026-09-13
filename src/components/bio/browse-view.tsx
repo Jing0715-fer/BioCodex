@@ -1,16 +1,19 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useBioStore } from "@/lib/bio-store";
 import { useSpeciesBrowse, useStats } from "@/hooks/use-bio";
 import { KINGDOM_THEME, IUCN_INFO } from "@/lib/bio-domain";
 import { SpeciesCard } from "./species-card";
+import { ShareDialog } from "./share-dialog";
+import { copyText, browseFilterToParams } from "@/lib/clipboard";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 import {
   ChevronRight, LayoutGrid, Search, Loader2, Info, SlidersHorizontal,
-  Star, Microscope, TriangleAlert, Image as ImageIcon, ArrowDown,
+  Star, Microscope, TriangleAlert, Image as ImageIcon, ArrowDown, Link2, Check,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -39,12 +42,55 @@ export function BrowseView({
 }) {
   const { goHome, openCompare, compareIds } = useBioStore();
   const { data: stats } = useStats();
+
+  // 从 #browse?... 恢复完整筛选(仅在客户端首挂载时读取;hash 不会发送到服务端,无 hydration 风险)
+  const readHashParams = () => {
+    if (typeof window === "undefined" || !/^#browse(\?|$)/.test(window.location.hash)) {
+      return { q: "", sort: "default", hasImage: false };
+    }
+    const sp = new URLSearchParams(window.location.hash.split("?")[1] || "");
+    const hs = sp.get("sort");
+    return {
+      q: sp.get("q") || "",
+      sort: hs && SORTS.some((s) => s.key === hs) ? hs : "default",
+      hasImage: sp.get("hasImage") === "1",
+    };
+  };
+  const hashInit = readHashParams();
+
   const [kingdom, setKingdom] = useState<string | null>(initialKingdom ?? null);
   const [iucn, setIucn] = useState<string | null>(initialIucn ?? null);
   const [tag, setTag] = useState<string | null>(initialTag ?? null);
-  const [hasImage, setHasImage] = useState(false);
-  const [q, setQ] = useState("");
-  const [sort, setSort] = useState<string>("default");
+  const [hasImage, setHasImage] = useState<boolean>(hashInit.hasImage);
+  const [q, setQ] = useState<string>(hashInit.q);
+  const [sort, setSort] = useState<string>(hashInit.sort);
+  const [shareFallback, setShareFallback] = useState<string | null>(null);
+  const [linkCopied, setLinkCopied] = useState(false);
+
+  // 筛选变化 → 同步 URL hash(可分享/收藏;q 防抖 300ms)
+  useEffect(() => {
+    const t = setTimeout(() => {
+      const sp = browseFilterToParams({ kingdom, iucn, tag, hasImage, q, sort });
+      const target = `#browse${sp.toString() ? `?${sp.toString()}` : ""}`;
+      if (window.location.hash !== target) {
+        window.history.replaceState(null, "", window.location.pathname + window.location.search + target);
+      }
+    }, 300);
+    return () => clearTimeout(t);
+  }, [kingdom, iucn, tag, hasImage, q, sort]);
+
+  const shareFilterLink = async () => {
+    const sp = browseFilterToParams({ kingdom, iucn, tag, hasImage, q, sort });
+    const url = `${window.location.origin}${window.location.pathname}#browse${sp.toString() ? `?${sp.toString()}` : ""}`;
+    const ok = await copyText(url);
+    if (ok) {
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
+      toast.success("筛选链接已复制", { description: "对方打开后将看到同样的筛选结果" });
+    } else {
+      setShareFallback(url);
+    }
+  };
 
   const params = { kingdom, iucn, tag, hasImage, q, sort };
   const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } = useSpeciesBrowse(params);
@@ -87,11 +133,23 @@ export function BrowseView({
             按界、保护等级与标签过滤全部 {stats?.species ?? "…"} 个物种;点击卡片上的「对比」加入并排比较
           </p>
         </div>
-        {compareIds.length >= 2 && (
-          <Button size="sm" className="gap-1.5 rounded-full" onClick={openCompare}>
-            对比中 {compareIds.length} 个 →
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 rounded-full"
+            onClick={shareFilterLink}
+            title="复制当前筛选的分享链接"
+          >
+            {linkCopied ? <Check className="h-4 w-4 text-emerald-600" /> : <Link2 className="h-4 w-4" />}
+            {linkCopied ? "已复制" : "分享筛选"}
           </Button>
-        )}
+          {compareIds.length >= 2 && (
+            <Button size="sm" className="gap-1.5 rounded-full" onClick={openCompare}>
+              对比中 {compareIds.length} 个 →
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* ====== 过滤器面板 ====== */}
@@ -266,6 +324,14 @@ export function BrowseView({
           </Button>
         </div>
       )}
+
+      {/* 剪贴板不可用时的分享链接兑底 */}
+      <ShareDialog
+        open={!!shareFallback}
+        onOpenChange={(o) => !o && setShareFallback(null)}
+        title="分享筛选链接"
+        text={shareFallback || ""}
+      />
     </div>
   );
 }

@@ -126,6 +126,26 @@ export function useFeatured() {
   });
 }
 
+export interface RecentDTO {
+  id: string;
+  latinName: string;
+  chineseName: string;
+  image: string | null;
+  conservation: string | null;
+  kingdom: string;
+  hasImage: boolean;
+  isFlagship: boolean;
+  updatedAt: string;
+}
+
+export function useRecent(limit = 12) {
+  return useQuery<RecentDTO[]>({
+    queryKey: ["bio", "recent", limit],
+    queryFn: async () => (await json<{ success: boolean; recent: RecentDTO[] }>(`/api/recent?limit=${limit}`)).recent,
+    staleTime: 60_000,
+  });
+}
+
 export interface SearchRow {
   id: string;
   rank: string;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useBioStore, MAX_COMPARE } from "@/lib/bio-store";
 import { useTaxon } from "@/hooks/use-bio";
 import { buildDbLinks, IUCN_INFO, KINGDOM_THEME, rankLabel } from "@/lib/bio-domain";
@@ -12,7 +12,7 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import {
   ChevronRight, ArrowLeft, ArrowRight, ExternalLink, Database, Dna, Shield,
-  MapPin, Leaf, FlaskConical, BookOpen, Star, Sparkles, Microscope, GitCompareArrows, Check,
+  MapPin, Leaf, FlaskConical, BookOpen, Star, Sparkles, Microscope, GitCompareArrows, Check, X, ZoomIn,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -50,6 +50,7 @@ function SectionCard({
 export function TaxonDetail({ id }: { id: string }) {
   const { openTaxon, explore, goBack, compareIds, toggleCompare, openCompare } = useBioStore();
   const { data, isLoading } = useTaxon(id);
+  const [lightbox, setLightbox] = useState(false);
 
   const links = useMemo(
     () =>
@@ -74,6 +75,25 @@ export function TaxonDetail({ id }: { id: string }) {
     return g;
   }, [links]);
 
+  // 上一/下一物种(hooks 必须在 early return 之前计算)
+  const siblings = data?.siblings || [];
+  const idx = siblings.findIndex((s) => s.id === id);
+  const prev = idx > 0 ? siblings[idx - 1] : null;
+  const next = idx >= 0 && idx < siblings.length - 1 ? siblings[idx + 1] : null;
+
+  // 键盘导航:←/→ 切换同属上/下一物种(输入框聚焦时忽略);Esc 关灯箱
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || (e.target as HTMLElement)?.isContentEditable) return;
+      if (e.key === "Escape") setLightbox(false);
+      if (e.key === "ArrowLeft" && prev) openTaxon(prev.id);
+      if (e.key === "ArrowRight" && next) openTaxon(next.id);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [prev, next, openTaxon]);
+
   if (isLoading || !data?.success) {
     return (
       <div className="mx-auto max-w-[1400px] px-4 py-8 sm:px-6">
@@ -91,13 +111,10 @@ export function TaxonDetail({ id }: { id: string }) {
     );
   }
 
-  const { taxon, lineage, children, counts, siblings } = data;
+  const { taxon, lineage, children, counts } = data;
   const theme = KINGDOM_THEME[taxon.kingdom] || KINGDOM_THEME.Animalia;
   const isSpecies = taxon.rank === "species";
   const iucn = taxon.conservation ? IUCN_INFO[taxon.conservation] : null;
-  const idx = siblings.findIndex((s) => s.id === taxon.id);
-  const prev = idx > 0 ? siblings[idx - 1] : null;
-  const next = idx >= 0 && idx < siblings.length - 1 ? siblings[idx + 1] : null;
   const tags = taxon.tags || [];
   // 同属近亲(排除自身)
   const relatedSpecies = siblings.filter(
@@ -127,15 +144,28 @@ export function TaxonDetail({ id }: { id: string }) {
       {/* ====== 主图区 ====== */}
       <div className="reveal-up relative mt-3 overflow-hidden rounded-2xl border border-foreground/10 shadow-md">
         {taxon.image ? (
-          <img
-            src={taxon.image}
-            alt={`${taxon.chineseName}(${taxon.latinName})实景照片`}
-            className="img-fade-in h-[320px] w-full object-cover sm:h-[420px]"
-          />
+          <button
+            onClick={() => setLightbox(true)}
+            aria-label="放大查看物种插图"
+            className="group/img absolute inset-0 h-full w-full cursor-zoom-in"
+          >
+            <img
+              src={taxon.image}
+              alt={`${taxon.chineseName}(${taxon.latinName})博物学插图`}
+              className="img-fade-in h-[320px] w-full object-cover transition-transform duration-500 group-hover/img:scale-[1.02] sm:h-[420px]"
+            />
+          </button>
         ) : (
           <TaxaPlaceholder latinName={taxon.latinName} kingdom={taxon.kingdom} big className="h-[320px] w-full sm:h-[420px]" />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/15 to-transparent" />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-black/15 to-transparent" />
+        {/* 放大提示角标(有图时) */}
+        {taxon.image && (
+          <span className="pointer-events-none absolute bottom-3 right-3 flex items-center gap-1 rounded-full bg-black/50 px-2.5 py-1 text-[11px] font-medium text-white/90 opacity-0 backdrop-blur-sm transition-opacity duration-300 group-hover/img:opacity-100 sm:bottom-5 sm:right-5">
+            <ZoomIn className="h-3 w-3" />
+            点击放大
+          </span>
+        )}
         {/* 右上角操作:加入对比(仅物种) */}
         {isSpecies && (
           <div className="absolute right-3 top-3 flex items-center gap-2">
@@ -355,7 +385,16 @@ export function TaxonDetail({ id }: { id: string }) {
 
           {/* 上一/下一物种 */}
           {(prev || next) && (
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <p className="mb-2 flex items-center justify-between text-[11px] text-muted-foreground/70">
+                <span>同属相邻条目</span>
+                <span className="hidden items-center gap-1 sm:flex">
+                  <kbd className="rounded border border-foreground/15 bg-muted px-1.5 py-0.5 font-mono text-[10px]">←</kbd>
+                  <kbd className="rounded border border-foreground/15 bg-muted px-1.5 py-0.5 font-mono text-[10px]">→</kbd>
+                  键盘切换
+                </span>
+              </p>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {prev ? (
                 <button
                   onClick={() => openTaxon(prev.id)}
@@ -388,6 +427,7 @@ export function TaxonDetail({ id }: { id: string }) {
                   <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
                 </button>
               )}
+              </div>
             </div>
           )}
         </div>
@@ -509,6 +549,38 @@ export function TaxonDetail({ id }: { id: string }) {
           </Button>
         </aside>
       </div>
+
+      {/* ====== 插图灯箱(点击主图放大) ====== */}
+      {lightbox && taxon.image && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={`${taxon.chineseName}插图放大视图`}
+          onClick={() => setLightbox(false)}
+          className="fixed inset-0 z-[70] flex cursor-zoom-out flex-col items-center justify-center gap-4 bg-black/92 p-4 backdrop-blur-sm sm:p-8"
+        >
+          <button
+            onClick={() => setLightbox(false)}
+            aria-label="关闭放大视图"
+            className="absolute right-4 top-4 rounded-full bg-white/10 p-2.5 text-white transition-colors hover:bg-white/25"
+          >
+            <X className="h-5 w-5" />
+          </button>
+          <img
+            src={taxon.image}
+            alt={`${taxon.chineseName}(${taxon.latinName})插图放大`}
+            onClick={(e) => e.stopPropagation()}
+            className="nh-scroll max-h-[78vh] max-w-full rounded-lg object-contain shadow-2xl"
+          />
+          <figcaption className="pointer-events-none max-w-2xl text-center">
+            <p className="font-display text-xl font-bold text-white">{taxon.chineseName}</p>
+            <p className="latin mt-1 text-sm italic text-white/70">{taxon.latinName}</p>
+            {taxon.imageCaption && (
+              <p className="mt-2 text-xs text-white/50">{taxon.imageCaption} · Esc 或点击空白处关闭</p>
+            )}
+          </figcaption>
+        </div>
+      )}
     </div>
   );
 }
