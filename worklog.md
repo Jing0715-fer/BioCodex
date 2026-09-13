@@ -1,0 +1,185 @@
+# BioCodex 生物图鉴 - 项目工作日志
+
+项目目标:专业生物学图鉴网站。覆盖原核生物到高等脊椎动物,按"域-界-门-纲-目-科-属-种"专业分类,含拉丁学名、配图、中文说明、科学数据库链接(NCBI/GBIF/EOL/GenBank等),内置 AI Agent 助手(找物种、答问题),UI 采用自然历史博物馆美学(羊皮纸+深林绿+琥珀)。
+
+## 技术架构
+- Next.js 16 App Router,仅 / 路由(SPA 内部视图切换:home/explore/taxon/search)
+- Prisma + SQLite(db/custom.db),单表 Taxon 自关联树(parentId),1267 条记录 / 311 物种 / 47 门
+- 物种配图:z-ai image 生成"复古博物学版画"风格插画(84 旗舰物种已完成,存 public/generated/);z-ai image-search 搜索真实照片(服务曾 429/400,由重试守护进程补齐剩余 227 物种)
+- Agent 助手:z-ai-web-dev-sdk LLM(后端 /api/agent,检索库内 taxa+旗舰速查表注入上下文,[[id]] 引用渲染为可点击芯片)
+- 前端:shadcn/ui + Tailwind 4,Playfair Display(拉丁学名斜体)+ Noto Serif SC,自然历史主题(羊皮纸/深林绿/琥珀),暗色模式,next-themes
+
+---
+Task ID: 1
+Agent: main
+Task: 初始化项目基础(worklog/schema/类型/主题/布局)
+
+Work Log:
+- 读取项目现状:全新脚手架,dev server 已在 3000 端口运行
+- 加载 image-search 与 LLM 技能文档
+- 编写 prisma/schema.prisma(Taxon 自关联模型),db:push 完成
+- 编写 src/data/types.ts(TaxonSeed 接口)与 src/data/seed/core.ts(3 域 4 界骨架)
+- 重写 globals.css 自然历史主题(羊皮纸/森林绿/琥珀,paper-texture 纹理,自定义滚动条,卡片 hover,暗色模式)
+- 更新 layout.tsx 字体(Playfair Display + Noto Serif SC + Noto Sans SC)+ ThemeProvider
+
+Stage Summary:
+- 基础架构定稿
+
+---
+Task ID: 2-a
+Agent: general-purpose
+Task: 原核生物数据
+
+Work Log:
+- 编写 src/data/seed/prokaryotes.ts(148 条,31 物种,细菌 8 门 24 种 + 古菌 4 门 7 种)
+- 门级 parent 直挂 Bacteria/Archaea(三域系统,无界级)
+- ncbiTaxId 16 个高把握值;模式生物/旗舰标签齐备;类型检查通过
+
+Stage Summary:
+- 产出 prokaryotes.ts
+
+---
+Task ID: 2-b
+Agent: general-purpose
+Task: 原生生物+真菌数据
+
+Work Log:
+- 编写 src/data/seed/protists-fungi.ts(231 条,49 物种:原生生物 11 门 28 种 + 真菌 5 门 21 种)
+- 校验脚本确认 parent 闭合/无重复;类型检查通过
+
+Stage Summary:
+- 产出 protists-fungi.ts
+
+---
+Task ID: 2-c
+Agent: general-purpose
+Task: 植物界数据
+
+Work Log:
+- 编写 src/data/seed/plants.ts(274 条,75 物种:苔藓/蕨类 16 + 裸子 12 + 被子 47,APG 三纲)
+- ncbiTaxId 5 个(拟南芥 3702/水稻 4530/小麦 4565/玉米 4577/大豆 3847);IUCN 6 个;类型检查通过
+
+Stage Summary:
+- 产出 plants.ts
+
+---
+Task ID: 2-d
+Agent: general-purpose(超时,由 main 补完)
+Task: 无脊椎动物数据
+
+Work Log:
+- 子代理写至 228 条(昆虫纲 Blattodea 处上下文耗尽,文件被截断)
+- main 补完:蛛形纲 5 种、甲壳亚门 7 种、唇足纲、肢口纲(中华鲎)、棘皮动物门 4 种、半索动物门、尾索动物亚门 2 种、头索动物亚门(白氏文昌鱼),共追加 ~96 条
+- 修复字符串瑕疵;最终 324 条 / 76 物种;类型检查通过
+
+Stage Summary:
+- 产出 invertebrates.ts(注意:Urochordata/Cephalochordata 亚门的 parent 是 vertebrates.ts 定义的 Chordata)
+
+---
+Task ID: 2-e
+Agent: general-purpose
+Task: 脊椎动物数据
+
+Work Log:
+- 编写 src/data/seed/vertebrates.ts(283 条,80 物种:圆口 2/软骨鱼 5/硬骨鱼 16/两栖 6/爬行 11/鸟 19/哺乳 21)
+- Chordata 门精确引用;旗舰 31 个;IUCN 55 种;类型检查通过
+
+Stage Summary:
+- 产出 vertebrates.ts
+
+---
+Task ID: 3
+Agent: main
+Task: 数据入库
+
+Work Log:
+- 编写 scripts/seed.ts(唯一性/父级/循环校验 + 拓扑排序插入)
+- 入库 1267 条:domain 3 / kingdom 4 / phylum 47 / class 101 / order 211 / family 275 / genus 308 / species 311 / subphylum 4 / subclass 3
+- IUCN: CR13 EN17 EW1 VU8 NT1 LC22;旗舰 84;ncbiLinked 47
+
+Stage Summary:
+- 数据库就绪
+
+---
+Task ID: 4
+Agent: main
+Task: 物种配图
+
+Work Log:
+- image-search 服务遭遇 429(并发 8 触发)后 400(服务端故障),fetch-images.ts 已改为并发 2 + 429 退避 + 随机延时
+- 改用 z-ai image 生成"复古博物学版画"插画:scripts/generate-images.ts(支持 BATCH/SCOPE/断点续跑,已存在文件直接补录入库)
+- 前台分 5 批完成全部 84 旗舰物种插画(public/generated/*.png,imageCaption="复古博物学风格 AI 插图")
+- 已配图物种 84/311;剩余 227 个非旗舰物种待 image-search 服务恢复后由 scripts/retry-search-daemon.sh 补真实照片(注意:后台 nohup/setsid 进程会被沙箱会话清理杀死,需定期重启——建议 cron 轮巡时执行 `cd /home/z/my-project && timeout 500 bun scripts/fetch-images.ts` 或分段运行;也可用 generate-images.ts SCOPE=all 继续生成插画)
+
+Stage Summary:
+- 84 旗舰物种有图;占位图有界色渐变+属首字母兜底,视觉完整
+
+---
+Task ID: 5
+Agent: main
+Task: 后端 API
+
+Work Log:
+- /api/tree(精简树+物种统计,内存缓存 5min)
+- /api/taxa/[id](详情+谱系+子单元+兄弟,含上下导航数据)
+- /api/search(中英混合 LIKE,精确>前缀>包含加权,物种加权)
+- /api/stats(全域统计+各界物种数)  /api/random  /api/featured(旗舰优先有图)
+- /api/agent(LLM):术语抽取→库内检索→保护关键词补充候选→旗舰速查表注入;system prompt 禁止编造 id;返回 content+matches
+- 修复 stats 字段名 bug、agent Prisma 参数 bug
+
+Stage Summary:
+- 7 个 API 全部通过 curl 与浏览器验证
+
+---
+Task ID: 6
+Agent: main
+Task: 前端 UI
+
+Work Log:
+- src/lib/bio-domain.ts(五界主题色/RANK_LABEL/IUCN 映射/buildDbLinks 21-34 个链接按 5 组分类:分类学/基因组/生态观察/百科文献/类群专属——真菌 MycoBank、原核 LPSN、植物 Kew POWO、动物 IUCN+WoRMS、物种 BOLD/BHL)
+- src/lib/bio-store.ts(zustand 视图状态机+历史栈)、src/hooks/use-bio.ts(TanStack Query)
+- 组件:header(⌘K 搜索+建议下拉)、home-view(hero+计数动画+六界卡+旗舰精选+IUCN 条形+数据库徽墙+图鉴轮盘)、taxonomy-tree(递归树+自动展开+移动端 Sheet)、explore-view(树+面包屑+工具条+卡片网格)、taxon-detail(主图+分类地位+数据库链接组+上/下一物种)、agent-panel(聊天+[[id]]芯片+匹配卡片+建议)、footer(sticky)
+- page.tsx 组装;lint 零错误;tsc 零错误(仅 examples/skills 脚手架固有报错)
+
+Stage Summary:
+- UI 完整,VLM 评估风格协调 9/10
+
+---
+Task ID: 9(浏览器验证)
+Agent: main
+Task: agent-browser 端到端验证
+
+Work Log:
+- 首页渲染✓(无 console error);六界卡/统计/旗舰/轮盘/Agent 按钮齐备
+- 分类树:域→变形菌门→γ-变形菌纲→肠杆菌目→肠杆菌科→埃希菌属→大肠杆菌 全链路✓
+- 物种详情:描述/形态/生境/分布/IUCN/分类地位/21 数据库链接✓;NCBI 链接真实可达
+- 搜索"虎":建议下拉+结果页+详情跳转✓
+- Agent:建议提问→大熊猫回答→引用芯片点击跳转详情✓;无效 [[占位]] 已被前端清洗
+- 暗色模式✓(VLM 评估合格);移动端 390px 布局正常✓;图鉴轮盘抽取→跳转✓
+- 修复:layout.tsx 历史报错(theme-provider 创建时序,已消失)
+
+Stage Summary:
+- 核心路径全部浏览器实测通过
+
+---
+
+## 项目当前状态(交接必读)
+
+**已稳定运行**:dev server 3000 端口,lint/tsc 零错误,浏览器实测所有核心交互通过。
+
+**数据规模**:1267 分类单元 / 311 物种 / 47 门 / 84 旗舰物种(全部有插画)/ IUCN 62 种。
+
+**未完成/风险**:
+1. 剩余 227 个非旗舰物种无配图(占位图兜底)。两条补图路径:
+   - `BATCH=40 SCOPE=all timeout 500 bun scripts/generate-images.ts`(生成插画,已验证可行)
+   - `timeout 500 bun scripts/fetch-images.ts`(真实照片,image-search 服务恢复后可用;曾 400/429)
+   - 后台进程会被沙箱杀,请分段前台跑,每批约 8-9 分钟 20 张
+2. fetch-images 的图片质量未复核(服务恢复后建议抽查)
+3. Agent 回答偶有口语化波动,引用芯片已可靠
+
+**下一阶段建议(优先级)**:
+1. P0:补齐非旗舰物种配图(分批跑上述脚本,每 15 分钟 cron 轮巡时可推进一批)
+2. P1:首页 hero 增加插画横幅(可 z-ai image 生成"生命之树"版画长卷 1440x720)
+3. P1:物种详情增加"同属近亲"推荐、相关文献卡片
+4. P2:对比功能(选 2-3 物种并排对比形态/分布)
+5. P2:按 IUCN/界/标签的聚合浏览页

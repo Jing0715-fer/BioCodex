@@ -1,0 +1,214 @@
+"use client";
+
+import { useState, useRef, useEffect } from "react";
+import { useBioStore } from "@/lib/bio-store";
+import { useSearch, type SearchRow } from "@/hooks/use-bio";
+import { useTheme } from "next-themes";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Search, Sun, Moon, Dna, MapPin, ChevronRight, Sparkles, Command,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { KingdomIcon, kingdomTheme, RankBadge } from "./taxa-icon";
+
+export function BioHeader() {
+  const { view, goHome, explore, openTaxon, openSearch, setAgentOpen } = useBioStore();
+  const { theme, setTheme } = useTheme();
+  const [q, setQ] = useState("");
+  const [focus, setFocus] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const boxRef = useRef<HTMLDivElement>(null);
+  const { data: results, isFetching } = useSearch(q, q.trim().length >= 1 && focus);
+
+  // ⌘K / Ctrl+K 聚焦搜索
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        inputRef.current?.focus();
+      }
+      if (e.key === "Escape") inputRef.current?.blur();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  // 点击外部关闭建议
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      if (boxRef.current && !boxRef.current.contains(e.target as Node)) setFocus(false);
+    };
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, []);
+
+  const submit = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (q.trim()) {
+      openSearch(q.trim());
+      setFocus(false);
+      inputRef.current?.blur();
+    }
+  };
+
+  const active = (t: string) => view.type === t;
+
+  return (
+    <header className="sticky top-0 z-50 w-full border-b border-foreground/10 bg-background/85 backdrop-blur-md">
+      <div className="mx-auto flex h-16 max-w-[1400px] items-center gap-3 px-4 sm:px-6">
+        {/* Logo */}
+        <button
+          onClick={goHome}
+          className="group flex shrink-0 items-center gap-2.5"
+          aria-label="返回 BioCodex 首页"
+        >
+          <span className="relative flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm transition-transform group-hover:scale-105">
+            <Dna className="h-5 w-5" />
+          </span>
+          <span className="hidden flex-col leading-tight sm:flex">
+            <span className="font-display text-lg font-bold tracking-tight text-foreground">
+              BioCodex
+            </span>
+            <span className="text-[11px] tracking-[0.2em] text-muted-foreground">生物图鉴</span>
+          </span>
+        </button>
+
+        {/* 导航 */}
+        <nav className="ml-1 hidden items-center gap-1 md:flex" aria-label="主导航">
+          <Button
+            variant="ghost"
+            size="sm"
+            className={cn("h-9 gap-1.5", active("home") && "bg-accent text-accent-foreground")}
+            onClick={goHome}
+          >
+            <MapPin className="h-4 w-4" />
+            总览
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className={cn(
+              "h-9 gap-1.5",
+              (active("explore") || active("taxon")) && "bg-accent text-accent-foreground"
+            )}
+            onClick={() => explore(null)}
+          >
+            <Sparkles className="h-4 w-4" />
+            分类探索
+          </Button>
+        </nav>
+
+        {/* 搜索 */}
+        <div ref={boxRef} className="relative ml-auto w-full max-w-xl">
+          <form onSubmit={submit} className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              ref={inputRef}
+              value={q}
+              onChange={(e) => {
+                setQ(e.target.value);
+                setFocus(true);
+              }}
+              onFocus={() => setFocus(true)}
+              placeholder="搜索物种 / 拉丁学名 / 门类……"
+              className="h-10 rounded-full border-foreground/15 bg-card pl-9 pr-12 text-sm shadow-none focus-visible:ring-forest/40"
+              aria-label="全局搜索"
+            />
+            <kbd className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 items-center gap-0.5 rounded border border-foreground/15 bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground sm:flex">
+              <Command className="h-2.5 w-2.5" />K
+            </kbd>
+          </form>
+
+          {/* 搜索建议下拉 */}
+          {focus && q.trim() && (
+            <div className="nh-scroll absolute left-0 right-0 top-12 z-50 max-h-[70vh] overflow-y-auto rounded-xl border border-foreground/10 bg-popover shadow-xl">
+              {isFetching && !results?.length && (
+                <div className="px-4 py-6 text-center text-sm text-muted-foreground">
+                  正在检索图鉴……
+                </div>
+              )}
+              {results && results.length > 0 && (
+                <ul className="py-1.5">
+                  {results.slice(0, 8).map((r: SearchRow) => (
+                    <li key={r.id}>
+                      <button
+                        className="flex w-full items-center gap-3 px-3 py-2 text-left transition-colors hover:bg-accent"
+                        onClick={() => {
+                          openTaxon(r.id);
+                          setFocus(false);
+                          inputRef.current?.blur();
+                        }}
+                      >
+                        {r.image ? (
+                          <img
+                            src={r.image}
+                            alt={r.chineseName}
+                            className="h-9 w-9 shrink-0 rounded-md object-cover"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <span
+                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md"
+                            style={{ background: `${kingdomTheme(r.kingdom).color}18` }}
+                          >
+                            <KingdomIcon kingdom={r.kingdom} className="h-4 w-4" />
+                          </span>
+                        )}
+                        <span className="min-w-0 flex-1">
+                          <span className="flex items-center gap-2">
+                            <span className="truncate font-medium text-foreground">{r.chineseName}</span>
+                            <RankBadge rank={r.rank} />
+                          </span>
+                          <span className="latin block truncate text-xs text-muted-foreground">
+                            {r.latinName}
+                          </span>
+                        </span>
+                        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/50" />
+                      </button>
+                    </li>
+                  ))}
+                  <li className="border-t border-foreground/10 px-3 py-2">
+                    <button
+                      className="w-full rounded-md py-1.5 text-center text-sm font-medium text-primary hover:bg-accent"
+                      onClick={() => submit()}
+                    >
+                      查看全部 {results.length} 条结果 →
+                    </button>
+                  </li>
+                </ul>
+              )}
+              {results && results.length === 0 && !isFetching && (
+                <div className="px-4 py-6 text-center text-sm text-muted-foreground">
+                  没有找到「{q}」相关的分类单元,试试别的关键词?
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Agent 按钮 */}
+        <Button
+          variant="outline"
+          size="sm"
+          className="ml-1 hidden h-10 shrink-0 gap-1.5 rounded-full border-primary/40 text-primary hover:bg-primary hover:text-primary-foreground sm:flex"
+          onClick={() => setAgentOpen(true)}
+        >
+          <Sparkles className="h-4 w-4" />
+          助手
+        </Button>
+
+        {/* 主题切换 */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-9 w-9 shrink-0"
+          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+          aria-label="切换明暗主题"
+        >
+          {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+        </Button>
+      </div>
+    </header>
+  );
+}

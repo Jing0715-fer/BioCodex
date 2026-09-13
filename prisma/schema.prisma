@@ -1,0 +1,38 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// 生物分类单元:自关联树结构(域→界→门→纲→目→科→属→种)
+model Taxon {
+  id            String   @id @default(cuid())
+  parentId      String?
+  parent        Taxon?   @relation("Taxonomy", fields: [parentId], references: [id], onDelete: Cascade)
+  children      Taxon[]  @relation("Taxonomy")
+
+  rank          String   // domain|kingdom|phylum|class|order|family|genus|species
+  latinName     String   @unique
+  chineseName   String
+  authority     String?  // 命名者,如 (Linnaeus, 1758)
+  description   String?  // 物种描述(中文,2-4句)
+  morphology    String?  // 形态特征
+  habitat       String?  // 生境
+  distribution  String?  // 分布
+  conservation  String?  // IUCN 代码: EX|EW|CR|EN|VU|NT|LC|DD|NE
+  ncbiTaxId     Int?     // NCBI Taxonomy ID(仅确定时填写)
+  image         String?  // OSS 图片 URL
+  imageCaption  String?
+  tags          String?  // JSON 数组,如 ["flagship","模式生物"]
+  sortOrder     Int      @default(0)
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([parentId])
+  @@index([rank])
+  @@index([chineseName])
+}
