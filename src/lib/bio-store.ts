@@ -24,6 +24,7 @@ export interface BrowseFilter {
 /** 目录视图的完整筛选状态(跨导航持久化) */
 export interface BrowseState {
   kingdom: string | null;
+  phylum: string | null;
   iucn: string | null;
   tag: string | null;
   hasImage: boolean;
@@ -33,6 +34,7 @@ export interface BrowseState {
 
 const DEFAULT_BROWSE: BrowseState = {
   kingdom: null,
+  phylum: null,
   iucn: null,
   tag: null,
   hasImage: false,
@@ -241,6 +243,7 @@ export const useBioStore = create<BioState>((set, get) => ({
         view: { type: "browse" },
         browseFilter: {
           kingdom: sp.get("kingdom") || null,
+          phylum: sp.get("phylum") || null,
           iucn: sp.get("iucn") || null,
           tag: sp.get("tag") || null,
           q: sp.get("q") || "",

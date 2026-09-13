@@ -11,11 +11,13 @@ import { copyText, browseFilterToParams } from "@/lib/clipboard";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { toast } from "sonner";
 import {
   ChevronRight, LayoutGrid, Search, Loader2, Info, SlidersHorizontal,
   Star, Microscope, TriangleAlert, Image as ImageIcon, ArrowDown, Link2, Check,
-  Rows3, GitCompareArrows, ArrowRight,
+  Rows3, GitCompareArrows, ArrowRight, ChevronsUpDown, Layers,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -39,8 +41,11 @@ export function BrowseView() {
   const { data: stats } = useStats();
 
   // 筛选状态全部由 store 承载:导航离开再返回不丢失(含关键词/排序/配图开关)
-  const { kingdom, iucn, tag, hasImage, q, sort } = browseFilter;
-  const setKingdom = (v: string | null) => patchBrowseFilter({ kingdom: v });
+  const { kingdom, phylum, iucn, tag, hasImage, q, sort } = browseFilter;
+  const setPhylum = (v: string | null) => patchBrowseFilter({ phylum: v });
+  // 界切换时联动清除门(一门必属于且仅属于一界,避免矛盾组合空结果)
+  const setKingdom = (v: string | null) =>
+    patchBrowseFilter(v === kingdom ? { kingdom: v } : { kingdom: v, phylum: null });
   const setIucn = (v: string | null) => patchBrowseFilter({ iucn: v });
   const setTag = (v: string | null) => patchBrowseFilter({ tag: v });
   const setHasImage = (v: boolean) => patchBrowseFilter({ hasImage: v });
@@ -49,9 +54,10 @@ export function BrowseView() {
 
   const [shareFallback, setShareFallback] = useState<string | null>(null);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [phylaOpen, setPhylaOpen] = useState(false);
 
   const shareFilterLink = async () => {
-    const sp = browseFilterToParams({ kingdom, iucn, tag, hasImage, q, sort });
+    const sp = browseFilterToParams({ kingdom, phylum, iucn, tag, hasImage, q, sort });
     const url = `${window.location.origin}${window.location.pathname}#browse${sp.toString() ? `?${sp.toString()}` : ""}`;
     const ok = await copyText(url);
     if (ok) {
@@ -63,7 +69,7 @@ export function BrowseView() {
     }
   };
 
-  const params = { kingdom, iucn, tag, hasImage, q, sort };
+  const params = { kingdom, phylum, iucn, tag, hasImage, q, sort };
   const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } = useSpeciesBrowse(params);
 
   const items = useMemo(() => data?.pages.flatMap((p) => p.items) ?? [], [data]);
@@ -71,9 +77,9 @@ export function BrowseView() {
   const facets = data?.pages[0]?.facets;
 
   const activeFilters =
-    (kingdom ? 1 : 0) + (iucn ? 1 : 0) + (tag ? 1 : 0) + (hasImage ? 1 : 0) + (q.trim() ? 1 : 0);
+    (kingdom ? 1 : 0) + (phylum ? 1 : 0) + (iucn ? 1 : 0) + (tag ? 1 : 0) + (hasImage ? 1 : 0) + (q.trim() ? 1 : 0);
   const clearAll = () =>
-    patchBrowseFilter({ kingdom: null, iucn: null, tag: null, hasImage: false, q: "", sort: "default" });
+    patchBrowseFilter({ kingdom: null, phylum: null, iucn: null, tag: null, hasImage: false, q: "", sort: "default" });
 
   return (
     <div className="mx-auto w-full max-w-[1400px] px-4 pb-16 pt-4 sm:px-6">
@@ -95,7 +101,7 @@ export function BrowseView() {
             <span className="latin text-base font-normal text-muted-foreground">Catalogue of Species</span>
           </h1>
           <p className="mt-1.5 text-sm text-muted-foreground">
-            按界、保护等级与标签过滤全部 {stats?.species ?? "…"} 个物种;点击卡片上的「对比」加入并排比较
+            按界、门、保护等级与标签过滤全部 {stats?.species ?? "…"} 个物种;点击卡片上的「对比」加入并排比较
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -198,6 +204,80 @@ export function BrowseView() {
                 </Chip>
               );
             })}
+          </div>
+        </div>
+
+        {/* 门过滤(combobox 可搜索,选项随界级联动,计数不受已选门影响) */}
+        <div className="mt-3.5">
+          <p className="mb-1.5 text-[11px] font-bold tracking-widest text-muted-foreground">
+            门 PHYLUM{facets?.phyla ? ` · ${facets.phyla.length} 门可选` : ""}
+          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <Popover open={phylaOpen} onOpenChange={setPhylaOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  role="combobox"
+                  aria-expanded={phylaOpen}
+                  aria-label="按门筛选物种"
+                  className="h-8 gap-1.5 rounded-full text-xs font-medium"
+                >
+                  <Layers className={cn("h-3.5 w-3.5", phylum && "text-primary")} />
+                  {phylum
+                    ? facets?.phyla?.find((p) => p.latin === phylum)?.chinese ?? phylum
+                    : "全部门"}
+                  <ChevronsUpDown className="h-3 w-3 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-72 p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="搜索门:中文名或拉丁名……" />
+                  <CommandList>
+                    <CommandEmpty>没有匹配的门。</CommandEmpty>
+                    <CommandGroup>
+                      <CommandItem
+                        value="__all__ 全部门"
+                        onSelect={() => {
+                          setPhylum(null);
+                          setPhylaOpen(false);
+                        }}
+                      >
+                        <Layers className="h-3.5 w-3.5" />
+                        全部门(清除门筛选)
+                      </CommandItem>
+                      {facets?.phyla?.map((p) => (
+                        <CommandItem
+                          key={p.latin}
+                          value={`${p.chinese} ${p.latin}`}
+                          onSelect={() => {
+                            setPhylum(phylum === p.latin ? null : p.latin);
+                            setPhylaOpen(false);
+                          }}
+                        >
+                          <Check className={cn("h-3.5 w-3.5 shrink-0", phylum === p.latin ? "opacity-100" : "opacity-0")} />
+                          <span className="truncate">{p.chinese}</span>
+                          <span className="latin ml-1 shrink-0 text-[10px] text-muted-foreground">{p.latin}</span>
+                          <span className="ml-auto shrink-0 tabular-nums text-xs text-muted-foreground">{p.count}</span>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+            {phylum && (
+              <span className="text-xs text-muted-foreground">
+                {facets?.phyla?.find((p) => p.latin === phylum)?.count ?? total} 个物种
+                <button
+                  className="ml-2 text-red-600/70 hover:text-red-600"
+                  onClick={() => setPhylum(null)}
+                  aria-label="清除门筛选"
+                >
+                  清除
+                </button>
+              </span>
+            )}
           </div>
         </div>
 

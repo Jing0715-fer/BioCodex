@@ -55,6 +55,7 @@ function AppShell() {
       } else if (s.view.type === "browse") {
         const sp = browseFilterToParams({
           kingdom: s.browseFilter.kingdom,
+          phylum: s.browseFilter.phylum,
           iucn: s.browseFilter.iucn,
           tag: s.browseFilter.tag,
           hasImage: s.browseFilter.hasImage,

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { getKingdomPaths } from "@/lib/bio-server";
+import { getKingdomPaths, getFlatTaxa, getPhylumPaths } from "@/lib/bio-server";
 import { kingdomOf } from "@/lib/bio-domain";
 
 export const dynamic = "force-dynamic";
@@ -19,6 +19,7 @@ export async function GET(req: NextRequest) {
   try {
     const sp = req.nextUrl.searchParams;
     const kingdom = sp.get("kingdom") || null;
+    const phylum = sp.get("phylum") || null;
     const iucn = sp.get("iucn") || null;
     const tag = sp.get("tag") || null;
     const hasImage = sp.get("hasImage") === "1";
@@ -29,6 +30,8 @@ export async function GET(req: NextRequest) {
 
     if (kingdom && !VALID_KINGDOMS.has(kingdom))
       return NextResponse.json({ success: false, error: "invalid kingdom" }, { status: 400 });
+    if (phylum && phylum.length > 64)
+      return NextResponse.json({ success: false, error: "invalid phylum" }, { status: 400 });
     if (iucn && !VALID_IUCN.has(iucn))
       return NextResponse.json({ success: false, error: "invalid iucn" }, { status: 400 });
 
@@ -51,6 +54,13 @@ export async function GET(req: NextRequest) {
     });
 
     const kingdomPaths = await getKingdomPaths();
+    const phylumPaths = await getPhylumPaths();
+    // 门元数据(中文名与物种计数下拉数据源)
+    const flat = await getFlatTaxa();
+    const phylumZh = new Map(flat.filter((t) => t.rank === "phylum").map((t) => [t.latinName, t.chineseName]));
+    const VALID_PHYLA = new Set(phylumZh.keys());
+    if (phylum && !VALID_PHYLA.has(phylum))
+      return NextResponse.json({ success: false, error: "invalid phylum" }, { status: 400 });
 
     const parseTags = (raw: string | null): string[] => {
       if (!raw) return [];
@@ -65,6 +75,7 @@ export async function GET(req: NextRequest) {
     let items = species.map((s) => ({
       ...s,
       kingdom: kingdomOf(kingdomPaths.get(s.id) || []),
+      phylum: phylumPaths.get(s.id)?.[0] || null,
       tags: parseTags(s.tags as unknown as string | null),
       sortOrder: s.sortOrder,
     }));
@@ -73,6 +84,10 @@ export async function GET(req: NextRequest) {
     if (iucn === "NE") items = items.filter((s) => !s.conservation);
     if (tag) items = items.filter((s) => s.tags.includes(tag));
     if (hasImage) items = items.filter((s) => !!s.image);
+
+    // 门级筛选前快照(门 facet 计数不受已选门影响,便于切换浏览)
+    const prePhylum = items;
+    if (phylum) items = items.filter((s) => s.phylum === phylum);
 
     if (sort === "name") items.sort((a, b) => a.chineseName.localeCompare(b.chineseName, "zh"));
     else if (sort === "iucn") {
@@ -97,6 +112,7 @@ export async function GET(req: NextRequest) {
       ncbiTaxId: s.ncbiTaxId,
       tags: s.tags,
       kingdom: s.kingdom,
+      phylum: s.phylum,
     }));
 
     return NextResponse.json({
@@ -106,10 +122,11 @@ export async function GET(req: NextRequest) {
       page,
       pageSize,
       hasMore: page * pageSize < total,
-      // 当前筛选下的界/等级计数(便于前端展示热度)
+      // 当前筛选下的界/等级/门计数(便于前端展示热度;门计数不受已选门影响)
       facets: {
         kingdoms: tally(items.map((s) => s.kingdom)),
         iucn: tally(items.map((s) => s.conservation || "NE")),
+        phyla: phylumFacets(prePhylum, phylumZh),
       },
     });
   } catch (e: any) {
@@ -121,4 +138,15 @@ function tally<T extends string>(arr: T[]): Record<string, number> {
   const m: Record<string, number> = {};
   for (const x of arr) m[x] = (m[x] || 0) + 1;
   return m;
+}
+
+function phylumFacets(items: { phylum: string | null }[], zh: Map<string, string>) {
+  const m = new Map<string, { latin: string; chinese: string; count: number }>();
+  for (const s of items) {
+    if (!s.phylum) continue;
+    const e = m.get(s.phylum) || { latin: s.phylum, chinese: zh.get(s.phylum) || s.phylum, count: 0 };
+    e.count++;
+    m.set(s.phylum, e);
+  }
+  return Array.from(m.values()).sort((a, b) => b.count - a.count || a.latin.localeCompare(b.latin));
 }

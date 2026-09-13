@@ -1233,3 +1233,72 @@ Stage Summary(当前项目状态):
   1. P0:generate-images.ts 集成 VLM 复审闸门(生即审,不合格不入库)→ 大规模补 679 缺图
   2. P1:重生成续跑 10 个 + 首页/目录卡片对新入库图渲染回归
   3. P2:expansion5 物种扩充(环节/多毛、蜘蛛深扩、等足目)
+
+---
+Task ID: E7-a
+Agent: general-purpose(多毛类扩充)
+Task: expansion5-polychaetes.ts 数据文件编写
+Work Log:
+- 背景快读(3 文件):worklog 尾章(789 物种/2379 单元,expansion5 缺口明确点名多毛类)/ types.ts TaxonSeed / expansion4-echinoderms.ts 模板;另查清单确认锚点:Annelida > Polychaeta > Phyllodocida > Nereididae 及已有三沙蚕(双齿围沙蚕/Nereis virens/杜氏阔沙蚕),拉丁+中文双查重零冲突(沙蠋/缨鳃虫/博比特虫等全部干净)
+- 网络核验:按既定策略尝试 z-ai web search 核验 Arenicolidae/Chaetopteridae 目级归属与学名,60 秒内两次调用均 429 限流(与 E5/E6 记录一致),遂转离线把握值直书;目级归属按任务规约执行(沙蠋科/多鳞虫科/吻沙蚕科挂广义 Phyllodocida、毛翼虫科挂 Sabellida、矶沙蚕目/蛰龙介目新建挂 Polychaeta)
+- 编写 src/data/seed/expansion5-polychaetes.ts:export const expansion5Polychaetes,34 条 = 11 物种 + 23 中间阶元(3 目 Sabellida/Eunicida/Terebellida + 9 科 + 11 属);五档案 11/11 全覆盖,authority 11/11 全录(林奈×3、帕拉斯×4、Gmelin 1791、Renier 1804、Ehlers 1868 等高把握项),conservation/ncbiTaxId 全省略(多毛类多 NE,宁缺毋滥)
+- 事实收敛(克制准确):博比特「俗名出自二十世纪末美国新闻逸闻」而非科学命名;沙蠋未采信「达尔文研究对象」说法(把握不足,改写为二百余年经典研究史);Glycera 巨大血红蛋白血液代用品、龙介虫苏格兰湖湾生物礁、圣米歇尔湾蜂窝礁等高把握特性保留;Harmothoe 词源存疑如实标注
+- 写 scripts/validate-expansion5-polychaetes.ts(套 expansion4 框架)并运行:首跑即全部通过——34 条文件内拉丁+中文零重复、与清单 2379 条拉丁零重复、中文重名零警告、parent 闭合、阶梯单调、祖链无环、长度区间全过、五档案 11/11;另做 34 个拉丁名跨全部 seed 文件 rg 粗查重零冲突
+- bunx tsc --noEmit 过滤 examples/skills 后输出为空(仅 4 条既有基线,与本文件无关)
+
+Stage Summary:
+- 产出 src/data/seed/expansion5-polychaetes.ts:34 条 = 11 物种 + 23 中间阶元(3 目/9 科/11 属);多毛纲库内 3→14 种,覆盖泥滩生物扰动(沙蠋)、管栖滤食(缨鳃虫/龙介虫/大旋鳃虫/毛翼虫)、生物造礁(蜂窝帚毛虫/大角蛰虫)、伏击捕食(博比特虫)、共栖鳞虫(多鳞虫/鳞沙蚕)、毒颚饵料(双鳃吻沙蚕);五项科学档案 11/11,authority 11,conservation 0/ncbiTaxId 0(宁缺毋滥)
+- 校验:validate-expansion5-polychaetes.ts 全部通过(零警告零错误);tsc 过滤后输出为空
+- 待主代理集成:scripts/seed-incremental.ts 需追加 `import { expansion5Polychaetes } from "../src/data/seed/expansion5-polychaetes"` 并展开进 newTaxa 数组统一入库(单独入库预计物种 789→800、总条目 2379→2413);不确定项:Arenicolidae/Chaetopteridae 目级归属按任务规约挂接,若后续对齐 WoRMS 最新系统需微调 parent;物种配图走 generate-images.ts 并过 VLM 审计闸门
+
+---
+Task ID: E7-b
+Agent: general-purpose(蜘蛛深扩)
+Task: expansion5-spiders.ts 数据文件编写
+Work Log:
+- 开工三读:worklog 尾章(E4-E6:789 物种/2432 单元,z-ai 全家桶 429 持续)/ types.ts TaxonSeed 接口 / expansion4-echinoderms.ts 格式范本与其 validate 校验框架
+- 锚点核验:bun scripts/export-taxa.ts 刷新 /tmp/taxa-inventory.tsv 至 2432 条(现库最新);确认 Arachnida(蛛形纲)/Araneae(蜘蛛目)与 Araneidae/Thomisidae/Salticidae/Agelenidae 四科已在库可直接作 parent;10 个既有蜘蛛物种零重复;11 物种、11 新属、6 新科之拉丁与中文名对「2432 清单 ∪ 全部种子文件」双查零冲突;并行 expansion5 文件尚不存在,本文件为首路
+- 学名核验:z-ai web_search 三次尝试(含 8 秒退避重试)均 429 限流,即按既定策略「收紧核验时限+离线把握值直书」放弃网络核验;authority 11/11 全填(Clerck 1757×4、Scopoli 1772、Rossi 1790、Füssli 1775、O. Pickard-Cambridge 1874、Dönitz 1877、L. Koch 1878、Wang, Peng & Xie 1993),括号遵循「改属后加括号」惯例;ncbiTaxId 与 IUCN 无高把握项一律从缺(宁缺毋滥)
+- 编写 src/data/seed/expansion5-spiders.ts 主体:export const expansion5Spiders: TaxonSeed[],28 条 = 11 物种 + 17 中间阶元(6 科/11 属),十分块:①园蛛科+金蛛属横纹金蛛 ②新建球蛛科+寇蛛属间斑寇蛛 ③蟹蛛科+梢蛛属弓足梢蛛 ④跳蛛科+孔雀跳蛛属/虎跳蛛属(孔雀跳蛛、虎跳蛛)⑤漏斗蛛科+隅蛛属家隅蛛 ⑥新建水蛛科水蛛 ⑦新建捕鸟蛛科+捕鸟蛛属虎纹捕鸟蛛 ⑧新建地蛛科+地蛛属卡氏地蛛 ⑨新建猫蛛科+猫蛛属斜纹猫蛛 ⑩新建幽灵蛛科+幽灵蛛属长踦幽灵蛛
+- 规范执行:物种五项科学档案 11/11 全覆盖,毒理表述克制(α-黑寡妇毒素=作用于突触前钙通道、虎纹捕鸟蛛毒素-I=N 型钙通道阻滞工具肽、水蛛潜水钟=物理鳃扩散供氧);tags 全用既有中文词表(剧毒/毒性研究/城市适应种/明星物种/生物防治/害虫天敌/模式生物/观赏/环境指示种/有毒动物),零英文 flagship
+- 写 scripts/validate-expansion5-spiders.ts 并运行:首跑即零错误零警告——28 条文件内拉丁+中文零重复、与 2432 清单零重复、parent 闭合(清单∪本文件)、阶梯单调(family<order=Araneae)、祖链无环、长度区间全过(description 60-140 且 2-3 句/morphology-habitat-distribution 20-60/五档案 20-100/中间阶元 30-80);bunx tsc --noEmit 过滤 examples/skills 基线后输出为空
+
+Stage Summary:
+- 产出:src/data/seed/expansion5-spiders.ts:28 条 = 11 物种 + 17 新中间阶元(新科 6:Theridiidae 球蛛科、Argyronetidae 水蛛科、Theraphosidae 捕鸟蛛科、Atypidae 地蛛科、Oxyopidae 猫蛛科、Pholcidae 幽灵蛛科;新属 11:Argiope、Latrodectus、Misumena、Maratus、Salticus、Tegenaria、Argyroneta、Ornithoctonus、Atypus、Oxyopes、Pholcus);蜘蛛目库内 10→21 种;authority 11,ncbiTaxId 0,IUCN 0(宁缺毋滥);校验脚本零错误零警告
+- 不确定项:①web_search 全程 429,拉丁学名与命名者为离线把握值(Maratus volans 命名者括号惯例按 ALA/WSC 常见写法直书;Pholcus phalangioides 中文名「长踦幽灵蛛」沿任务清单)②Argyronetidae 依任务指令建独立科,近代 WSC 常将 Argyroneta 并入卷叶蛛科,科描述已如实注明此分歧 ③Misumena vatia 中国北方记录为谨慎表述
+- 待主代理集成:scripts/seed-incremental.ts 追加 `import { expansion5Spiders } from "../src/data/seed/expansion5-spiders"` 并展开进 newTaxa 数组统一入库(预计 789→800 物种、2432→2460 单元);物种配图走 generate-images.ts SCOPE=all 或 image-search 恢复后补齐(新图须过 VLM 审计闸门)
+
+---
+Task ID: E7-c
+Agent: general-purpose(等足目新建)
+Task: expansion5-isopods.ts 数据文件编写 —— 甲壳动物等足目全新种子数据(库内空白阶元,7 物种+目/科/属)
+
+Work Log:
+- 锚点核验:等足目及全部拟建阶元在 /tmp/taxa-inventory.tsv(2432 条)中零存在;DB 锚点 Crustacea(甲壳亚门)/Malacostraca(软甲纲)确认在库,Isopoda 直接挂 Malacostraca,科一律直挂等足目(项目无 suborder 阶元);src/data 全量 grep 确认具足虫/潮虫/鼠妇/海蟑螂/栉虱等中文名零冲突
+- 网络核验改道:z-ai web_search 持续 429,改走直连公开 API——GBIF Backbone 核验 7 物种学名+命名者全部 accepted(authority 括号依原组合是否变更:B. giganteus 无括/C. exigua 无括/A. vulgare 有括/P. scaber 无括/L. exotica 无括/A. aquaticus 有括/I. balthica 有括);NCBI E-utilities 核验 ncbiTaxId 6/7(Idotea balthica 不在 NCBI 分类库,宁缺毋滥省略);zh.wikipedia API 核对大王具足虫(W 大西洋 310-2140 m、1879 Milne-Edwards 定名、1891 首获雌体、巨型深水虱别名)、缩头水虱(取代鱼舌、1983 Brusca & Gilligan 唯一器官替代案例)及各科中文名译法
+- 译名决策:科属中文名依任务书约定(斑水虱科/缩头水虱科/卷甲虫科/鼠妇科/海蟑螂科/栉水虱科);zh.wikipedia 存在异译(漂水虱科/缩头鱼虱科/球木虱科),按任务书采前者;Idotea 一支中文无现成标准名,自拟伊蝶水虱科/伊蝶水虱属/波罗的海伊蝶水虱(属名 Idotea 相传源自希腊神话海神女伊多忒亚),俗名「波罗的海等足虫」已在物种描述中注明
+- 编写 src/data/seed/expansion5-isopods.ts:export const expansion5Isopods,共 22 条 = 7 物种 + 15 中间阶元(1 目/7 科/7 属),覆盖等足类完整生态谱系:深海食腐(大王具足虫·深海孤岛法则)、鱼类寄生(缩头水虱·食舌虱)、陆生卷球(普通卷甲虫·沃尔巴克体雌化模型)、土壤污染指示(粗糙鼠妇·生态毒理经典)、海岸半陆生(海蟑螂·海陆营养传递)、淡水水质指示(水栉虱·洞穴平行演化)、海藻场食藻(波罗的海伊蝶水虱·2022 Science 鳗草传粉首例);五项科学档案 7/7 全覆盖,ncbiTaxId 6,conservation 0(七种皆无 IUCN 评估,宁缺毋滥),tags 复用既有词表(深海物种/寄生虫/入侵物种/经典实验材料/环境指示种)
+- 校验闭环:自建 scripts/validate-expansion5-isopods.ts(文件内拉丁+中文双唯一/与 2432 条清单零冲突/parent 闭合∪阶梯单调/祖链无环/长度区间/科学档案齐全/禁用旗舰标签),首跑仅 Isopoda 目级 description 84 字超限,精简后全部通过零警告零错误;bunx tsc --noEmit 输出仅 examples/skills 固有基线,新文件零错误
+
+Stage Summary:
+- 产出 src/data/seed/expansion5-isopods.ts:22 条 = 7 物种 + 15 中间阶元(1 目/7 科/7 属);校验脚本 scripts/validate-expansion5-isopods.ts 全部通过;等足目自库内空白整目新建
+- 不确定项:①Idotea 一支中文名为自拟译名(伊蝶水虱科/属+波罗的海伊蝶水虱),俗名已注明,待权威译名出现可再改;②三个科中文名与 zh.wikipedia 异译(斑水虱科↔漂水虱科/缩头水虱科↔缩头鱼虱科/卷甲虫科↔球木虱科),依任务书采前者;③Armadillidium/Porcellio「全基因组资源近年建立」为保守模糊表述,未引用具体文献;④I. balthica 复合种种界仍在学术厘定中,描述已模糊化处理
+- 待主代理集成:scripts/seed-incremental.ts 需追加 `import { expansion5Isopods } from "../src/data/seed/expansion5-isopods"` 并展开进 newTaxa 数组统一入库(预计物种 789→796、分类单元 2432→2454);物种配图待 image API 恢复后由 generate-images.ts(SCOPE=all)补齐,新图须过 VLM 审计闸门
+
+---
+Task ID: E7-inprogress(下一阶段开发+补配图·中期记录,防进度丢失)
+Agent: main
+Task: expansion5 三文件入库(789→818 物种)+ 目录门级筛选新功能 + generate-images VLM 闸门集成 + 后台补图循环
+
+Work Log:
+- 【健康检查】cron 巡检已消失→重建 job 383203(15 分钟 webDevReview,含 API 探测/补图/一致性核验指令);DB 105 条 image 引用与磁盘 100% 一致(salix-babylonica 404 为陈旧会话请求,无害)
+- 【P0 完成:generate-images.ts V2】集成 E6 验证过的闭环——每张生成图必须过 VLM 科学性复审(match 且无解剖硬伤)才入库,fail 隔离 rejected/ 物种保持占位图;磁盘存量未入库文件也先审计;断点 /tmp/gen-progress.jsonl(id→accepted|rejected,rejected 不再重试);429 三连熔断;tsc 通过
+- 【expansion5 物种扩充】三子代理并行(E7-a/b/c)产出:expansion5-polychaetes(11 种+23 阶元:沙蠋/缨鳃虫/圣诞树蠕虫/龙介虫/毛翼虫/蜂窝帚毛虫/博比特虫/多鳞虫/鳞沙蚕/双鳃吻沙蚕/大角蛰虫)、expansion5-spiders(11 种+17 阶元:横纹金蛛/间斑寇蛛/弓足梢蛛/孔雀跳蛛/虎跳蛛/家隅蛛/水蛛/虎纹捕鸟蛛/卡氏地蛛/斜纹猫蛛/长踦幽灵蛛)、expansion5-isopods(7 种+15 阶元:大王具足虫/缩头水虱/普通卷甲虫/粗糙鼠妇/海蟑螂/水栉虱/波罗的海伊蝶水虱,Isopoda 全新挂 Malacostraca);各带校验脚本零错;增量入库 789→818 物种/2432→2516 单元(拓扑 1 轮,幂等跳过 1167)
+- 【新种旗舰标记】8 个高辨识度新种追加 flagship 标签(大王具足虫/孔雀跳蛛/博比特虫/圣诞树蠕虫/水蛛/虎纹捕鸟蛛/横纹金蛛/间斑寇蛛),flagship 84→92
+- 【P0 完成:目录门级(PHYLUM)筛选】新功能:bio-server getPhylumPaths 缓存;/api/species 加 phylum 参数+facets.phyla(计数不受已选门影响,便于切换);store BrowseState.phylum 贯通(hash 分享/恢复/清除全链);browse-view Popover+Command 可搜索 Combobox(48 门,中文名+拉丁+计数,界切换联动清门防矛盾组合);分享链接含 phylum;API 实测 Arthropoda 129 种/Annelida 20 种(9 旧+11 新)/组合 q 命中;浏览器 E2E:搜索"环节"→选中→20 种含沙蚕/沙蠋;hash #browse?phylum=Arthropoda&iucn=NE 直达 125 种;移动端 390px 无溢出;全新加载 console 零错误
+- 【QA】新种详情页(大王具足虫)五档案齐全+占位图正确+面包屑含全新等足目链路;首页 stats 818/2516 自动更新;recent API 新种上榜
+- 【补图】z-ai vision/image 双 429 持续→后台补图循环已启(/tmp/gen-loop.log,9 轮×18 种,BATCH=18 SCOPE=all,脚本自带 429 退避+熔断,窗口一开自动补)
+
+Stage Summary(中期):
+- 【稳定】818 物种/2516 单元/105 配图;expansion5 三主题(多毛深扩/蜘蛛深扩/等足目)完成入库;门级筛选上线;VLM 闸门版补图脚本就绪+后台循环运行中
+- 下一阶段:补图循环出结果→抽查新入库图详情页;worklog 终稿+git push

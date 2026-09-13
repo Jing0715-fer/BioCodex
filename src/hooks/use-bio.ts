@@ -186,10 +186,12 @@ export interface SpeciesItem {
   ncbiTaxId: number | null;
   tags: string[] | null;
   kingdom: string;
+  phylum?: string | null;
 }
 
 export interface SpeciesBrowseParams {
   kingdom?: string | null;
+  phylum?: string | null;
   iucn?: string | null;
   tag?: string | null;
   hasImage?: boolean;
@@ -203,12 +205,17 @@ export interface SpeciesPage {
   page: number;
   pageSize: number;
   hasMore: boolean;
-  facets: { kingdoms: Record<string, number>; iucn: Record<string, number> };
+  facets: {
+    kingdoms: Record<string, number>;
+    iucn: Record<string, number>;
+    phyla: { latin: string; chinese: string; count: number }[];
+  };
 }
 
 export function useSpeciesBrowse(params: SpeciesBrowseParams) {
   const qs = new URLSearchParams();
   if (params.kingdom) qs.set("kingdom", params.kingdom);
+  if (params.phylum) qs.set("phylum", params.phylum);
   if (params.iucn) qs.set("iucn", params.iucn);
   if (params.tag) qs.set("tag", params.tag);
   if (params.hasImage) qs.set("hasImage", "1");

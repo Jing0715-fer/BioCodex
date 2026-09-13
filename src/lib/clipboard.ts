@@ -28,6 +28,7 @@ export async function copyText(text: string): Promise<boolean> {
 /** 图鉴目录筛选 → URLSearchParams */
 export function browseFilterToParams(p: {
   kingdom?: string | null;
+  phylum?: string | null;
   iucn?: string | null;
   tag?: string | null;
   hasImage?: boolean;
@@ -36,6 +37,7 @@ export function browseFilterToParams(p: {
 }): URLSearchParams {
   const sp = new URLSearchParams();
   if (p.kingdom) sp.set("kingdom", p.kingdom);
+  if (p.phylum) sp.set("phylum", p.phylum);
   if (p.iucn) sp.set("iucn", p.iucn);
   if (p.tag) sp.set("tag", p.tag);
   if (p.hasImage) sp.set("hasImage", "1");

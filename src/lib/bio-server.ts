@@ -23,6 +23,7 @@ export interface TreeNode extends FlatTaxon {
 let flatCache: { data: FlatTaxon[]; at: number } | null = null;
 let treeCache: { data: TreeNode[]; at: number } | null = null;
 let rankCache: { data: Map<string, string[]>; at: number } | null = null; // id -> kingdom path
+let phylumCache: { data: Map<string, string[]>; at: number } | null = null; // id -> phylum latin
 
 export const CACHE_TTL = 5 * 60 * 1000;
 
@@ -89,6 +90,28 @@ export async function getKingdomPaths(force = false): Promise<Map<string, string
   };
   for (const t of flat) walk(t.id);
   rankCache = { data: memo, at: Date.now() };
+  return memo;
+}
+
+/** id -> 所属门拉丁名(单元素路径,用于目录门级筛选) */
+export async function getPhylumPaths(force = false): Promise<Map<string, string[]>> {
+  if (!force && phylumCache && Date.now() - phylumCache.at < CACHE_TTL) return phylumCache.data;
+  const flat = await getFlatTaxa(force);
+  const byId = new Map(flat.map((t) => [t.id, t]));
+  const memo = new Map<string, string[]>();
+  const walk = (id: string): string[] => {
+    if (memo.has(id)) return memo.get(id)!;
+    const node = byId.get(id);
+    let res: string[] = [];
+    if (node) {
+      if (node.rank === "phylum") res = [node.latinName];
+      else if (node.parentId) res = walk(node.parentId);
+    }
+    memo.set(id, res);
+    return res;
+  };
+  for (const t of flat) walk(t.id);
+  phylumCache = { data: memo, at: Date.now() };
   return memo;
 }
 
