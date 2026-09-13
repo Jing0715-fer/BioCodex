@@ -888,3 +888,110 @@ Stage Summary(当前项目状态):
   1. P0 补图(429 恢复后:BATCH=999 SCOPE=all CONCURRENCY=2 timeout 580 bun scripts/generate-images.ts,分多轮)
   2. P1:LLM 恢复后实测 Agent 在线模式(含档案引用质量);搜索建议下拉可加档案字段高亮
   3. P2:详情页「科学档案」区块可加锚点跳转(引用区块链接到档案);对比视图纳入 5 档案字段对比;目录卡片档案徽标
+
+---
+Task ID: 4-b
+Agent: general-purpose
+Task: 鱼纲深扩数据编写(expansion3-fishes.ts)
+
+Work Log:
+- 背景阅读:worklog 开头 120 行 + 末 3 章节(现状 488 物种/1685 分类单元/科学档案 100%)、/tmp/taxa-inventory.tsv 全量 1685 条清单、types.ts TaxonSeed 接口、expansion2-vertebrates.ts 风格参考(青鳉/斑马鱼/罗非鱼条目)
+- 逐项查重任务推荐清单(与 1685 条清单逐一核对 latin,拉丁+中文双查):已存在跳过——尼罗罗非鱼/红鳍东方鲀/翻车鱼(Mola mola)/日本鳗鲡/中华鲟/白鲟/达氏鳇/大西洋鲑/虹鳟/草鱼/鲢/鲸鲨/噬人鲨(大白鲨)/路氏双髻鲨;已有中间阶元直接 parent 引用——Perciformes/Tetraodontiformes/Tetraodontidae/Anguillidae(Anguilla)/Acipenseridae(Acipenser)/Polyodontidae/Salmonidae(Oncorhynchus)/Cyprinidae/Cypriniformes/Pleuronectiformes/Cichlidae/Lamniformes/Lamnidae/Actinopterygii(辐鳍亚纲)/Chondrichthyes(软骨鱼纲)等清单已有单元直接 parent 引用
+- 编写 src/data/seed/expansion3-fishes.ts:26 物种 + 35 中间阶元(共 61 条),8 大分块:
+  ① 鲈形目 7 种:日本真鲈(海鲈)/翘嘴鳜(桂花鱼)/眼斑双锯鱼(公子小丑鱼)/布氏朴丽鱼(维多利亚湖慈鲷辐射模型)/真鲷/斜带石斑鱼/尼罗尖吻鲈(维多利亚湖入侵经典)
+  ② 鲀形目 2 种:六斑刺鲀(膨体防御)/绿鳍斑鲀(基因组 340 Mb 最小脊椎动物之一)
+  ③ 鳗鲡目+鮟鱇目 3 种:欧洲鳗鲡(CR,马尾藻海-玻璃鳗走私)/花鳗鲡(国家二级)/霍氏角鮟鱇(性寄生二态,2020 年 MHC 基因丢失发现)
+  ④ 鲟形目 2 种:俄罗斯鲟(CR,2023 年鲟类全 CR)/美洲匙吻鲟(VU,电感受桨吻)
+  ⑤ 鲑形目 3 种:银大麻哈鱼(银鲑)/大麻哈鱼(狗鲑,黑龙江秋汛)/香鱼(年鱼)
+  ⑥ 鲤形目 5 种:青鱼(四大家鱼补齐 1/2)/鳙(补齐 2/2,至此四大家鱼集齐)/团头鲂(武昌鱼,1955 易伯鲁定名)/胭脂鱼(CR 中国特有)/稀有鮈鲫(中国本土模式鱼)
+  ⑦ 鲽形目 1 种:半滑舌鳎(2014 ZW 性染色体基因组经典)
+  ⑧ 软骨鱼纲 3 种:双吻前口蝠鲼(EN,CITES 附录 II)/姥鲨(EN,第二大鱼)/尖吻鲭鲨(VU,区域温血)
+- 新中间阶元 35:2 目(鮟鱇目 Lophiiformes/鲼形目 Myliobatiformes)、13 科(真鲈科/鳜科/雀鲷科/鲷科/石斑鱼科/尖吻鲈科/刺鲀科/角鮟鱇科/香鱼科/亚口鱼科/舌鳎科/蝠鲼科/姥鲨科)、20 属;全部科属描述 30-80 字,香鱼科按 Catalog of Fishes 现行体系挂 Salmoniformes
+- 每物种 9 字段齐备:description 60-140 字 2-3 句/morphology/habitat/distribution 20-60 字/etymology/discovery/genomeInfo/ecologyRole/researchValue 全 26×5 覆盖;科学性把关:命名人逐一核对(Walbaum 1792/Basilewsky 1855/Yih 1955/Bleeker 1864/Krøyer 1845 等,括号使用按原始组合归属)、基因组只录高把握数值(绿鳍斑鲀 340 Mb/银鲑 2.4 Gb/半滑舌鳎 0.5 Gb ZW/姥鲨约 3 Gb 量级)、不确定一律定性(蝠鲼 3-4 Gb 量级)或省略
+- ncbiTaxId 仅收高把握 3 个:绿鳍斑鲀 117493/银大麻哈鱼 8023/大麻哈鱼 8018;IUCN 8 条:CR 3(欧洲鳗鲡/俄罗斯鲟/胭脂鱼)、EN 2(巨型蝠鲼/姥鲨)、VU 2(美洲匙吻鲟/尖吻鲭鲨)、LC 1(尼罗尖吻鲈);标签沿用库内词表(模式生物/经济物种/驯化物种/入侵物种/观赏鱼类/国家二级保护/中国特有/濒危物种/深海物种/旗舰物种,未用 flagship)
+- 自写 scripts/validate-expansion3-fishes.ts(bun 运行,复用 expansion2 校验框架):与 1685 清单合并唯一性(拉丁+中文)/parent 闭合(清单∪本文件)/阶元阶梯单调(兼容目挂辐鳍亚纲)/长度区间/conservation 与 ncbiTaxId 合法性/禁用 flagship/祖链环检测;首跑揪出 3 处问题(鳙 etymology 93 字超限+两条描述句数不足)修复后复跑 ✓ 全部校验通过
+- bunx tsc --noEmit 2>&1 | grep -v 'examples/\|skills/':零输出(零错误);全项目现存 4 条 error 均为 examples/skills 固有,与本文件无关
+- 零共享文件修改:未动 seed-incremental.ts(避免与 4-a/4-c 并行子代理冲突,沿用 3-e/5-d 惯例)
+
+Stage Summary:
+- 产出 src/data/seed/expansion3-fishes.ts:26 物种 + 35 中间阶元(2 目/13 科/20 属,共 61 条),涵盖辐鳍 23 种(鲈形/鲀形/鳗鲡/鮟鱇/鲟形/鲑形/鲤形/鲽形 8 目)+ 软骨鱼 3 种(鲼形/鼠鲨/姥鲨)
+- 校验结果:清单零重复(拉丁+中文)、parent 全闭合、26×5 科学档案 100%、IUCN 8/26、ncbiTaxId 3 个高把握;validate-expansion3-fishes.ts 可复用
+- tsc 通过(grep -v examples/skills 零输出);本任务未执行入库、未改共享文件
+- ⚠ 待主代理集成:scripts/seed-incremental.ts 需追加 `import { expansion3Fishes } from "../src/data/seed/expansion3-fishes"` 并展开进 newTaxa 数组,再执行 bun scripts/seed-incremental.ts 增量入库(预期 488→514 物种)
+
+---
+Task ID: 4-d
+Agent: general-purpose
+Task: 哺乳+爬行两栖深扩数据编写
+
+Work Log:
+- 背景阅读:worklog 开头 120 行、src/data/types.ts(TaxonSeed 接口)、expansion2-vertebrates.ts 风格模板(块注释/字段长度/科学性写法)、/tmp/taxa-inventory.tsv(1685 条,rank\tlatin\tchinese)
+- 查重:逐条核对 inventory——推荐名单中已有物种全部跳过(马铁菊头蝠/中华菊头蝠以外的翼手、绿海龟/玳瑁/大鲵/东方蝾螈/中华眼镜蛇/银环蛇/竹叶青蛇/眼镜王蛇/缅甸蟒/豚鼠/小家鼠/褐家鼠/亚洲黑熊/马来熊/中华穿山甲/中华蟾蜍);28 个新物种 latin 与 39 个中间阶元 latin 均与清单零重复(Sciuridae/Mustelidae/Colubridae/Testudinidae/Hylidae/Dicroglossidae/Vespertilionidae/Pteropodidae/Phyllostomidae/Agamidae/Iguanidae/Heterocephalidae/Castoridae 及全部属名 rg 复核不存在)
+- 编写 src/data/seed/expansion3-mammals-herps.ts:export const expansion3MammalsHerps: TaxonSeed[],共 67 条(28 物种 + 26 属 + 13 科),按七大块组织:啮齿目 7(欧亚河狸/北美河狸/黑线毛足鼠(冬白仓鼠)/黑线仓鼠/美洲旱獭(WHV 肝炎模型)/欧黄鼠/裸鼹鼠)、翼手目 4(埃及果蝠/大棕蝠/中华菊头蝠(挂已有 Rhinolophus)/普通吸血蝠)、食肉目 3(蜜獾/伶鼬(最小食肉目)/貉(挂已有 Canidae))、有鳞目 6(虎斑颈槽蛇(食毒用毒)/莽山原矛头蝮/极北蝰/尖吻蝮(蕲蛇)/鬃狮蜥/绿鬣蜥)、龟鳖目 3(乌龟(中华草龟)/鼋/四爪陆龟)、有尾目 2(镇海棘螈/火蝾螈)、无尾目 3(虎纹蛙/棘胸蛙/欧洲雨蛙)
+- parent 闭合策略:13 个新科挂 inventory 已有目(Rodentia/Chiroptera/Carnivora/Squamata/Testudines/Anura);26 个新属挂新科或已有科(Cricetidae/Viperidae/Geoemydidae/Trionychidae/Salamandridae/Canidae);中华菊头蝠 parent 直挂已有 Rhinolophus 属,零新建重复阶元
+- 每物种 description(60-140 字 2-3 句)/morphology/habitat/distribution(20-60 字)/etymology/discovery(30-100 字)/genomeInfo/ecologyRole/researchValue(20-100 字)全覆盖;ncbiTaxId 仅裸鼹鼠 10181(高把握);conservation 24/28(LC 13/NT 1/CR 3/EN 1/VU 4,尖吻蝮/鬃狮蜥/绿鬣蜥/黑线仓鼠外其余均有);科学数据把关:河狸重引入史与火地岛入侵、WHV 1978、裸鼹鼠 2011 基因组、埃及果蝠 2007 马尔堡分离、虎斑颈槽蛇蟾毒富集跨代传递、鬃狮蜥 ZZ 高温性反转、Bsal 火蝾螈 2013、鼋背盘逾米重达百公斤等均按高把握直书,不确定的 IUCN 等级一律省略
+- 写校验脚本 scripts/validate-expansion3-mammals-herps.ts 并运行:67 条文件内零重复、与清单零重复、parent 全闭合(清单∪本文件)、阶元阶梯单调、字段长度区间全过 → ALL CHECKS PASSED(28 物种/26 属/13 科,清单 1685 条)
+- bunx tsc --noEmit:全项目仅剩 examples/websocket 2 处 + skills/ 2 处固有报错(与 worklog 既往记录一致的 4 条基线),expansion3 相关零类型错误;本任务未修改任何共享文件(seed-incremental.ts/enrich-taxa.ts/schema)
+
+Stage Summary:
+- 产出 src/data/seed/expansion3-mammals-herps.ts:67 条 = 28 物种 + 39 中间阶元(13 科/26 属),五项科学档案字段 100% 覆盖,校验脚本 scripts/validate-expansion3-mammals-herps.ts 可复用,tsc 零新增错误
+- 待主代理集成:scripts/seed-incremental.ts 追加 import { expansion3MammalsHerps } 并展开入增量数组后统一入库(入库后预计 488→516 物种、1685→1752 条);物种配图走 generate-images.ts SCOPE=all 或 image-search 恢复后补齐
+
+---
+Task ID: 4-e
+Agent: general-purpose
+Task: 被子植物深扩数据编写
+
+Work Log:
+- 背景阅读:worklog 开头 120 行、src/data/types.ts(TaxonSeed 接口)、expansion2-vertebrates.ts 与 expansion2-plants.ts 风格模板(块注释/字段长度/authority 简式/tags 词表)、/tmp/taxa-inventory.tsv(1685 条,rank\tlatin\tchinese)
+- 查重(rg 全清单+全 seed 文件):任务推荐名单中已有物种全部跳过——玉米/水稻/小麦/高粱/粟/大麦/燕麦/黑麦/毛竹/大豆/花生/番茄/马铃薯/烟草/拟南芥/苹果/桃/梅/茶/山茶/咖啡/可可/葡萄/桑/铁皮石斛/大花杓兰/墨兰/蝴蝶兰/陆地棉(含 expansion-plants 与 expansion2-plants 两轮已扩部分);27 个新物种 latin 与 24 个中间阶元 latin 与清单零重复,中文名零重名;另与并行产出的 expansion3-fishes.ts / expansion3-mammals-herps.ts 交叉 comm 查重,零冲突
+- 编写 src/data/seed/expansion3-plants.ts:export const expansion3Plants: TaxonSeed[],共 51 条(27 物种 + 23 属 + 1 科),七大块:禾本科 5(甘蔗/狗尾草(C4 模式,挂已有 Setaria)/二穗短柄草/薏苡/黍)、豆科 5(蒺藜苜蓿(共生固氮模式)/豌豆(孟德尔)/蚕豆/紫云英/刺槐(入侵+蜜源))、茄科 4(辣椒/曼陀罗/枸杞/茄子(挂已有 Solanum))、十字花科 5(芸薹/甘蓝(U 三角)/萝卜/荠菜(新一代模式)/菘蓝(板蓝根))、兰科 3(杏黄兜兰(CR 旗舰)/香荚兰/天麻(菌异营养))、蔷薇科 4(白梨/杏(挂已有 Prunus)/草莓(八倍体)/枇杷)、大戟科新链 1(橡胶树,新科 Euphorbiaceae 挂已有 Malpighiales)
+- parent 闭合:Poaceae/Fabaceae/Solanaceae/Brassicaceae/Orchidaceae/Rosaceae 均直接引用清单已有科;Setaria/Solanum/Prunus 三个已有属直接挂新种;Euphorbiaceae 为唯一新科(挂金虎尾目 Malpighiales);23 个新属描述 42-58 字单句
+- 每物种五项科学档案(etymology/discovery/genomeInfo/ecologyRole/researchValue)+ morphology/habitat/distribution 全覆盖,description 60-140 字 2-3 句;authority 采用 expansion2-plants 简式(L./Gaertn./(L.) P.Beauv./Rehder/Bl. 等,不确定年份一律不标);ncbiTaxId 仅录 4 条高把握值(蒺藜苜蓿 3880/豌豆 3885/二穗短柄草 15368/辣椒 4072),其余宁缺毋滥
+- 基因组数据把关(仅录高把握者,其余定性):苜蓿 2n=16 约 500 Mb(2011)、短柄草 2n=10 约 272 Mb(2010)、豌豆 2n=14 约 4.4 Gb(2019 染色体级)、蚕豆 2n=12 逾 13 Gb(2023,二倍体之最)、辣椒 2n=24 约 3.5 Gb(2014)、芸薹 2n=20 AA 约 500 Mb(2011)、甘蓝 2n=18 CC 约 600 Mb、森林草莓约 240 Mb(2011)+栽培种八倍体 2n=8x=56 染色体级组装 2019、白梨 2n=34 约 500 Mb(2013)、甘蔗栽培种 2n≈100-120 约 10 Gb+割手密 2018、杏与桃相近约 220 Mb、橡胶树 2n=36 约 1.5 Gb;荠菜/紫云英/枸杞/香荚兰/天麻/兜兰/薏苡/黍/刺槐/曼陀罗/菘蓝等无十足把握的数值一律定性表述
+- tags 按任务要求+库内既有词表:模式生物(狗尾草/短柄草/蒺藜苜蓿/荠菜/豌豆)、经济作物(作物系,细分糖料/粮谷/蔬菜/果树/香料子标签)、药用(枸杞/天麻/菘蓝/曼陀罗/薏苡/枇杷)、入侵物种(刺槐)、旗舰物种(杏黄兜兰——用字面量"旗舰物种"而非"flagship"键,后者绑定首页统计与配图管线,扩充数据禁用,与 validate-expansion2-plants 规则一致)
+- 写校验脚本 scripts/validate-expansion3-plants.ts 并运行:首跑揪出 3 处超限(甘蔗 etymology 82 字/香荚兰 description 141 字/草莓 genomeInfo 85 字),修剪后复跑 ALL CHECKS PASSED(51 条文件内零重复、与清单 1685 条零重复、parent 全闭合、阶元阶梯单调、字段长度区间全过、flagship 键零使用)
+- bunx tsc --noEmit 2>&1 | grep -v 'examples/\|skills/':输出为空(零错误);全项目仅剩 examples/websocket 2 处 + skills/ 2 处固有基线报错(与既往记录一致),expansion3-plants 与校验脚本零类型错误;本任务未修改任何共享文件(seed-incremental.ts/enrich-taxa.ts/schema/页面组件)
+
+Stage Summary:
+- 产出 src/data/seed/expansion3-plants.ts:51 条 = 27 物种 + 24 中间阶元(1 科/23 属),五项科学档案字段 100% 覆盖,校验脚本 scripts/validate-expansion3-plants.ts 可复用,tsc 过滤后零错误
+- 待主代理集成:scripts/seed-incremental.ts 追加 import { expansion3Plants } 并展开入增量数组后统一入库(与 4-b/4-d 的 expansion3-fishes/mammals-herps 一并入库;本文件单独入库预计 +27 物种/+24 阶元);新物种配图走 generate-images.ts SCOPE=all 或 image-search 恢复后补齐
+
+---
+Task ID: 4-c
+Agent: general-purpose
+Task: 鸟纲深扩充数据编写
+
+Work Log:
+- 背景阅读:worklog 开头 120 行、末两章节(现状 488 物种/1685 单元/档案 100%)、types.ts TaxonSeed 接口、expansion2-vertebrates.ts 全文风格模板(块注释/字段顺序/长度标准)
+- 查重(/tmp/taxa-inventory.tsv,1685 条):任务推荐名单中 5 种已在库——雕鸮 Bubo bubo、雪鸮 Bubo scandiacus、长耳鸮 Asio otus(Asio 属)、帝企鹅 Aptenodytes forsteri、普通翠鸟 Alcedo atthis,全部跳过;以同科/属新种替补(灰林鸮/纵纹腹小鸮/斑头鸺鹠/王企鹅);远东山雀 Parus minor 在库而大山雀 P. major 为分立种,予以收录
+- 网络核验(GBIF Backbone API + NCBI eutils 逐条 esearch/esummary 回名比对):27 物种命名者与 TaxID 全部核实(Turdus mandarinus=Bonaparte 1850、Mergus squamatus 采 IUCN 惯用 Gould 1862、Emberiza aureola=Pallas 1773、震旦鸦雀=David 1872 等);IUCN 等级仅录高把握值(黄胸鹀 CR、灰鹦鹉 EN、紫蓝金刚鹦鹉 VU、南跳岩企鹅 VU、卷羽鹈鹕 NT、中华秋沙鸭 EN,余 LC);震旦鸦雀 NT/VU 存疑,conservation 字段宁缺毋滥省略,以国家二级标签+文案承载
+- 编写 src/data/seed/expansion3-birds.ts:export const expansion3Birds: TaxonSeed[],68 条 = 27 物种 + 41 中间阶元(新目 2:Apodiformes 雨燕目/Cuculiformes 鹃形目;新科 15:Alaudidae、Paradoxornithidae、Leiothrichidae、Turdidae、Certhiidae、Regulidae、Sturnidae、Emberizidae、Psittacidae(真鹦鹉科,与已有 Psittaculidae 鹦鹉科区分)、Cacatuidae、Tytonidae、Apodidae、Trochilidae、Pelecanidae、Cuculidae;新属 24);已存在的科/属(Phasianidae、Anatidae、Ciconia、Parus、Strigidae、Spheniscidae、Aptenodytes 等)直接 parent 引用零重复
+- 每物种 description(60-140 字/2-3 句)+morphology/habitat/distribution(20-60)+etymology/discovery/genomeInfo/ecologyRole/researchValue(20-100)全覆盖;科学亮点:黄胸鹀禾花雀崩溃链、雪球鹦鹉节拍研究、灰林鸮羽色气候选择、仓鸮听觉空间图、白鹳「箭鹳」1822、北京雨燕连续飞行十个月+光敏追踪往返非洲、阿德利企鹅 2014 基因组、大杜鹃巢寄生军备竞赛、大山雀开奶瓶社会学习等;tags 采用中文「旗舰物种/模式生物/入侵物种/国家一级保护/国家二级保护」等,遵守 expansion 系列不加英文 flagship 标签的约定
+- 写校验脚本 scripts/validate-expansion3-birds.ts(复制 expansion2 校验框架+新增英文 flagship 禁用与档案覆盖统计):首轮揪出 2 处 description 超长(家八哥 145/白鹳 144),删冗余从句后复跑 ALL CHECKS PASSED(零错误零警告:与 1685 清单 latin/中文名零冲突、parent 闭合、阶梯单调、长度区间全过)
+- bunx tsc --noEmit 过滤 examples/skills 后零输出(项目代码零类型错误;基线 4 处 error 均在 examples/skills,与本任务无关)
+
+Stage Summary:
+- 产出 src/data/seed/expansion3-birds.ts:68 条(27 物种/24 新属/15 新科/2 新目),10 目覆盖(引用已有 8 目+新建 2 目):雀形 9、鹦形 4、鸮形 4、企鹅 3、雨燕目 2、鹳形 1、鹈形 1、鸡形 1、鹃形 1、雁形 1
+- 档案覆盖:ncbiTaxId 27/27(GBIF+NCBI 双重核验)、conservation 26/27(震旦鸦雀按宁缺毋滥省略)、5 科学档案字段 27/27 全量
+- 校验:清单查重通过(推荐名单 5 已有物种跳过+远东山雀近缘辨析)、68 条 parent 闭合、tsc 零错误;校验脚本 scripts/validate-expansion3-birds.ts 保留可复用
+- 待主代理集成:scripts/seed-incremental.ts 需追加 import { expansion3Birds } 并展开进 newTaxa 数组后统一入库(本任务未修改共享文件)
+
+---
+Task ID: 4-a
+Agent: general-purpose
+Task: 昆虫纲深扩数据编写
+
+Work Log:
+- 背景阅读:worklog 开头 120 行、src/data/types.ts(TaxonSeed 接口)、expansion2-vertebrates.ts 风格模板(parent 引用/注释/字段长度写法)、/tmp/taxa-inventory.tsv(1685 条 TSV)
+- 查重(硬性要求):逐条核对 inventory——推荐名单中已入库者全部跳过:红火蚁 Solenopsis invicta、中华蜜蜂、黑腹果蝇、埃及伊蚊、家蝇、冈比亚按蚊、飞蝗、沙漠蝗、地熊蜂、中华大刀螳、台湾乳白蚁、双斑蟋、中华稻蝗、印度竹节虫、豌豆蚜( Acyrthosiphon pisum,3-d 已加,故改用棉蚜 Aphis gossypii)、樗蚕(Saturniidae 已有,柞蚕仅新建 Antheraea 属);30 个新物种与 56 个中间阶元 latin 全部与清单零重复
+- 编写 src/data/seed/expansion3-insects.ts:export const expansion3Insects: TaxonSeed[],共 86 条(30 物种 + 28 属 + 23 科 + 5 目),按十三大块组织:膜翅 5(丽蝇蛹金小蜂(Nasonia 模式,taxid 7425)/切叶蚁(真菌农业)/长尾马尾姬蜂(Darwin's wasp)/松毛虫赤眼蜂(中国天敌产业)/苜蓿切叶蜂(独居传粉))、双翅 5(刺舌蝇(2014 基因组 366Mb)/黑森瘿蚊(基因对基因)/马胃蝇(兽医寄生虫)/白纹伊蚊(taxid 296529,2014 广东登革主媒介)/斑翅果蝇(taxid 28584,入侵果树))、直翅 2(纺织娘(鸣虫文化)/家蟋蟀(食用昆虫))、蜉蝣目 1(双翅二尾蜉,卵胎生)、蜻蜓 2(黄蜻(全球迁飞)/透顶单脉色蟌(结构色))、螳螂 1(兰花螳螂,花拟态)、革翅 1(欧洲蠼螋,母性育幼)、啮虫 1(嗜卷书虱,沃尔巴克氏体孤雌)、鞘翅 3(赤拟谷盗(首个甲虫基因组,taxid 7334)/异色瓢虫(入侵+超基因)/雷氏萤(中国特有水栖萤))、鳞翅 4(棉铃虫(Bt 棉,taxid 29027)/菜粉蝶(芥子油苷解毒)/柞蚕(放养绢丝昆虫)/美国白蛾(1979 丹东入侵+周氏啮小蜂))、半翅 2(棉蚜/烟粉虱(植物基因水平转移 BtPMaT1))、蚤目 1(印鼠客蚤,鼠疫菌栓)、虱目 1(人虱,108Mb 最小昆虫基因组)、蜚蠊 1(德国小蠊)
+- parent 闭合策略:5 新目(蜉蝣/啮虫/革翅/蚤/虱)直挂已有 Insecta;23 新科挂已有目(Hymenoptera/Diptera/Orthoptera/Odonata/Mantodea/Coleoptera/Lepidoptera/Hemiptera/Blattodea);28 新属挂新科或已有科(Formicidae/Gryllidae/Coccinellidae/Saturniidae/Aphididae);白纹伊蚊/斑翅果蝇 parent 直挂已有 Aedes/Drosophila 属,零重复阶元
+- 科学性把关:每物种 description(60-140 字 2-3 句)/morphology/habitat/distribution(20-60 字)/etymology/discovery(30-100 字)/genomeInfo/ecologyRole/researchValue(20-100 字)全覆盖;ncbiTaxId 仅 5 个高把握值(7425/7334/296529/28584/29027);authority 25 个(不确定的 Megarhyssa/Matrona/Hymenopus/Megachile/Aquatica 一律省略);无 IUCN 等级(昆虫害虫/模式种均未评估,宁缺毋滥);基因组数据只写高把握项(舌蝇 366Mb/虱 108Mb/赤拟谷盗 2n=20 约 200Mb/豌豆蚜以外的数字一概 hedged 处理);tags 沿用既有体系(模式生物/入侵物种/农业害虫/病媒生物/医学媒介/天敌昆虫/生物防治/传粉昆虫/经济物种/驯化物种/环境指示种/中国特有/寄生虫/食用昆虫/观赏昆虫)
+- 写校验脚本 scripts/validate-expansion3-insects.ts 并运行:86 条文件内零重复、与 1685 条清单零重复、parent 全闭合(清单∪本文件)、阶元阶梯单调、字段长度区间全过、零警告 → ALL CHECKS PASSED
+- bunx tsc --noEmit:全项目仅剩 examples/websocket 2 处 + skills/ 2 处固有报错(与既往 worklog 基线一致的 4 条),expansion3-insects 相关零类型错误;本任务未修改任何共享文件(seed-incremental.ts/enrich-taxa.ts/schema)
+
+Stage Summary:
+- 产出 src/data/seed/expansion3-insects.ts:86 条 = 30 物种 + 56 中间阶元(5 目/23 科/28 属),五项科学档案字段 100% 覆盖,ncbiTaxId 5 + authority 25,校验脚本 scripts/validate-expansion3-insects.ts 可复用,tsc 零新增错误
+- 查重说明:推荐名单 16+ 个已入库物种全部跳过并以同目替代表(棉蚜替豌豆蚜、白纹伊蚊/斑翅果蝇补双翅等),30 个物种 latin 与清单及文件内零冲突
+- 待主代理集成:scripts/seed-incremental.ts 追加 import { expansion3Insects } 并展开入增量数组后统一入库(入库后预计 488→518 物种、1685→1771 条);物种配图走 generate-images.ts SCOPE=all 或 image-search 恢复后补齐

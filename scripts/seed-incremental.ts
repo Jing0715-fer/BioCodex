@@ -18,6 +18,11 @@ import { expansion2ProtistsFungi } from "../src/data/seed/expansion2-protists-fu
 import { expansion2Plants } from "../src/data/seed/expansion2-plants";
 import { expansion2Invertebrates } from "../src/data/seed/expansion2-invertebrates";
 import { expansion2Vertebrates } from "../src/data/seed/expansion2-vertebrates";
+import { expansion3Insects } from "../src/data/seed/expansion3-insects";
+import { expansion3Fishes } from "../src/data/seed/expansion3-fishes";
+import { expansion3Birds } from "../src/data/seed/expansion3-birds";
+import { expansion3MammalsHerps } from "../src/data/seed/expansion3-mammals-herps";
+import { expansion3Plants } from "../src/data/seed/expansion3-plants";
 
 const newTaxa: TaxonSeed[] = [
   ...expansionProkaryotes,
@@ -30,6 +35,11 @@ const newTaxa: TaxonSeed[] = [
   ...expansion2Plants,
   ...expansion2Invertebrates,
   ...expansion2Vertebrates,
+  ...expansion3Insects,
+  ...expansion3Fishes,
+  ...expansion3Birds,
+  ...expansion3MammalsHerps,
+  ...expansion3Plants,
 ];
 
 function fail(msg: string): never {

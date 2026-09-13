@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { KingdomIcon } from "./taxa-icon";
 import ReactMarkdown from "react-markdown";
-import { Sparkles, Send, X, RotateCcw, Bot, User, ChevronRight, GitCompareArrows, Bookmark, WifiOff } from "lucide-react";
+import { Sparkles, Send, X, RotateCcw, Bot, User, ChevronRight, GitCompareArrows, Bookmark, WifiOff, Compass, Dices, Copy, Link2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useFavorites, toggleFavorite } from "@/lib/favorites";
@@ -24,20 +24,68 @@ interface MatchDTO {
   kingdom: string;
 }
 
+interface ActionDTO {
+  label: string;
+  kind: "navigate" | "random";
+  target: string;
+}
+
 interface Msg {
   role: "user" | "assistant";
   content: string;
   matches?: MatchDTO[];
   degraded?: boolean;
+  actions?: ActionDTO[];
+  followUps?: string[];
+}
+
+interface ContextTaxon {
+  id: string;
+  name: string;
+  latin: string;
 }
 
 const SUGGESTIONS = [
-  "介绍一下大熊猫,它为什么吃竹子?",
-  "帮我找一些极危(CR)的物种",
-  "真菌界有哪些明星物种?",
-  "大肠杆菌和古菌有什么区别?",
+  "帮我找老虎",
+  "带我去红色名录专题",
+  "随机来一个物种",
+  "图鉴里收录了多少物种?",
   "怎么把两个物种加入对比并导出表格?",
 ];
+
+const CHAT_KEY = "biocodex-agent-chat-v1";
+
+function loadChat(): Msg[] | null {
+  try {
+    const raw = localStorage.getItem(CHAT_KEY);
+    if (!raw) return null;
+    const arr = JSON.parse(raw);
+    if (Array.isArray(arr) && arr.length) return arr.slice(-40);
+  } catch {}
+  return null;
+}
+
+function saveChat(msgs: Msg[]) {
+  try {
+    localStorage.setItem(
+      CHAT_KEY,
+      JSON.stringify(
+        msgs.slice(-40).map((m) => ({
+          ...m,
+          matches: m.matches?.slice(0, 4),
+          actions: m.actions?.slice(0, 2),
+          followUps: m.followUps?.slice(0, 3),
+        }))
+      )
+    );
+  } catch {}
+}
+
+function clearChatStorage() {
+  try {
+    localStorage.removeItem(CHAT_KEY);
+  } catch {}
+}
 
 /** 把 [[id]] 替换为 markdown 链接,便于 react-markdown 渲染成跳转芯片;清除一切无效标记 */
 function preRender(content: string, matches?: MatchDTO[]): string {
@@ -91,21 +139,52 @@ function AssistantMarkdown({ content, matches }: { content: string; matches?: Ma
   );
 }
 
+const WELCOME: Msg = {
+  role: "assistant",
+  content:
+    "你好,我是**阿博**,BioCodex 的 AI 博物学家助手 🧬\n\n我可以:\n- 为你讲解图鉴里的任意物种与类群\n- 帮你按特征、保护等级、门类**寻找条目**(下方卡片可直接跳转图鉴页)\n- **带路**:说「带我去红色名录」「打开目录」即可一键跳转\n- 聊聊分类学、生态学与保护生物学\n\n试试下面的提问,或直接输入你好奇的问题。",
+};
+
 export function AgentPanel() {
-  const { agentOpen, setAgentOpen, openTaxon, agentUnread, clearUnread, toggleCompare, compareIds } = useBioStore();
+  const {
+    agentOpen, setAgentOpen, openTaxon, agentUnread, clearUnread, toggleCompare, compareIds,
+    goHome, explore, openBrowse, openCompare, openFavorites, openRedlist, view,
+  } = useBioStore();
   const favorites = useFavorites();
   const isFav = (id: string) => favorites.some((f) => f.id === id);
-  const [messages, setMessages] = useState<Msg[]>([
-    {
-      role: "assistant",
-      content:
-        "你好,我是**阿博**,BioCodex 的 AI 博物学家助手 🧬\n\n我可以:\n- 为你讲解图鉴里的任意物种与类群\n- 帮你按特征、保护等级、门类**寻找条目**(下方卡片可直接跳转图鉴页)\n- 告诉你如何使用**图鉴目录**筛选与**物种对比**功能\n- 聊聊分类学、生态学与保护生物学\n\n试试下面的提问,或直接输入你好奇的问题。",
-    },
-  ]);
+  const [messages, setMessages] = useState<Msg[]>([WELCOME]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+  const [ctxTaxon, setCtxTaxon] = useState<ContextTaxon | null>(null);
+  const [hydrated, setHydrated] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+
+  // 恢复持久化对话(跨刷新/跨会话)
+  useEffect(() => {
+    const saved = loadChat();
+    if (saved) setMessages([WELCOME, ...saved]);
+    setHydrated(true);
+  }, []);
+
+  // 持久化(挂载完成后才写入,避免覆盖)
+  useEffect(() => {
+    if (hydrated) saveChat(messages.filter((_, i) => i > 0));
+  }, [messages, hydrated]);
+
+  // 上下文感知:面板打开时若正在看某物种,拉取其名称供指代解析
+  useEffect(() => {
+    if (view.type === "taxon") {
+      fetch(`/api/taxa/${view.id}`)
+        .then((r) => r.json())
+        .then((j) => {
+          if (j?.success && j.taxon) {
+            setCtxTaxon({ id: j.taxon.id, name: j.taxon.chineseName, latin: j.taxon.latinName });
+          }
+        })
+        .catch(() => {});
+    }
+  }, [view]);
 
   useEffect(() => {
     if (agentOpen) clearUnread();
@@ -128,11 +207,22 @@ export function AgentPanel() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: next.filter((m, i) => !(i === 0 && m.role === "assistant")).slice(-12),
+          context: ctxTaxon,
         }),
       });
       const j = await r.json();
       if (j?.success) {
-        setMessages([...next, { role: "assistant", content: j.content, matches: j.matches, degraded: !!j.degraded }]);
+        setMessages([
+          ...next,
+          {
+            role: "assistant",
+            content: j.content,
+            matches: j.matches,
+            degraded: !!j.degraded,
+            actions: j.actions,
+            followUps: j.followUps,
+          },
+        ]);
       } else {
         setMessages([
           ...next,
@@ -150,8 +240,38 @@ export function AgentPanel() {
     }
   };
 
+  /** 执行意图动作:页面跳转 / 再抽一个 */
+  const runAction = (a: ActionDTO) => {
+    if (a.kind === "random") {
+      send("随机给我来一个物种 🎲");
+      return;
+    }
+    const t = a.target || "";
+    if (t === "home") goHome();
+    else if (t === "explore") explore();
+    else if (t === "browse") openBrowse();
+    else if (t === "compare") openCompare();
+    else if (t === "favorites") openFavorites();
+    else if (t.startsWith("redlist")) {
+      const iucn = t.split(":")[1] || null;
+      openRedlist({ iucn });
+    } else if (t.startsWith("taxon:")) openTaxon(t.slice(6));
+    setAgentOpen(false);
+  };
+
+  const copyAnswer = async (m: Msg) => {
+    try {
+      const text = m.content.replace(/\[\[([a-zA-Z0-9]+)\]\]/g, "");
+      await navigator.clipboard.writeText(text);
+      toast({ title: "回答已复制", description: "可粘贴到笔记或文档中" });
+    } catch {
+      toast({ title: "复制失败", variant: "destructive" });
+    }
+  };
+
   const reset = () => {
-    setMessages(messages.slice(0, 1));
+    clearChatStorage();
+    setMessages([WELCOME]);
   };
 
   return (
@@ -203,7 +323,7 @@ export function AgentPanel() {
           <div ref={scrollRef} className="nh-scroll flex-1 overflow-y-auto px-4 py-4">
             <div className="space-y-4">
               {messages.map((m, i) => (
-                <div key={i} className={cn("flex gap-2.5", m.role === "user" && "flex-row-reverse")}>
+                <div key={i} className={cn("agent-msg-in flex gap-2.5", m.role === "user" && "flex-row-reverse")}>
                   <span
                     className={cn(
                       "mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white shadow-sm",
@@ -228,6 +348,43 @@ export function AgentPanel() {
                           </span>
                         )}
                         <AssistantMarkdown content={m.content} matches={m.matches} />
+                        {/* 意图动作按钮:页面跳转 / 再抽一个 */}
+                        {m.actions && m.actions.length > 0 && (
+                          <div className="mt-2.5 flex flex-wrap gap-2">
+                            {m.actions.map((a, ai) => (
+                              <button
+                                key={ai}
+                                onClick={() => runAction(a)}
+                                className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground shadow-sm transition-all hover:scale-[1.03] hover:shadow-md"
+                              >
+                                {a.kind === "random" ? <Dices className="h-3.5 w-3.5" /> : <Compass className="h-3.5 w-3.5" />}
+                                {a.label}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        {/* 追问建议 */}
+                        {m.followUps && m.followUps.length > 0 && !busy && (
+                          <div className="mt-2 flex flex-wrap gap-1.5">
+                            {m.followUps.map((f, fi) => (
+                              <button
+                                key={fi}
+                                onClick={() => send(f)}
+                                className="rounded-full border border-primary/30 bg-primary/5 px-2.5 py-1 text-[11px] text-primary/90 transition-colors hover:bg-primary hover:text-primary-foreground"
+                              >
+                                ↪ {f}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        {/* 复制回答 */}
+                        <button
+                          onClick={() => copyAnswer(m)}
+                          className="mt-1.5 inline-flex items-center gap-1 text-[10px] text-muted-foreground/50 transition-colors hover:text-primary"
+                          title="复制这条回答"
+                        >
+                          <Copy className="h-3 w-3" /> 复制回答
+                        </button>
                         {/* 匹配条目卡片 */}
                         {m.matches && m.matches.length > 0 && (
                           <div className="mt-3 border-t border-foreground/10 pt-3">
@@ -386,6 +543,21 @@ export function AgentPanel() {
 
           {/* 输入区 */}
           <div className="border-t border-foreground/10 bg-card p-3">
+            {/* 上下文感知提示 */}
+            {ctxTaxon && (
+              <div className="mb-2 flex items-center gap-1.5 rounded-lg border border-primary/25 bg-primary/5 px-2.5 py-1.5 text-[11px] text-primary/90">
+                <Link2 className="h-3 w-3 shrink-0" />
+                <span className="truncate">
+                  上下文:正在查看 <b>{ctxTaxon.name}</b> <i className="latin">{ctxTaxon.latin}</i>——问「它」即指此条目
+                </span>
+                <button
+                  onClick={() => send(`介绍一下${ctxTaxon.name}`)}
+                  className="ml-auto shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary hover:bg-primary hover:text-primary-foreground"
+                >
+                  讲讲它
+                </button>
+              </div>
+            )}
             <div className="relative">
               <Textarea
                 value={input}
