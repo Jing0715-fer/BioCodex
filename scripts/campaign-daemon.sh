@@ -14,17 +14,15 @@ cd "$(dirname "$0")/.."
 
 log() { echo "$(date '+%m-%d %H:%M:%S') $*"; }
 
-# ---- 心跳单例:3 分钟内有心跳的旧实例存活则退出 ----
-HB=/tmp/campaign-heartbeat
-if [ -f "$HB" ]; then
-  HB_AGE=$(( $(date +%s) - $(stat -c %Y "$HB" 2>/dev/null || echo 0) ))
-  if [ "$HB_AGE" -lt 180 ] && [ "$HB_AGE" -ge 0 ]; then
-    log "[singleton] 已有存活实例(心跳 ${HB_AGE}s 前),本实例退出"
-    exit 0
-  fi
+# ---- flock 内核级单例锁(E10-fix:心跳检查存在窗口期漏洞,git 操作触发
+#      server 重启时心跳年龄误判会产生多实例;flock 进程死亡自动释放) ----
+LOCK=/tmp/campaign.lock
+exec 9>"$LOCK"
+if ! flock -n 9; then
+  log "[singleton] flock 占用中,已有实例运行,本实例退出"
+  exit 0
 fi
-echo $$ > "$HB"
-touch_heartbeat() { echo $$ > "$HB"; }
+log "[daemon] 补图守护进程启动 pid=$$ (flock 已持有)"
 
 count_missing() {
   bun -e '
@@ -36,10 +34,9 @@ await db.$disconnect();
 ' 2>/dev/null | tail -1
 }
 
-log "[daemon] 补图守护进程启动 pid=$$"
+log "[daemon] flock 已持有,轮询开始"
 
 while true; do
-  touch_heartbeat
   MISSING=$(count_missing)
   if [ "$MISSING" = "0" ]; then
     log "[complete] 全部物种已配图,守护进程退出"
@@ -52,7 +49,6 @@ while true; do
     BATCH=15 SCOPE=flagship CONCURRENCY=2 RETRY=2 timeout 420 bun scripts/generate-images.ts 2>&1 \
       | grep -E "^\[start|^\[入库|^\[放弃|^\[跳过|^\[done" | while read -r l; do log "$l"; done
     sleep 100
-    touch_heartbeat
     log "[window] 全量批"
     BATCH=30 SCOPE=all CONCURRENCY=2 RETRY=2 timeout 420 bun scripts/generate-images.ts 2>&1 \
       | grep -E "^\[start|^\[入库|^\[放弃|^\[跳过|^\[done" | while read -r l; do log "$l"; done
