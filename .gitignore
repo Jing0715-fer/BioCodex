@@ -52,7 +52,3 @@ prompt
 server.log
 # Skills directory
 /skills/
-# agent tool outputs
-/tool-results
-/agent-ctx
-public/generated/rejected/

@@ -47,6 +47,44 @@ const KINGDOM_STYLE: Record<string, (cn: string, la: string) => string> = {
     `vintage natural history illustration of ${la} (${cn}) in natural posture with the diagnostic anatomy of this exact species per description (proportions, fins/limbs/beak/head), copperplate engraving with watercolor tinting on aged parchment, no text no letters no labels`,
 };
 
+/**
+ * E10 旗舰疑难物种专属 prompt(两轮通用模板未过审的 15 种,逐种定制鉴别特征构图):
+ * 教训锚点——海带曾被画成维管植物(需强调固着器/柄/带片的海底漂姿)、酵母曾单特写失败(需"许多小细胞"构图)、
+ * 文昌鱼曾被画成硬骨鱼(需"无头无眼+V形肌节")、鲍曾被画成峨螺(需"耳形扁平+壳孔列")、刺参曾被画成海胆(需"刺参状+背疣足行列")。
+ */
+const SPECIFIC_PROMPT: Record<string, string> = {
+  "Saccharina japonica":
+    "vintage phycology seaweed study plate, a pressed marine specimen laid flat on aged parchment: Saccharina japonica (海带 Japanese kelp), one single very long smooth olive-brown ribbon with gently ruffled translucent edges and a subtle darker midline, tapering at the base into a short round stalk that ends in a small forked brown holdfast claw gripping a tiny pebble, herbarium specimen style, delicately watercolored copperplate engraving, no flowers no seeds no soil, no text no letters no labels",
+  "Saccharomyces cerevisiae":
+    "antique microscope field-of-view plate of Saccharomyces cerevisiae (baker's yeast 酿酒酵母): dozens of tiny oval single-celled fungi like smooth translucent pale grapes or pebbles scattered across the round field, several cells with small round buds pinching off, a few four-spore ascii burst open, ink stippling and watercolor tinting, vintage copperplate engraving on aged parchment, no text no letters no labels",
+  "Batrachochytrium dendrobatidis":
+    "antique microscope slide viewed through a vintage brass microscope, circular field of view with a thin double-line border: Batrachochytrium dendrobatidis (蛙壶菌 chytrid fungus) inside pale amphibian skin — the field filled with a mosaic of large soft polygonal frog epidermal cells, several smooth glassy round sporangia nest inside them, each sporangium opens through one slender discharge tube, and swarms of tiny comma-shaped zoospores each trailing a single long hair-thin flagellum swim in the water between the cells, ink stippling and watercolor tinting, vintage copperplate engraving on aged parchment, no text no letters no labels",
+  "Welwitschia mirabilis":
+    "vintage botanical plate of Welwitschia mirabilis (百岁兰), NOT a palm NOT a grass: a low stout woody upside-down-cone stem, from which exactly TWO very long flat strap-shaped dark-green leaves sprawl outward on desert gravel, the leaf tips frayed and split into twisted ribbon strips while the bases stay whole, sparse Namib desert ground with distant fog bank, copperplate engraving with hand-tinted watercolor on aged parchment, no text no letters no labels",
+  "Metasequoia glyptostroboides":
+    "vintage botanical illustration of Metasequoia glyptostroboides (dawn redwood 水杉): a tall deciduous conifer with reddish-brown shredding trunk, one main branch detail showing opposite branching with flat feathery sprays of many small linear soft green leaves arranged in two neat rows along each branchlet, small round pendant cones on short stalks, a separate bare winter twig with opposite buds, copperplate engraving with hand-tinted watercolor on aged parchment, no text no letters no labels",
+  "Salix babylonica":
+    "vintage botanical illustration of Salix babylonica (weeping willow 垂柳) beside a lake: a broad-crowned tree with rough grey trunk, countless very long slender yellow-green branchlets cascading down to the water surface like a curtain, narrow lanceolate leaves with finely serrated edges, one detail sprig with drooping catkins, copperplate engraving with hand-tinted watercolor on aged parchment, no text no letters no labels",
+  "Schistosoma japonicum":
+    "antique parasitology plate of Schistosoma japonicum (blood fluke 日本血吸虫), a pair of thin parasitic flatworms enlarged against plain parchment: one plump milky-white cylindrical male worm whose body edges fold inward to form a ventral gynecophoric canal, and one much thinner darker slender female worm lying inside the male's canal, both tapered at both ends, vintage copperplate engraving with ink stippling on aged parchment, no text no letters no labels",
+  "Caenorhabditis elegans":
+    "antique microscope field-of-view plate of Caenorhabditis elegans (nematode roundworm 秀丽隐杆线虫): several tiny translucent colorless thread-like worms gliding on agar seen through the microscope, each about one millimeter long with smooth tapered both ends, faint internal gut and gonad visible through the transparent skin, one thinner male with fan-shaped tail, vintage copperplate engraving with ink stippling on aged parchment, no text no letters no labels",
+  "Haliotis discus hannai":
+    "vintage conchology plate of Haliotis discus hannai (abalone 皱纹盘鲍), NOT a spiral whelk: an ear-shaped very flat low oval marine gastropod shell, greenish-brown exterior with fine wrinkled spiral ribs, a single row of small raised pore holes along the left edge, paired with a second specimen shown from inside with iridescent mother-of-pearl and a big creamy-white muscular foot, copperplate engraving with watercolor on aged parchment, no text no letters no labels",
+  "Apostichopus japonicus":
+    "vintage marine natural history illustration of Apostichopus japonicus (sea cucumber 仿刺参), NOT a sea urchin NOT a slug: an elongated cucumber-shaped echinoderm lying on rocky seabed, thick fleshy dark green-brown mottled body wall, four to six longitudinal rows of small conical fleshy papillae along its back, tube feet rows underneath, a crown of short oral tentacles at one end, copperplate engraving with watercolor tinting on aged parchment, no text no letters no labels",
+  "Sphenodon punctatus":
+    "vintage natural history illustration of Sphenodon punctatus (tuatara 楔齿蜥), NOT a common lizard: a robust ancient reptile with olive-grey heavily wrinkled saggy skin, a conspicuous crest of triangular spiny scales from nape down the back, strong limbs with clawed digits splayed on New Zealand coastal rocks, bright alert eye, ridged tail, copperplate engraving with watercolor tinting on aged parchment, no text no letters no labels",
+  "Nipponia nippon":
+    "vintage ornithological illustration of Nipponia nippon (crested ibis 朱鹮): an elegant medium-large wading bird standing in a wetland paddy, white plumage washed with delicate pale pink especially on the wing undersides, bare brick-red facial skin around the eye, long slightly decurved black bill, wispy lanceolate crest plumes drooping on the nape, black legs, copperplate engraving with watercolor tinting on aged parchment, no text no letters no labels",
+  "Branchiostoma belcheri":
+    "antique zoological plate of Branchiostoma belcheri (lancelet 白氏文昌鱼), NOT a fish — no eyes, no distinct head, no paired fins: a small semi-transparent blade-shaped chordate enlarged against plain parchment, both ends finely pointed, a long low dorsal fin strip running to a small tail fin, V-shaped muscle blocks (myomeres) visible through the see-through flank like a neat row of chevrons, faint gill slits in the pharynx, vintage copperplate engraving with ink stippling on aged parchment, no text no letters no labels",
+  "Spirobranchus giganteus":
+    "vintage marine natural history illustration of Spirobranchus giganteus (Christmas tree worm 大旋鳃虫): two identical small spiral conical feathery gill crowns like miniature fir trees, one vivid violet-blue and one golden-orange, each formed of two perfectly spiraling rows of delicate radiole feathers, rising side by side from a tiny round hole in a living massive coral head, underwater coral reef scene, copperplate engraving with watercolor tinting on aged parchment, no text no letters no labels",
+  "Eunice aphroditois":
+    "vintage marine natural history illustration of Eunice aphroditois (bobbit worm 博比特虫): a very long segmented marine polychaete worm bursting from its burrow in reef sand, hundreds of flat segments with an iridescent purple-green-bronze sheen, five straight sensory antennae like fingers on the head, fierce open eversible pharynx revealing black sickle-shaped snapping jaws, short paddle parapodia along the sides, copperplate engraving with watercolor tinting on aged parchment, no text no letters no labels",
+};
+
 /** 从中文形态/描述档案提炼关键鉴别特征注入 prompt(防止张冠李戴) */
 function featureHints(morphology?: string | null, description?: string | null): string {
   const src = [morphology, description].filter(Boolean).join(" ");
@@ -205,6 +243,8 @@ async function main() {
       const slug = t.latinName.replace(/[^a-zA-Z0-9]+/g, "-").toLowerCase().replace(/^-|-$/g, "");
       const kingdom = kingdoms.get(t.id) || "Animalia";
       const style = KINGDOM_STYLE[kingdom] || KINGDOM_STYLE.Animalia;
+      // E10:疑难旗舰物种优先使用逐种定制 prompt(两轮通用模板未过审的硬骨头)
+      const basePrompt = SPECIFIC_PROMPT[t.latinName] || style(t.chineseName, t.latinName);
 
       // 0) 磁盘已有未入库文件:先审计旧文件(未经闸门的历史遗留)
       let acceptedThis = false, lastReason = "";
@@ -227,7 +267,7 @@ async function main() {
       let attempts = 0;
       while (!acceptedThis && !AUDIT_ONLY && !stopAll && attempts < MAX_RETRY) {
         attempts++;
-        const ok = await generate(style(t.chineseName, t.latinName) + featureHints(t.morphology, t.description), t.file);
+        const ok = await generate(basePrompt + featureHints(t.morphology, t.description), t.file);
         if (!ok) { if (stopAll) return; lastReason = "生成失败/限流"; break; }
         const v = await audit(t);
         if (v) {
