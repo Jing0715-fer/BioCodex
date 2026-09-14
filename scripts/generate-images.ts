@@ -169,7 +169,7 @@ async function main() {
   }
   console.log(`[start] 范围:${SCOPE} 断点已处理 ${done.size} / 池剩 ${species.length - done.size},本轮任务 ${tasks.length}(磁盘已有待审 ${tasks.filter((t) => t.exists).length},待生成 ${tasks.filter((t) => !t.exists).length})`);
 
-  let accepted = 0, rejected = 0;
+  let accepted = 0, rejected = 0, skipped = 0;
 
   /** VLM 审计一张图;返回 verdict 或 null(异常) */
   async function audit(t: Task): Promise<{ ok: boolean; reason: string } | null> {
@@ -205,35 +205,36 @@ async function main() {
     return null;
   }
 
-  /** 生成一张图;成功 true;429 熔断 false 且可能置 stopAll */
-  async function generate(prompt: string, out: string): Promise<boolean> {
+  /** 生成一张图;返回状态:E10 语义修复——区分瞬时失败(限流/网络)与终态失败(内容过滤),
+   *  只有终态失败或真实 VLM 否决才允许标记 rejected,防止限流窗口误伤物种 */
+  async function generate(prompt: string, out: string): Promise<"ok" | "filtered" | "ratelimited" | "error"> {
     for (let attempt = 1; attempt <= 3; attempt++) {
-      if (stopAll) return false;
+      if (stopAll) return "ratelimited";
       try {
         const imgRes = await zai.images.generations.create({ prompt, size: "1152x864" });
         const b64 = imgRes?.data?.[0]?.base64;
-        if (!b64) { console.log("[gen-err] 响应无 base64"); return false; }
+        if (!b64) { console.log("[gen-err] 响应无 base64"); return "error"; }
         await Bun.write(out, Buffer.from(b64, "base64"));
         gen429 = 0;
-        return true;
+        return "ok";
       } catch (e: any) {
         const msg = String(e?.message || e);
         if (msg.includes("429") || msg.toLowerCase().includes("too many")) {
           gen429++;
           console.log(`[429] 生成限流第 ${gen429} 次,退避 ${60 * gen429}s`);
-          if (gen429 >= 3) { stopAll = true; return false; }
+          if (gen429 >= 3) { stopAll = true; return "ratelimited"; }
           await sleep(60000 * gen429);
           continue;
         }
         if (msg.includes("400") || msg.toLowerCase().includes("content")) {
           console.log(`[filter] 内容过滤跳过: ${msg.slice(0, 80)}`);
-          return false;
+          return "filtered";
         }
         console.log(`[gen-err] ${msg.slice(0, 90)}`);
-        return false;
+        return "error";
       }
     }
-    return false;
+    return "error";
   }
 
   async function worker() {
@@ -265,20 +266,27 @@ async function main() {
 
       // 1) 生成 → 审计闭环(每物种最多 RETRY 轮)
       let attempts = 0;
+      let vlmFailed = false;    // E10:是否收到过明确的 VLM 否决(区别于限流/异常)
+      let filteredOut = false;  // E10:内容过滤终态失败
       while (!acceptedThis && !AUDIT_ONLY && !stopAll && attempts < MAX_RETRY) {
         attempts++;
-        const ok = await generate(basePrompt + featureHints(t.morphology, t.description), t.file);
-        if (!ok) { if (stopAll) return; lastReason = "生成失败/限流"; break; }
+        const gres = await generate(basePrompt + featureHints(t.morphology, t.description), t.file);
+        if (gres !== "ok") {
+          if (stopAll || gres === "ratelimited") return; // 熔断:不记录,物种留待下轮窗口
+          if (gres === "filtered") { filteredOut = true; lastReason = "内容过滤拒绘"; }
+          else lastReason = "生成失败(瞬时)";
+          break;
+        }
         const v = await audit(t);
         if (v) {
           if (v.ok) { acceptedThis = true; lastReason = v.reason; }
-          else { lastReason = v.reason; console.log(`[reject] ${t.latinName} 尝试${attempts}: ${v.reason}`); }
+          else { vlmFailed = true; lastReason = v.reason; console.log(`[reject] ${t.latinName} 尝试${attempts}: ${v.reason}`); }
         } else if (stopAll) return;
         else lastReason = "VLM 输出无法解析";
         if (!acceptedThis && attempts < MAX_RETRY) await sleep(2000);
       }
 
-      // 2) 结果落库 / 隔离
+      // 2) 结果落库 / 隔离(E10:仅终态失败才记 rejected;瞬时失败不记,留待下轮)
       if (acceptedThis) {
         await db.taxon.update({
           where: { id: t.id },
@@ -287,11 +295,14 @@ async function main() {
         appendFileSync(PROGRESS, JSON.stringify({ id: t.id, latin: t.latinName, result: "accepted", attempts, reason: lastReason }) + "\n");
         accepted++;
         console.log(`[入库✓] ${t.latinName} (尝试${attempts}): ${lastReason.slice(0, 70)}`);
-      } else {
+      } else if (vlmFailed || filteredOut) {
         if (existsSync(t.file)) renameSync(t.file, join(REJECTED_DIR, `${slug}.png`));
         appendFileSync(PROGRESS, JSON.stringify({ id: t.id, latin: t.latinName, result: "rejected", attempts, reason: lastReason }) + "\n");
         rejected++;
         console.log(`[放弃] ${t.latinName} 保持占位图: ${lastReason.slice(0, 80)}`);
+      } else {
+        skipped++;
+        console.log(`[跳过] ${t.latinName} 瞬时失败不记录,留待下轮: ${lastReason.slice(0, 60)}`);
       }
       if (!AUDIT_ONLY) await sleep(1500 + Math.random() * 2500);
     }
@@ -301,7 +312,7 @@ async function main() {
   await Promise.all(Array.from({ length: Math.max(1, CONCURRENCY) }, () => worker()));
 
   const total = await db.taxon.count({ where: { image: { not: null } } });
-  console.log(`\n[done${stopAll ? "(限流熔断)" : ""}] 本轮:入库 ${accepted} / 放弃 ${rejected} / 任务 ${tasks.length};断点 ${PROGRESS};库内当前有效配图 ${total} 张`);
+  console.log(`\n[done${stopAll ? "(限流熔断)" : ""}] 本轮:入库 ${accepted} / 放弃 ${rejected} / 瞬时跳过 ${skipped} / 任务 ${tasks.length};断点 ${PROGRESS};库内当前有效配图 ${total} 张`);
 }
 
 main()
