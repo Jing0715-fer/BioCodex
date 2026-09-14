@@ -1364,3 +1364,22 @@ Stage Summary(进行中):
 - 断点续跑:/tmp/gen-progress.jsonl(accepted 不重复,rejected 宁缺毋滥)
 - 继续方式:BATCH=999 SCOPE=all CONCURRENCY=3 RETRY=2 timeout 575 bun scripts/generate-images.ts(每批间隔 2-3 分钟等限流冷却)
 - 风险:429 限流窗口不稳定,单批吞吐 8-15 张
+
+---
+Task ID: E9(GitHub 推送+背景色修复, 2026-09-14)
+Agent: main
+Task: 用户指令「push到github(提供token);背景从之前的颜色变成灰色,需要修复」
+
+Work Log:
+- 【GitHub 推送】用用户提供的 token 完成 push:git push https://<token>@github.com/Jing0715-fer/BioCodex.git main → c0681cc..7c45351(37 张新图+DB+worklog E8)
+- 【背景变灰排查】用户反馈背景从羊皮纸色变成灰/白色。根因定位:
+  1. globals.css(两仓 diff 完全一致)定义正确:--background: oklch(0.968 0.012 92) 暖米色
+  2. 但浏览器实测 body 背景为 lab(100 0 0) 纯白;--parchment/--color-background 解析为空
+  3. 检查 dev server 编译产物 /_next/static/chunks/src_app_globals_91e4631d.css:内容是旧脚手架版本(--background: #fff / #0a0a0a,无 parchment)——.next 缓存了 E8 同步时「rm -rf src && cp -r」替换 src/ 之前(脚手架时期)的陈旧编译 CSS,Turbopack 文件监听因目录整体替换失效未触发重编译
+- 【修复】kill 旧 dev server → rm -rf .next(清陈旧编译缓存)→ 重启 bun run dev → 重新编译后 CSS 正确:--background: #f7f4ec(羊皮纸暖米色)/--parchment: #f5f0e3
+- 【验证】浏览器实测 bodyBg=lab(96.35 -0.15 4.59)(= #f7f4ec 暖米色,修复前 lab(100 0 0) 纯白);全页截图四点像素采样 RGB 均呈暖色模式(R>G>B:241,238,227 等)非中性灰;暗色模式 lab(5.96 -5.26 2.65) 深林绿正常;主题双向切换正常;重启后 21 img 零破损、API 正常
+- 【教训】同步项目文件时若 dev server 在跑,「rm -rf src && cp -r」会破坏 Turbopack 增量编译监听,导致陈旧 CSS 被持续服务——必须清 .next 重启;下次同步用 rsync 增量替换或同步后必做 rm -rf .next
+
+Stage Summary:
+- GitHub 已推送(7c45351);背景色根因=.next 陈旧缓存,非代码问题(globals.css 一直正确),已通过清缓存重启修复并浏览器+像素双重验证
+- z-ai image/vision 限流窗口仍未恢复(持续 CLOSED),补图断点续跑机制就绪(/tmp/gen-progress.jsonl,79/713 已处理)
