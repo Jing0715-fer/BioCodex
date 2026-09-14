@@ -1341,3 +1341,26 @@ Work Log:
 
 Stage Summary:
 - cron 巡检机制恢复;后续若再遇 exec limits 禁用,属环境限额非 bug,删后重建即可
+
+---
+Task ID: E8(项目克隆恢复+缺图补全主战役, 2026-09-14)
+Agent: main
+Task: 用户指令「git clone BioCodex 并继续补充缺失的图片」——新环境恢复项目 + 大规模补图
+
+Work Log:
+- 【环境恢复】git clone https://github.com/Jing0715-fer/BioCodex → /home/z/biocodex-repo;同步 src/prisma/db/custom.db/public(105 张图)/scripts/worklog 至 /home/z/my-project(3000 端口工作目录);两仓 package.json 完全一致零依赖差异;prisma generate 完成;dev server 200 正常,/api/stats 确认 818 物种/2516 单元/105 图
+- 【服务探测】z-ai image 生成 + glm-4.5v VLM 审计双通道恢复可用(此前 E6/E7 全程 429);探测脚本一次通过
+- 【补图执行】generate-images.ts V2(VLM 闸门版)分批跑:
+  - 旗舰批 1+2(BATCH=26/15, CONCURRENCY=2-3):11 张入库——黑孢块菌/北美红杉/拟南芥/偕老同穴/川金丝猴/横纹金蛛/间斑寇蛛/孔雀跳蛛/大王具足虫/虎纹捕鸟蛛/水蛛(expansion5 明星物种全部出图);15 张 2 轮未过审保持占位图(朱鹮/楔齿蜥/白氏文昌鱼/博比特虫/大旋鳃虫/日本血吸虫/皱纹盘鲍/仿刺参/垂柳/水杉/百岁兰/蛙壶菌等——AI 模型对蠕虫状/无头索动物/鉴别特征弱)
+  - 全量批 3-6(SCOPE=all):微生物区接受率 ~40%(破伤风梭菌/豌豆根瘤菌/多头绒泡菌/纤细眼虫/伞形钟虫/刚地弓形虫/黑曲霉/糙皮侧耳/禾柄锈菌/黑根霉等入库);蕨类/苏铁/松柏区接受率接近 100%(桫椤/问荆/肾蕨/鹿角蕨/绵马鳞毛蕨/中华水韭/苹/攀枝花苏铁/苏铁/马尾松等)
+- 【新发现】
+  - public/generated 全部 126 个 .png 文件实为 JPEG 数据(扩展名与魔数不符)——浏览器内容嗅探容错渲染正常,属历史遗留(原仓库如此),暂不处理
+  - 水平滚动条带(.nh-scroll)内图片 IntersectionObserver 双轴判定:水平未滚入不加载,非 bug
+- 【验证】agent-browser E2E:首页 21 img 全部加载(垂直+水平滚动触发后);VLM 复核截图确认明星物种区/新页速递区新图全部正常显示;大王具足虫详情页插画加载+信息区块齐全+无乱码;console 零错误
+- 【限流规律】约每 5 分钟工作窗口后被 429 熔断(生成侧/审计侧轮流);CONCURRENCY=3 为上限,4 会加剧限流;沙箱依旧回收后台长驻进程(90 秒存活测试确认),只能前台分批跑
+
+Stage Summary(进行中):
+- DB 配图 105 → 139+(持续增加),新图全部经 VLM 科学性闸门复核
+- 断点续跑:/tmp/gen-progress.jsonl(accepted 不重复,rejected 宁缺毋滥)
+- 继续方式:BATCH=999 SCOPE=all CONCURRENCY=3 RETRY=2 timeout 575 bun scripts/generate-images.ts(每批间隔 2-3 分钟等限流冷却)
+- 风险:429 限流窗口不稳定,单批吞吐 8-15 张
