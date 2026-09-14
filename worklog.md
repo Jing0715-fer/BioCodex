@@ -1416,3 +1416,18 @@ Stage Summary(当前项目状态):
   1. P0:窗口开启后守护自动补图(旗舰 14 缺→全量 664 缺);期间人工抽查新入库图详情页渲染
   2. P1:GitHub 推送(用户提供 token 后)
   3. P2:海带/蛙壶菌二代 prompt 效果验证;expansion6 物种扩充候选(十足类/头足纲/兰科豆科)
+
+---
+Task ID: E10-append(GitHub 推送完成, 2026-09-14)
+Agent: main
+Task: 用户指令「push到github(提供token)」——E10 全部成果推送远程
+
+Work Log:
+- 【历史重放】本地脚手架 git(5d239db)与远程历史(E1-E9, df24b35)不相关 → git fetch + rebase --onto FETCH_HEAD 5d239db main:4 个 E10 提交重放;19 个 add/add 冲突(脚手架同名文件)统一 checkout --theirs(工作区=clone 同步+E10 修改的最新状态);.zscripts/dev.pid 从跟踪移除+*.pid 入 gitignore
+- 【推送】df24b35..d8ee965(4 commits)+d8ee965..4ee4fa9(gitignore)两次推送成功;远程历史 E1-E10 完整连续
+- 【守护状态】campaign-daemon(pid 5615)持续轮询中;z-ai 全家桶自 05:00 起 429 超 4.5 小时未开窗(本轮会话最长连续关闭记录);窗口一开即自动补图,断点/单例/语义修复均已就位
+
+Stage Summary:
+- GitHub 同步完成:https://github.com/Jing0715-fer/BioCodex (HEAD=4ee4fa9)
+- E10 成果已上远程:SPECIFIC_PROMPT 15 硬骨头定制 prompt、酿酒酵母 140 图、瞬时/终态失败语义修复、instrumentation 自主补图体系(跨会话存活+心跳单例)、Edge 编译清理
+- 待续:配额窗口开启后守护自动补图(旗舰缺 14/全量缺 678);海带/蛙壶菌二代 prompt 待验证
