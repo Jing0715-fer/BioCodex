@@ -1447,3 +1447,20 @@ Stage Summary:
 - GitHub https://github.com/Jing0715-fer/BioCodex 完全同步(HEAD=c755548,工作区零未提交)
 - 生产体系:dev server(孤儿化)→instrumentation 拉起 flock 守护→90s 轮询配额窗口→自动「旗舰批→全量批」(VLM 闸门+四态语义)→断点续跑;会话结束自愈(server 重启自动重建守护)
 - z-ai 配额自 05:00 起 429 超 4.6 小时未开窗(会话最长记录);守护持续待命,窗口一开即自动补图(旗舰缺 14/全量缺 678,断点已存)
+
+---
+Task ID: E11(补图续跑会话, 2026-09-14)
+Agent: main
+Task: 用户指令「在原项目基础上,继续补充缺失的图片,完成或限流后 push 到 GitHub」——新环境恢复 + 补图战役续跑 + 限流收尾推送
+
+Work Log:
+- 【环境恢复】git clone 远程 HEAD=0137144 → /home/z/biocodex-work;rsync 增量同步 src/prisma/db/public(145 图+rejected)/scripts/worklog 至 /home/z/my-project(E9 教训:rsync 非 rm+cp,保 Turbopack 监听);prisma generate;kill 旧 dev server → rm -rf .next → 孤儿化重启(BIOCODEX_CAMPAIGN=off 防止 instrumentation 守护与手工批次竞争配额)
+- 【恢复验证】/api/stats:818 物种/2516 单元/140 配图/48 门;CSS 服务正确(--background:#f7f4ec 羊皮纸,E9 复发检查通过);agent-browser E2E:首页 21 img 零破损、标题正常、背景 lab(96.35 -0.15 4.59)
+- 【缺图盘点】flagship 缺 14 / 全量缺 678(140 已配);磁盘发现 4 个历史遗留孤儿文件(torreya-grandis/cinnamomum-camphora/welwitschia-mirabilis/persea-americana 生成未审计)——generate-images V2 步骤 0 会在下轮窗口自动优先审计入库,无需生成配额
+- 【补图战役】孤儿化拉起 campaign-daemon(flock 单例,PPID=1 跨会话存活);本轮会话全程 z-ai 账户级限流:generation 与 VLM 双通道 429 连续 3h14m(11:34-14:48,daemon 90s 间隔 70+ 次探测全 CLOSED,含人工直探 3 次),超 E10 记录的多数关窗时长,零新图入库
+- 【收尾】按用户指令「限流后 push」执行:worklog E11 + 会话状态推送;守护进程不杀持续轮询,窗口一开自动跑「旗舰批→全量批」(VLM 闸门+四态语义+断点续跑),后续会话随时可再 push 累计成果
+
+Stage Summary(当前项目状态):
+- 【稳定】818 物种/2516 单元/140 配图;dev server(孤儿化)+campaign-daemon(flock 单例,PPID=1)双守护跨会话存活,配额窗口开启即自动补图
+- 本轮会话限流全关零新图(3h14m 持续 429);4 孤儿文件待窗口优先审计;断点 /tmp/gen-progress.jsonl 为空(新沙箱),历史 rejected 物种将携增强 prompt 重试
+- 下轮窗口预期动作:守护自动旗舰批(SPECIFIC_PROMPT 15 硬骨头)→全量批;人工侧可抽查新图详情页渲染后 push
