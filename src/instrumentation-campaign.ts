@@ -11,9 +11,19 @@ export async function startCampaignDaemon() {
   const { existsSync, openSync, appendFileSync } = await import("node:fs");
   const { join } = await import("node:path");
 
+  const dbg = (m: string) => {
+    try {
+      appendFileSync("/tmp/instr-debug.log", `${new Date().toISOString()} ${m}\n`);
+    } catch {}
+  };
+  dbg(`startCampaignDaemon(): cwd=${process.cwd()}`);
+
   // 仅项目根存在守护脚本时启动(防止误部署环境)
   const scriptPath = join(process.cwd(), "scripts", "campaign-daemon.sh");
-  if (!existsSync(scriptPath)) return;
+  if (!existsSync(scriptPath)) {
+    dbg("campaign-daemon.sh not found, skip");
+    return;
+  }
 
   try {
     const logPath = "/tmp/campaign.log";
