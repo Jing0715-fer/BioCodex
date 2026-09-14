@@ -1431,3 +1431,19 @@ Stage Summary:
 - GitHub 同步完成:https://github.com/Jing0715-fer/BioCodex (HEAD=4ee4fa9)
 - E10 成果已上远程:SPECIFIC_PROMPT 15 硬骨头定制 prompt、酿酒酵母 140 图、瞬时/终态失败语义修复、instrumentation 自主补图体系(跨会话存活+心跳单例)、Edge 编译清理
 - 待续:配额窗口开启后守护自动补图(旗舰缺 14/全量缺 678);海带/蛙壶菌二代 prompt 待验证
+
+---
+Task ID: E10-append2(守护加固+仓库净化, 2026-09-14)
+Agent: main
+Task: flock 单例修复推送 + 误提交 skills/ 净化
+
+Work Log:
+- 【多实例事故】git rebase/commit 修改文件触发 Turbopack 多次重启 → instrumentation 重复拉起守护;心跳年龄判断存在窗口期漏洞(长探测中心跳>180s 被误判死亡)→ 短时 3 实例并存
+- 【flock 根治】campaign-daemon.sh 单例改内核级 flock(/tmp/campaign.lock,进程死亡自动释放);实测:server 重启→新实例"flock 占用中即时退出"→旧实例继续服务;跨调用存活验证通过
+- 【仓库净化】git add -A 误提交沙箱 skills/ 目录(1084 文件)与 .zscripts/dev.pid → git rm -r --cached 移除+gitignore 补防(skills/、.zscripts/dev.pid);远程文件集恢复与原仓库一致
+- 【推送链】469ab03(flock)→c755548(净化);远程 HEAD=c755548,历史 E1-E10 连续完整
+
+Stage Summary:
+- GitHub https://github.com/Jing0715-fer/BioCodex 完全同步(HEAD=c755548,工作区零未提交)
+- 生产体系:dev server(孤儿化)→instrumentation 拉起 flock 守护→90s 轮询配额窗口→自动「旗舰批→全量批」(VLM 闸门+四态语义)→断点续跑;会话结束自愈(server 重启自动重建守护)
+- z-ai 配额自 05:00 起 429 超 4.6 小时未开窗(会话最长记录);守护持续待命,窗口一开即自动补图(旗舰缺 14/全量缺 678,断点已存)
