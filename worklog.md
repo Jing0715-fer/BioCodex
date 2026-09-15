@@ -1674,3 +1674,19 @@ Work Log:
 
 Stage Summary:
 - SPECIFIC_PROMPT 全 28 条中 12 条升级完毕,海藻类进入 v4/v6 代;断点干净;等窗口
+
+---
+Task ID: E16(收尾:监控记录 + 站点健康全检)
+Agent: main
+Task: 窗口长关期监控 + 全站 HTTP 级健康检查
+
+Work Log:
+- 【HTTP 全检】209 张 DB 引用图逐一经 localhost:3000 请求:全部 200 零破损;dev.log 仅 prisma 查询无错误
+- 【E2E 全链路】agent-browser:首页(9 img 零破损/标题正常)/画廊(209 图零破损)/大王乌贼+幽灵蛸详情页(五档案/NCBI/IUCN)/移动端 390px 无横滚/console 零错误;lint 零错误
+- 【监控】18:47 窗口关闭后持续 2h+ CLOSED(90s 轮询不间断);守护进程待命,窗口一开自动:旗舰批(含大王乌贼/幽灵蛸 2 新旗舰)→全量批(12 升级 prompt 重试+7 孤儿 PNG 闸门审计)
+- 本轮三笔推送:ad0f85b(19 破损图修复)/1fb69ee(头足纲入库)/eba4e0e(12 prompt 升级)
+
+Stage Summary(当前项目状态):
+- 【稳定】842 物种/2581 单元/209 配图/98 旗舰/48 门;dev server 健康;守护进程(flock 单例)90s 轮询待窗口
+- 未解决/风险:633 物种缺图(账户级限流窗口长关 2h+;守护自动接力)
+- 下一阶段优先:P0 窗口续补+阶段 push;P1 audit-images-vlm 全量复审(需窗口);P2 兰科豆科扩充候选
