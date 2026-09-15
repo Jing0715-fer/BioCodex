@@ -1572,3 +1572,27 @@ Stage Summary:
 - 校验:文件内唯一性/清单零冲突(latin+中文)/parent 闭合/阶梯单调/长度区间/五档案 12/12 全部通过,零错误零警告
 - 不确定项:①椰子蟹 IUCN 疑为 DD 但把握不足未填 conservation;②信号螯虾 IUCN 疑为 LC 未填;③中华锯齿米虾中文名承任务书(俗名樱桃虾),源自历史亚种名;④日本对虾 GBIF 暂作 Penaeus 异名,从 NCBI/WoRMS 保留独立属 Marsupenaeus
 - 锚点挂接:Penaeidae/Decapoda/Panulirus/Charybdis/Stomatopoda 五个库内锚点 + 文件内新建科属闭合;入库预计 2516→2546
+
+---
+Task ID: E15(用户指令轮:GitHub 同步 + 补图续跑 + expansion6 十足类, 2026-09-15)
+Agent: main
+Task: 用户指令「从github获取最新代码和数据,继续补图」
+
+Work Log:
+- 【环境恢复】发现沙箱重置:/home/z/biocodex-repo 已消失,my-project 停留 E8 态(139 图)且平台自动提交 3c9efad;git clone 最新远端(HEAD=4c4d1cf,E14 态:191 图+画廊模式)
+- 【同步】按 E9 教训执行:停 dev server → 同步 src/prisma/db(191 图态)/scripts/public → rm -rf .next → 重启;验证:CSS #f7f4ec 羊皮纸正常、/api/stats 191 图、/api/gallery 191 items 六界计数、画廊 191 卡渲染零错误、守护进程由 instrumentation 自动拉起(flock 单例 pid=1532)
+- 【expansion6 十足类(子代理 E15-a)】30 条=12 物种+10 属+8 科入库:甘氏巨螯蟹(现存最大节肢动物)/椰子蟹/雀尾螳螂虾/勘察加拟石蟹/日本对虾/中华锯齿米虾(樱桃虾)/日本鼓虾/贵族螯虾(VU)/信号螯虾/中国龙虾/普通黄道蟹/日本蟳;GBIF+NCBI 双在线核验,ncbiTaxId 12/12,校验零错;4 高辨识度新种补 flagship(92→96);818→830 物种/2516→2546 单元;详情页(甘氏巨螯蟹)占位图/面包屑/五档案全验证
+- 【push】c6b2f80 已推送 GitHub
+- 【补图窗口监控】09:51 起 5.5+ 小时持续 CLOSED(账户级限流,E11 记录后最长);守护进程 90s 轮询不间断,窗口一开自动跑旗舰批→全量批;缺图 639(新增 12 种无图已被守护感知)
+- 【子代理受阻】头足纲扩充(E15-b)7 次尝试全部 context deadline exceeded——子代理服务与 z-ai 图像 API 同源限流,待窗口恢复后可再试
+
+Stage Summary(当前项目状态):
+- 【稳定】830 物种/2546 单元/191 配图/96 旗舰;dev server 健康;守护进程待命
+- 本轮交付:①GitHub 最新代码+数据同步(E14 全功能:画廊/灯箱/SPECIFIC_PROMPT 28 条/campaign-daemon)②expansion6 十足类 12 物种入库+推送 ③补图体系持续运行
+- 未解决/风险:
+  1. 639 物种缺图:账户级限流窗口持续关闭(5.5h+),守护进程自动接力(90s 轮询,窗口开启即跑批)
+  2. E15-b 头足纲数据文件未产出(子代理服务超时),待恢复
+- 下一阶段优先:
+  1. P0:窗口开启后守护自动补图(96 旗舰含 4 新种优先);阶段性 push
+  2. P1:E15-b 头足纲数据(大王乌贼/蓝环章鱼等)编写入库
+  3. P2:audit-images-vlm 全量复审;兰科豆科扩充
