@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Images, Search, Shuffle, X, ChevronLeft, ChevronRight, ZoomIn, ArrowRight,
-  Sparkles, ExternalLink, MapPin,
+  Sparkles, ExternalLink, MapPin, Crown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -29,6 +29,7 @@ export function GalleryView() {
   const { data, isLoading, isError } = useGallery();
   const [kingdom, setKingdom] = useState<string | null>(null);
   const [q, setQ] = useState("");
+  const [flagshipOnly, setFlagshipOnly] = useState(false);
   const [shuffled, setShuffled] = useState(false);
   const [order, setOrder] = useState<GalleryItem[]>([]);
   const [lightbox, setLightbox] = useState<number | null>(null);
@@ -61,15 +62,17 @@ export function GalleryView() {
     });
   }, []);
 
-  // 客户端过滤:界胶囊 + 名称/拉丁名搜索
+  // 客户端过滤:界胶囊 + 仅旗舰 + 名称/拉丁名搜索
   const filtered = useMemo(() => {
     const kw = q.trim().toLowerCase();
     return order.filter((it) => {
       if (kingdom && it.kingdom !== kingdom) return false;
+      if (flagshipOnly && !it.isFlagship) return false;
       if (kw && !it.chineseName.toLowerCase().includes(kw) && !it.latinName.toLowerCase().includes(kw)) return false;
       return true;
     });
-  }, [order, kingdom, q]);
+  }, [order, kingdom, q, flagshipOnly]);
+  const flagshipCount = useMemo(() => items.filter((it) => it.isFlagship).length, [items]);
 
   // 灯箱前后翻页(键盘 ←/→,跨过滤后列表)
   const step = useCallback((dir: 1 | -1) => {
@@ -167,6 +170,21 @@ export function GalleryView() {
               </button>
             );
           })}
+          {/* 仅旗舰筛选(皇冠开关) */}
+          <button
+            onClick={() => setFlagshipOnly((v) => !v)}
+            className={cn(
+              "flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-all",
+              flagshipOnly
+                ? "border-amber-500/50 bg-amber-500/15 text-amber-700 shadow-sm dark:text-amber-300"
+                : "border-foreground/15 bg-card text-muted-foreground hover:border-amber-500/40 hover:text-amber-700 dark:hover:text-amber-300"
+            )}
+            title="只看旗舰物种(大熊猫/蓝鲸等明星物种)"
+          >
+            <Crown className="h-3.5 w-3.5" />
+            仅旗舰
+            <span className="rounded-full bg-foreground/10 px-1.5 text-[10px] font-bold tabular-nums">{flagshipCount}</span>
+          </button>
         </div>
         <div className="relative w-full sm:w-64">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
