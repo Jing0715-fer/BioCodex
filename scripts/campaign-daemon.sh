@@ -48,11 +48,11 @@ while true; do
     log "[window] API 开启(缺图 $MISSING)→ 旗舰批"
     BATCH=15 SCOPE=flagship CONCURRENCY=2 RETRY=2 timeout 420 bun scripts/generate-images.ts 2>&1 \
       | grep -E "^\[start|^\[入库|^\[放弃|^\[跳过|^\[done" | while read -r l; do log "$l"; done
-    sleep 100
-    log "[window] 全量批"
-    BATCH=30 SCOPE=all CONCURRENCY=2 RETRY=2 timeout 420 bun scripts/generate-images.ts 2>&1 \
+    sleep 30
+    log "[window] 全量批(E12:大批次高并发)"
+    BATCH=999 SCOPE=all CONCURRENCY=3 RETRY=2 timeout 570 bun scripts/generate-images.ts 2>&1 \
       | grep -E "^\[start|^\[入库|^\[放弃|^\[跳过|^\[done" | while read -r l; do log "$l"; done
-    sleep 150
+    sleep 60
   else
     log "[closed] $R (缺图 $MISSING),90s 后再探测"
     sleep 90
