@@ -11,6 +11,7 @@ import { SearchView } from "@/components/bio/search-view";
 import { BrowseView } from "@/components/bio/browse-view";
 import { FavoritesView } from "@/components/bio/favorites-view";
 import { RedlistView } from "@/components/bio/redlist-view";
+import { GalleryView } from "@/components/bio/gallery-view";
 import { CompareView } from "@/components/bio/compare-view";
 import { CompareTray } from "@/components/bio/compare-tray";
 import { AgentPanel } from "@/components/bio/agent-panel";
@@ -41,7 +42,7 @@ function AppShell() {
     // 用户在地址栏粘贴分享链接(同页 hash 变化,不触发重载)时也恢复会话;
     // 内部同步用 replaceState,不会触发 hashchange,故无循环风险
     const onHashChange = () => {
-      if (/^#(compare|browse|favorites|redlist|taxon)/.test(window.location.hash)) {
+      if (/^#(compare|browse|favorites|redlist|gallery|taxon)/.test(window.location.hash)) {
         useBioStore.getState().hydrateFromHash();
       }
     };
@@ -65,6 +66,8 @@ function AppShell() {
         h = `#browse${sp.toString() ? `?${sp.toString()}` : ""}`;
       } else if (s.view.type === "favorites") {
         h = "#favorites";
+      } else if (s.view.type === "gallery") {
+        h = "#gallery";
       } else if (s.view.type === "redlist") {
         const sp = new URLSearchParams();
         if (s.redlistKingdom) sp.set("kingdom", s.redlistKingdom);
@@ -92,6 +95,7 @@ function AppShell() {
         {view.type === "browse" && <BrowseView />}
         {view.type === "favorites" && <FavoritesView />}
         {view.type === "redlist" && <RedlistView />}
+        {view.type === "gallery" && <GalleryView />}
         {view.type === "compare" && <CompareView ids={view.ids} />}
       </div>
       <BioFooter />

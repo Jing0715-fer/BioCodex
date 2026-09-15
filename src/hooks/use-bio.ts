@@ -152,6 +152,30 @@ export function useRecent(limit = 12) {
   });
 }
 
+/** 画廊条目(按图找物种) */
+export interface GalleryItem {
+  id: string;
+  latinName: string;
+  chineseName: string;
+  image: string;
+  kingdom: string;
+  phylumZh: string | null;
+  conservation: string | null;
+  isFlagship: boolean;
+}
+
+export function useGallery() {
+  return useQuery<{ total: number; counts: Record<string, number>; items: GalleryItem[] }>({
+    queryKey: ["bio", "gallery"],
+    queryFn: async () => {
+      const r = await json<{ success: boolean; total: number; counts: Record<string, number>; items: GalleryItem[] }>("/api/gallery");
+      if (!r.success) throw new Error("gallery unavailable");
+      return { total: r.total, counts: r.counts, items: r.items };
+    },
+    staleTime: 60_000,
+  });
+}
+
 export interface SearchRow {
   id: string;
   rank: string;

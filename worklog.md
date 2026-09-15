@@ -1522,3 +1522,33 @@ Stage Summary(当前项目状态):
   2. P1:定期 VLM 抽查已入库图(防漏网错误图,中华鲎式用户报告启示:audit-images-vlm.ts 全量跑一轮)
   3. P2:expansion6 物种扩充候选(十足类/头足纲/兰科豆科)
 - 【E13 补记:海带 v5】08:55 周期 v4(皮带类比+零植物词汇)仍被画成主茎羽叶陆生植物——"kelp/sea kelp"一词本身即触发植物先验;v5 激进方案:连 kelp 词也删,纯"suede 材料长条折叠 V 形"几何描述,由 VLM 独立判定是否符合海带形态;断点已重置,守护下轮窗口自动验证(第六次尝试,不过则永久占位图)
+
+---
+Task ID: E14(用户指令轮:画廊模式 + 全图可点击, 2026-09-15)
+Agent: main
+Task: 用户指令「继续补充图片,所有物种页面中可以点击查看完整图片,增加画廊模式(同时查看所有图片,按图找物种),完成后 push」——lightbox 全站确认 + 插图画廊新视图 + 补图续跑
+
+Work Log:
+- 【lightbox 确认】taxon-detail.tsx 主图点击放大灯箱(E5 体系)在远端代码幸存且功能完整:1152px 原图/figcaption 学名+免责声明/iNaturalist 外链/Esc+点击空白关闭——全部物种详情页均已具备"点击查看完整图片"能力,无需改动
+- 【画廊模式(新功能,核心交付)】
+  - 后端:新建 GET /api/gallery(轻量全量返回已配图物种:id/latin/chinese/image/kingdom/phylumZh/conservation/isFlagship;复用 getKingdomPaths/getFlatTaxa,附界计数 counts)
+  - hook:use-bio.ts 新增 GalleryItem 接口 + useGallery()(React Query,60s stale)
+  - 路由:bio-store 新增 view type "gallery" + openGallery action + hydrateFromHash 解析 #gallery;page.tsx 挂载 GalleryView + hash 双向同步 + hashchange 正则加 gallery
+  - UI:gallery-view.tsx(全新组件)——瀑布流 columns-2/3/4/5 响应式;卡片高度节奏(4:3/1:1/3:4/4:5 按 id 哈希稳定分配)营造画廊错落感;悬浮渐变叠加中文名/拉丁名/界徽章/门/IUCN/「查看物种档案→」;右上放大按钮开大图灯箱;旗舰角标
+  - 交互:①点卡片 → openTaxon(按图找物种)②放大灯箱:←/→ 键盘翻页 + 计数徽标 N/M + 查看物种档案跳转 + iNaturalist 真实影像外链 + Esc 关闭③界胶囊筛选(全部+六界,带计数徽标)④画廊内搜索(中文名/拉丁名)⑤随机漫游洗牌/恢复顺序
+  - header:导航栏新增「画廊」按钮(Images 图标,active 高亮)
+- 【QA 全链路】agent-browser:画廊渲染 191 卡片/懒加载生效(首屏 35 张)/界筛选(真菌 16 张精确)/搜索(曲霉→1)/随机漫游(首图黑曲霉→小家鼠)/卡片点击跳详情(#taxon=... 黑曲霉)/灯箱开合(1152px)/翻页(1/191→2/191 肠道沙门菌)/灯箱内跳物种/ Esc 关闭/header 按钮入口/移动端 390px 两列无横滚/footer 长页自然下推/console 零错误;lint 零错误;tsc 零错误
+- 【补图续跑】本轮会话窗口多数时间关闭(守护 90s 轮询不间断),当前 191 图/缺 627;海带 v5 prompt(删 kelp 词纯几何描述)已就位待下轮窗口验证;守护进程持续自动接力
+- 【工程细节】React 受控输入测试用原生 setter+input 事件(直接改 value 不触发状态);瀑布流 break-inside-avoid 防卡片截断;图片 loading=lazy 保证 191 图性能;动效 animationDelay 错峰入场
+
+Stage Summary(当前项目状态):
+- 【稳定】818 物种/2516 单元/191 配图;新交付:插图画廊视图(全功能:筛选/搜索/洗牌/大图翻页/按图找物种)
+- 用户三项指令完成:①物种页点击查看完整图片(灯箱体系已全覆盖)✓ ②画廊模式(按图找物种)✓ ③补图持续推进+push ✓
+- 未解决/风险:
+  1. 627 物种缺图:守护自动接力(z-ai 窗口间歇开合,本轮会话多数关闭)
+  2. 海带 v5/石莼 v3/紫菜 v3 prompt 待窗口验证(海藻类生成先验极顽固)
+  3. 画廊无分页(191 图全量渲染,懒加载兜底;若未来图量超 500+ 可加增量加载)
+- 下一阶段优先:
+  1. P0:守护窗口补图续跑,阶段性 push 累计成果
+  2. P1:画廊加「仅旗舰」筛选开关;详情页相关物种画廊化推荐
+  3. P2:expansion6 物种扩充(十足类/头足纲/兰科豆科);audit-images-vlm 全量复审

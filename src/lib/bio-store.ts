@@ -10,7 +10,8 @@ export type BioView =
   | { type: "compare"; ids: string[] }
   | { type: "browse" }
   | { type: "favorites" }
-  | { type: "redlist" };
+  | { type: "redlist" }
+  | { type: "gallery" };
 
 export interface BrowseFilter {
   iucn?: string | null;
@@ -72,6 +73,7 @@ interface BioState {
   openBrowse: (filter?: BrowseFilter) => void;
   openFavorites: () => void;
   openRedlist: (opts?: { iucn?: string | null; kingdom?: string | null }) => void;
+  openGallery: () => void;
   /** 红色名录内修改筛选(不压历史栈) */
   patchRedlist: (patch: { iucn?: string | null; kingdom?: string | null }) => void;
   /** 目录内筛选变更(不压入历史栈) */
@@ -131,6 +133,11 @@ export const useBioStore = create<BioState>((set, get) => ({
       // 传 opts 则应用(未出现的键重置);不传则保留上次筛选
       redlistFocus: "iucn" in opts ? opts.iucn ?? null : s.redlistFocus,
       redlistKingdom: "kingdom" in opts ? opts.kingdom ?? null : s.redlistKingdom,
+      historyStack: [...s.historyStack, s.view].slice(-30),
+    })),
+  openGallery: () =>
+    set((s) => ({
+      view: { type: "gallery" },
       historyStack: [...s.historyStack, s.view].slice(-30),
     })),
   patchRedlist: (patch) =>
@@ -201,6 +208,12 @@ export const useBioStore = create<BioState>((set, get) => ({
     if (h === "#favorites" || h.startsWith("#favorites?")) {
       set({ view: { type: "favorites" }, historyStack: [] });
       window.history.replaceState(null, "", window.location.pathname + window.location.search + "#favorites");
+      return true;
+    }
+    // 插图画廊: #gallery
+    if (h === "#gallery" || h.startsWith("#gallery?")) {
+      set({ view: { type: "gallery" }, historyStack: [] });
+      window.history.replaceState(null, "", window.location.pathname + window.location.search + "#gallery");
       return true;
     }
     // 红色名录专题: #redlist 或 #redlist?iucn=CR&kingdom=Animalia

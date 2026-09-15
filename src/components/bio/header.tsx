@@ -9,14 +9,14 @@ import { useFavorites } from "@/lib/favorites";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  Search, Sun, Moon, Dna, MapPin, ChevronRight, Sparkles, Command, LayoutGrid, Keyboard, History, Trash2, Bookmark,
+  Search, Sun, Moon, Dna, MapPin, ChevronRight, Sparkles, Command, LayoutGrid, Keyboard, History, Trash2, Bookmark, Images,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { KingdomIcon, kingdomTheme, RankBadge } from "./taxa-icon";
 
 export function BioHeader() {
-  const { view, goHome, explore, openTaxon, openSearch, openBrowse, openFavorites, setAgentOpen, setShortcutsOpen } = useBioStore();
+  const { view, goHome, explore, openTaxon, openSearch, openBrowse, openFavorites, openGallery, setAgentOpen, setShortcutsOpen } = useBioStore();
   const { theme, setTheme } = useTheme();
   const [q, setQ] = useState("");
   const [focus, setFocus] = useState(false);
@@ -113,6 +113,17 @@ export function BioHeader() {
           >
             <LayoutGrid className="h-4 w-4" />
             图鉴目录
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className={cn("h-9 gap-1.5", active("gallery") && "bg-accent text-accent-foreground")}
+            onClick={() => openGallery()}
+            aria-label="插图画廊"
+            title="插图画廊 · 按图找物种"
+          >
+            <Images className="h-4 w-4" />
+            画廊
           </Button>
         </nav>
 
