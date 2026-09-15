@@ -1553,3 +1553,22 @@ Stage Summary(当前项目状态):
   2. P1:画廊加「仅旗舰」筛选开关;详情页相关物种画廊化推荐
   3. P2:expansion6 物种扩充(十足类/头足纲/兰科豆科);audit-images-vlm 全量复审
 - 【E14 补记:仅旗舰筛选】画廊筛选行新增皇冠胶囊(仅旗舰 85 张,amber 主题高亮),与界筛选/搜索三轴叠加过滤;tsc 零错误,浏览器验证 191→85 精确过滤
+
+---
+Task ID: E15-a
+Agent: general-purpose(十足类扩充)
+Task: expansion6-decapods.ts 数据文件编写
+Work Log:
+- 前置阅读:worklog E13/E14(818 物种/2516 单元/191 图)、types.ts TaxonSeed 接口、expansion5-isopods.ts 五项科学档案范本
+- 运行 export-taxa.ts 刷新 /tmp/taxa-inventory.tsv(2516 条);递归查询 Decapoda 子树:十足目已有 8 科 11 属 17 种,口足目已有虾蛄科口虾蛄——任务书候选中三疣梭子蟹/拟穴青蟹/红螯螯虾/罗氏沼虾/中国明对虾/口虾蛄 6 种已在库,改选 12 个库内空白高价值物种
+- 在线核验(网络可用):GBIF Backbone 版权威 12/12(neocaridina davidi 命名者为 Bouvier 1904 而非 Kubo 1938,已纠正);NCBI esearch+esummary 核验 ncbiTaxId 12/12 全部填入;Macrocheira 现行系统为独立巨螯蟹科 Macrocheiridae(弃广义 Majidae)
+- 阶元决策:①不新建异尾下目,石蟹科/陆寄居蟹科直接挂 Decapoda(与库内全科直挂目级的树形一致);②口足目已在库,雀尾螳螂虾仅补齿指虾蛄科一支挂 Stomatopoda;③Astacidae 中文取「螯虾科」,与蝲蛄科/拟螯虾科/海螯虾科对称
+- 编写 src/data/seed/expansion6-decapods.ts:12 物种 + 10 新属 + 8 新科 = 30 条;conservation 仅贵族螯虾填 IUCN VU(其余无把握留空);tags 全部取自既有词表(经济物种/观赏动物/入侵物种/濒危物种/明星物种/深海物种/经典实验材料)
+- 编写 scripts/validate-expansion6-decapods.ts 并运行:修复 2 条超长 etymology 后零错误零警告;中文名倒排索引查重与库内 2516 条零冲突
+- bunx tsc --noEmit 零错误;未运行 seed 入库(留待主代理统一执行)
+
+Stage Summary:
+- 产出:src/data/seed/expansion6-decapods.ts(30 条:12 物种/10 属/8 科)+ scripts/validate-expansion6-decapods.ts
+- 校验:文件内唯一性/清单零冲突(latin+中文)/parent 闭合/阶梯单调/长度区间/五档案 12/12 全部通过,零错误零警告
+- 不确定项:①椰子蟹 IUCN 疑为 DD 但把握不足未填 conservation;②信号螯虾 IUCN 疑为 LC 未填;③中华锯齿米虾中文名承任务书(俗名樱桃虾),源自历史亚种名;④日本对虾 GBIF 暂作 Penaeus 异名,从 NCBI/WoRMS 保留独立属 Marsupenaeus
+- 锚点挂接:Penaeidae/Decapoda/Panulirus/Charybdis/Stomatopoda 五个库内锚点 + 文件内新建科属闭合;入库预计 2516→2546

@@ -33,6 +33,7 @@ import { expansion4Icons } from "../src/data/seed/expansion4-icons";
 import { expansion5Polychaetes } from "../src/data/seed/expansion5-polychaetes";
 import { expansion5Spiders } from "../src/data/seed/expansion5-spiders";
 import { expansion5Isopods } from "../src/data/seed/expansion5-isopods";
+import { expansion6Decapods } from "../src/data/seed/expansion6-decapods";
 
 const newTaxa: TaxonSeed[] = [
   ...expansionProkaryotes,
@@ -60,6 +61,7 @@ const newTaxa: TaxonSeed[] = [
   ...expansion5Polychaetes,
   ...expansion5Spiders,
   ...expansion5Isopods,
+  ...expansion6Decapods,
 ];
 
 function fail(msg: string): never {
