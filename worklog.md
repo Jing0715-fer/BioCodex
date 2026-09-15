@@ -1622,3 +1622,41 @@ Stage Summary(当前项目状态):
   1. P0:窗口开启守护续补;阶段 push
   2. P1:E15-b 头足纲扩充重试
   3. P2:孤儿 PNG VLM 审计;audit-images-vlm 全量复审
+
+---
+Task ID: E16-a
+Agent: general-purpose(头足纲扩充)
+Task: expansion7-cephalopods.ts 数据文件编写(E15-b 网络超时 7 次未产出的重试)
+
+Work Log:
+- 前置阅读:worklog E13-E16(830 物种/2546 单元/208 图/96 旗舰)、types.ts TaxonSeed 接口、expansion6-decapods.ts 五项科学档案范本
+- 运行 export-taxa.ts 刷新 /tmp/taxa-inventory.tsv(2546 条);递归查询 Cephalopoda 子树:库内已有 13 种(八腕目 6:普通章鱼/短蛸/长蛸/双斑蛸/拟态章鱼/蓝环章鱼;乌贼目 3:金乌贼/虎斑乌贼/曼氏无针乌贼;鹦鹉螺目 1;闭眼目 2:中国枪乌贼/莱氏拟乌贼;船蛸科直挂纲 1)。任务书候选中蓝环章鱼、鹦鹉螺、莱氏拟乌贼已在库,短蛸已以 Octopus ocellatus 在库,Octopus minor 长蛸亦在库;Grimpoteuthis 种级分类有争议按任务书预案改选幽灵蛸
+- 在线核验(网络可用):GBIF Backbone species/match 12/12 全 ACCEPTED(除 apama/pfefferi 转入新属,见下);NCBI esearch+esummary+efetch 核验 ncbiTaxId 12/12;WoRMS AphiaClassification 交叉核验科属目;GBIF zho 俗名库核验中文科属名(四盘耳乌贼属/后乌贼属/武装鱿科/柔鱼科/耳乌贼科/微鳍乌贼科/幽灵蛸属/幽灵蛸科);Europe PMC 核验基因组事实(普通乌贼 eLife 染色体级组装、幽灵蛸 iScience 2025 巨型基因组、夏威夷短尾乌贼 Sci Data 2024 注释、萤火乌贼 Mar Biotechnol 2020 发光基因)
+- 分类决策:①Vampyromorpha 目级拼写从 GBIF+NCBI+WoRMS 三方一致(任务书作 Vampyromorphida);②Idiosepida 从 GBIF+WoRMS(NCBI 置 incertae sedis);③耳乌贼科依 WoRMS 提升为独立目 Sepiolida(GBIF/NCBI 暂归乌贼目);④Sepia apama 与 Metasepia pfefferi 依 2024 年广义乌贼属拆分(三方一致)移入复活属 Ascarosepion(后乌贼属,中文名取 GBIF zho 俗名),ncbiTaxId 随新组合 3248876/3248885;⑤Enteroctopus 科从 GBIF+WoRMS 用 Enteroctopodidae 巨蛸科(NCBI 暂用广义 Octopodidae)
+- IUCN 核验:经 GBIF 挂载的 IUCN 红色名录官方数据集 threatStatuses 字段逐种核验——LC 6 种(大王乌贼/太平洋褶柔鱼/萤火乌贼/旋壳乌贼/普通乌贼/北太平洋巨型章鱼)、NT 1 种(澳大利亚巨乌贼)、DD 4 种(美洲大赤鱿/夏威夷短尾乌贼/微鳍乌贼/火焰乌贼)、幽灵蛸无评估记录留空
+- 编写 src/data/seed/expansion7-cephalopods.ts:12 物种 + 10 新属 + 8 新科 + 5 新目 = 35 条;tags 全用库内既有词(注意:任务书词表「剧毒物种」库内实为「剧毒」,已从库;「观赏动物」「活化石」等均有既有用量);flagship 按任务书加于大王乌贼、幽灵蛸(tags 内 "flagship",入库时自动生效,无需主代理后补)
+- 编写 scripts/validate-expansion7-cephalopods.ts(参照 expansion6 版,新增:tags 词表白名单、旗舰白名单、占位符检查、锚点存在性、条目构成断言)并运行:零错误零警告;中文名倒排查重与库内 2546 条零冲突
+- bunx tsc --noEmit:我的两个文件零类型错误(全仓 4 个既有错误均位于 examples/ 与 skills/ 的沙箱预置文件,与本任务无关);未运行 seed 入库(留待主代理统一执行);未动 db/、public/、generate-images.ts
+- git 状态确认:仅新增两个未跟踪文件(仓库其余 M 均为守护进程产出/文件 mode 位变化,零内容 diff)
+
+Stage Summary:
+- 产出:src/data/seed/expansion7-cephalopods.ts(35 条:12 物种/10 属/8 科/5 目)+ scripts/validate-expansion7-cephalopods.ts
+- 物种清单:大王乌贼(flagship)/美洲大赤鱿/太平洋褶柔鱼/萤火乌贼/幽灵蛸(flagship)/旋壳乌贼/夏威夷短尾乌贼/微鳍乌贼/普通乌贼/澳大利亚巨乌贼/火焰乌贼/北太平洋巨型章鱼
+- 锚点挂接:新目直挂 Cephalopoda(与库内 Octopoda/Sepiida 同层);Sepia officinalis 挂库内 Sepia 属;Ascarosepion 挂库内 Sepiidae;Enteroctopodidae 挂库内 Octopoda;入库预计 2546→2581、830→842 物种、旗舰 96→98
+- 入库提示(主代理):seed-incremental.ts 需加两行——import { expansion7Cephalopods } from "../src/data/seed/expansion7-cephalopods"; 数组追加 ...expansion7Cephalopods;然后 bun scripts/seed-incremental.ts
+- 不确定项:①幽灵蛸 IUCN 未评估(留空,非 NE);②火焰乌贼河豚毒素类物质为文献通行结论,未在本轮 PMC 检索中直接复核到原文;③Watasenia 属名纪念渡濑氏、Todarodes 词源承 Todarus+odes 等词源表述按通行记载,把握中等;④Dosidicus 属名、apama 种加词词源按「晦暗/不详」如实处理;⑤中文名「萤火乌贼」取公众通行名,董正之标准名为「萤乌贼」(已在描述中注明);⑥Sepiolida 目级处理从 WoRMS 与 GBIF/NCBI 有出入(文件头已注明理由)
+
+---
+Task ID: E16(补记:头足纲入库 + 窗口批次成果)
+Agent: main
+Task: E16-a 头足纲数据 seed 入库 + 验证 + 同步推送
+
+Work Log:
+- 【seed 入库】seed-incremental.ts 挂接 expansion7Cephalopods,执行:新建 35 条(12 物种/10 属/8 科/5 目),拓扑 1 轮,2546→2581 单元/830→842 物种,配图 209 保持无损;旗舰 96→98(大王乌贼/幽灵蛸)
+- 【浏览器验证】agent-browser:大王乌贼详情页完整渲染(面包屑 9 级:生命之树→…→开眼目→大王乌贼科→大王乌贼;五科学档案全在;IUCN LC;NCBI 256136 链接);幽灵蛸页(幽灵蛸目新阶元);console 零错误(仅 HMR 日志)
+- 【窗口批次】18:40-18:46 短窗:产黄青霉(帚状分生孢子梗)第 2 次尝试过审入库(208→209);海带 v5 纯几何 prompt 仍被画成分节蠕虫态(VLM 正确拦截);石莼 v3 仍画成卷心菜;紫菜 v3 仍画成陆生叶;羊栖菜 v3 重生成仍画成陆生植物(rejected,断点已消耗 2 次尝试);博比特虫/蛇苔/新生隐球菌/金发藓 4 文件待审(批次超时中断,下轮自动审计);18:47 起窗口再关,守护 90s 轮询
+- 【同步推送】expansion7 数据+校验脚本+seed-incremental+DB+5 新 PNG 至 clone,push ad0f85b 之后的第二笔
+
+Stage Summary:
+- 842 物种/2581 单元/209 配图/98 旗舰;头足纲 13→25 物种(开眼目/幽灵蛸目/旋壳乌贼目/耳乌贼目/微鳍乌贼目 5 新目)
+- 7 张待审孤儿 PNG(4 本轮+3 前轮)下轮批次自动闸门审计
