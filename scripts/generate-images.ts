@@ -27,6 +27,7 @@ const PROGRESS = "/tmp/gen-progress.jsonl";
 const BATCH = parseInt(process.env.BATCH || "999", 10);
 const SCOPE = process.env.SCOPE || "flagship";
 const CONCURRENCY = parseInt(process.env.CONCURRENCY || "2", 10);
+const ONLY = (process.env.ONLY || "").split(",").map((s) => s.trim()).filter(Boolean); // E13:定向重生成(用户报告问题物种)
 const MAX_RETRY = parseInt(process.env.RETRY || "2", 10);
 const AUDIT_ONLY = process.env.AUDIT_ONLY === "1";
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -53,8 +54,6 @@ const KINGDOM_STYLE: Record<string, (cn: string, la: string) => string> = {
  * 文昌鱼曾被画成硬骨鱼(需"无头无眼+V形肌节")、鲍曾被画成峨螺(需"耳形扁平+壳孔列")、刺参曾被画成海胆(需"刺参状+背疣足行列")。
  */
 const SPECIFIC_PROMPT: Record<string, string> = {
-  "Saccharina japonica":
-    "vintage phycology seaweed study plate, a pressed marine specimen laid flat on aged parchment: Saccharina japonica (海带 Japanese kelp), one single very long smooth olive-brown ribbon with gently ruffled translucent edges and a subtle darker midline, tapering at the base into a short round stalk that ends in a small forked brown holdfast claw gripping a tiny pebble, herbarium specimen style, delicately watercolored copperplate engraving, no flowers no seeds no soil, no text no letters no labels",
   "Saccharomyces cerevisiae":
     "antique microscope field-of-view plate of Saccharomyces cerevisiae (baker's yeast 酿酒酵母): dozens of tiny oval single-celled fungi like smooth translucent pale grapes or pebbles scattered across the round field, several cells with small round buds pinching off, a few four-spore ascii burst open, ink stippling and watercolor tinting, vintage copperplate engraving on aged parchment, no text no letters no labels",
   "Batrachochytrium dendrobatidis":
@@ -83,6 +82,40 @@ const SPECIFIC_PROMPT: Record<string, string> = {
     "vintage marine natural history illustration of Spirobranchus giganteus (Christmas tree worm 大旋鳃虫): two identical small spiral conical feathery gill crowns like miniature fir trees, one vivid violet-blue and one golden-orange, each formed of two perfectly spiraling rows of delicate radiole feathers, rising side by side from a tiny round hole in a living massive coral head, underwater coral reef scene, copperplate engraving with watercolor tinting on aged parchment, no text no letters no labels",
   "Eunice aphroditois":
     "vintage marine natural history illustration of Eunice aphroditois (bobbit worm 博比特虫): a very long segmented marine polychaete worm bursting from its burrow in reef sand, hundreds of flat segments with an iridescent purple-green-bronze sheen, five straight sensory antennae like fingers on the head, fierce open eversible pharynx revealing black sickle-shaped snapping jaws, short paddle parapodia along the sides, copperplate engraving with watercolor tinting on aged parchment, no text no letters no labels",
+  // —— E13 第二批:海藻类统一走「压制标本/显微镜视野」构图,规避陆生植物词汇 ——
+  "Ulva lactuca":
+    "vintage natural history plate of a pressed sea-lettuce seaweed laid flat on aged parchment: one single piece of very thin bright grass-green material shaped like a soft irregular oval doily of fine silk paper, its rim gently undulating all around like a lasagna noodle edge, the thin see-through texture showing lighter patches where light passes through, one tiny pale round button stuck at one corner, the surface completely plain and smooth with no ribs no ridges no lines no stripes no branching of any kind, nothing else in the drawing, copperplate border, watercolor tinting, no text no letters no labels",
+  "Pyropia yezoensis":
+    "vintage plate of dried sushi nori sheets on aged parchment: several thin flat matte sheets of deep purplish-brown to rosy-purple dried seaweed exactly like square-cut nori for sushi but in elongated tongue shapes, smooth matte surfaces like fine handmade paper with faint darker mottling, corners softly curling up from the sheet, a few overlapping at slight angles, completely plain surfaces with no ribs no lines no stalks, copperplate border, watercolor tinting, no text no letters no labels",
+  "Sargassum fusiforme":
+    "vintage natural history plate of a pressed brown seaweed sprig lying flat on aged parchment: one stiff wiry dark olive-brown strand like a twig from the sea, short side twigs densely studded all over with tiny smooth spindle-shaped pods like little rice grains or tiny sausages standing upright, mixed with a few thin straight brown sticks, at the base one small knobby disc gripping a pebble, dry pressed look, copperplate engraving with watercolor, no text no letters no labels",
+  "Macrocystis pyrifera":
+    "vintage phycology plate of a pressed giant kelp specimen arranged in vertical folds on aged parchment: Macrocystis pyrifera (giant kelp 巨藻), one extremely long smooth rope-like golden-brown stipe coiled in gentle S-folds up the sheet, bearing at close regular intervals many short flat strap-shaped blades like long fronds, every single blade swollen at its base into a small pear-shaped gas bladder (pneumatocyst) clearly drawn as a little pod, blades slightly crinkled with wrinkled surface, a small branching holdfast at the very bottom, NO plant stem NO tree trunk NO flowers NO seeds NO roots, copperplate engraving with watercolor tinting, no text no letters no labels",
+  // —— 真菌类:纠正香菇=毒蝇伞、牛肝菌=菌褶两类高频张冠李戴 ——
+  "Lentinula edodes":
+    "antique mycology plate of Lentinula edodes (shiitake 香菇), NOT the red fly agaric: a cluster of three edible mushrooms growing from a short hardwood log, each cap dome-shaped and entirely dull chestnut to dark brown, the surface covered with fine scattered white cracks and pale veil remnants, rim curled under and faintly scalloped, creamy-white crowded gills beneath, a tough fibrous pale stem with a shredding snakeskin texture, absolutely NO red cap NO white dots NO ring NO cup at stem base, copperplate engraving with watercolor tinting on aged parchment, no text no letters no labels",
+  "Boletus edulis":
+    "antique mycology plate of Boletus edulis (porcini 美味牛肝菌), NOT a gilled mushroom: a pair of stout forest mushrooms among moss and pine needles, thick bread-loaf caps of sticky chestnut-brown, beneath each cap a spongy layer of densely packed tiny round pores in cream-pale yellow like fine foam, NOT blade-like gills, a fat club-shaped stem white with a fine raised netted reticulation pattern near the apex, one specimen cut lengthwise showing white dense flesh, copperplate engraving with watercolor tinting on aged parchment, no text no letters no labels",
+  "Hericium erinaceus":
+    "antique mycology plate of Hericium erinaceus (lion's mane fungus 猴头菌), NOT a normal capped mushroom: one large round white fruiting body like a frozen cascading fountain hanging from a cut hardwood trunk, its whole surface breaking into hundreds of long soft downward-pointing icicle spines of pure white, finer young spines near the top and longer dangling ones below, no cap no stalk no gills, pale cream shading in the crevices, copperplate engraving with watercolor tinting on aged parchment, no text no letters no labels",
+  // —— 微型模式生物:显微镜视野构图 ——
+  "Trypanosoma brucei":
+    "antique microscope field-of-view plate of Trypanosoma brucei (sleeping sickness trypanosome 布氏锥虫) in a blood smear: several long slender pale single-celled organisms like thin flattened serpents among round pinkish blood cells, each with a single extremely long wavy undulating membrane running the length of the body and one trailing flagellum at the front end, a compact darkly-stained dot kinetoplast near the rear end, a small pale oval nucleus in the middle of the body, Giemsa-stained slide look, vintage copperplate engraving with ink stippling, no text no letters no labels",
+  "Nitrosopumilus maritimus":
+    "vintage electron-microscope style plate on aged parchment: Nitrosopumilus maritimus (氨氧化古菌), a loose scatter of very small plain smooth cells shaped like tiny blunt-ended rods and slender pear shapes, each only a simple thin cell wall outline with a faint fibrous interior, a few cells seen attached flat against the outer surface of one much larger rounded host cell like tiny barnacles on a rock, plain empty background, no organelles no nuclei no internal spheres, ink stippling and light sepia wash, no text no letters no labels",
+  // —— 海带 prompt 第四代:纯皮带类比,彻底删除 midrib/blade/ruffled 等诱发词 ——
+  "Saccharina japonica":
+    "vintage phycology plate: one very long limp strip of smooth translucent golden-brown sea kelp lying flat on aged parchment, folded once into a tall narrow V so its great length fits the sheet, the strip like a soft wet suede belt from the sea, uniform width for most of its length then gradually narrowing at the bottom into a short round cord ending in a small tangle of coarse brown fibres like a frayed rope end, the surface uniformly smooth and plain with no line no rib no seam down its middle, the whole drawing shows only this one continuous soft strip and nothing else, watercolor tinting on aged parchment, no text no letters no labels",
+  // —— Claviceps purpurea:E13 三次内容过滤拒绘(致幻关联),移出重试 ——
+  "Penicillium chrysogenum":
+    "antique microscope field-of-view plate of Penicillium chrysogenum (青霉) grown on a bread crumb: pale bluish-green mould, its name-giving paintbrush structures magnified large — several tall slender glassy stalks rise from tangled surface hyphae, each stalk ending in a neat symmetric broom of short branch fingers, and every finger tip trails a long straight chain of tiny round green spores like strings of small beads, one stalk drawn enlarged beside the field showing the brush clearly, ink stippling and watercolor tinting, vintage copperplate engraving on aged parchment, no text no letters no labels",
+  "Ustilago maydis":
+    "antique botanical plate of a maize ear attacked by smut fungus: a plump corn cob with husk leaves peeled back, several kernels swollen into large smooth glossy grey-white tumor-like galls, one gall split open oozing a wet mass of dense sooty black spore powder, a few loose black spores drawn magnified beside the ear as tiny round spiked balls, autumn corn field behind, copperplate engraving with watercolor tinting on aged parchment, no text no letters no labels",
+  // —— 肢口纲剑尾目:用户 E13 报告中华鲎被画成奇幻哺乳生物,VLM 确认 FAIL,重定制 ——
+  "Tachypleus tridentatus":
+    "vintage natural history plate of a Chinese horseshoe crab Tachypleus tridentatus (中华鲎) seen from directly above on wet estuary sand, NOT a crab NOT a scorpion NOT a mammal — no pincers no fur no face: the body in three clean hard-shelled parts, first a big smooth glossy dome-shaped horseshoe arch of olive green-brown cephalothoracic shield like a rounded steel helmet filling half the plate, its surface with faint ridges and two small round dark lateral eyes near the sides, second behind it a lower flatter roughly triangular abdomen plate with a neat row of small sharp backward-pointing movable spines along each side edge, third from the abdomen tip one single long slender straight rigid sword-like telson tail extending flat across the sand like a thin triangular spike, shallow water ripple at the edge, copperplate engraving with watercolor tinting on aged parchment, no text no letters no labels",
+  "Limulus polyphemus":
+    "vintage natural history plate of an Atlantic horseshoe crab Limulus polyphemus (美洲鲎) drawn from directly above on a sandy seabed, NOT a crab NOT a trilobite NOT a scorpion: one large smooth arched helmet-shaped cephalothoracic shield of dark reddish brown like a polished round dome with two small round lateral eyes at the sides, followed by a flatter triangular abdomen shield whose side edges bear a neat row of small backward-pointing spines, and one long slender rigid sword-like telson tail lying straight on the sand, a second smaller male shown behind clinging onto the larger female's shield edge, copperplate engraving with watercolor tinting on aged parchment, no text no letters no labels",
 };
 
 /** 从中文形态/描述档案提炼关键鉴别特征注入 prompt(防止张冠李戴) */
@@ -145,6 +178,7 @@ async function main() {
   const where: any = SCOPE === "all"
     ? { rank: "species", image: null }
     : { rank: "species", image: null, tags: { contains: "flagship" } };
+  if (ONLY.length) where.latinName = { in: ONLY };
   const species = await db.taxon.findMany({
     where,
     orderBy: { sortOrder: "asc" },

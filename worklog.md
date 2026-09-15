@@ -1491,3 +1491,33 @@ Stage Summary(当前项目状态):
   1. P0:守护自动续补 645 缺图物种(后续会话 push 累计成果)
   2. P1:SPECIFIC_PROMPT 扩展(海藻类"压制标本/切片"构图、菌类管孔层特写)
   3. P2:expansion6 物种扩充候选(十足类/头足纲/兰科豆科)
+
+---
+Task ID: E13(用户指令轮:GitHub 拉取 + 中华鲎用户报告修复 + 补图战役, 2026-09-15)
+Agent: main
+Task: 用户指令「从github拉取最新代码并继续补充图片,完成后push」+「中华鲎图片不对,继续补充图片」——同步远端、修复用户报告的科学性错误、迭代海藻类 prompt、大规模补图
+
+Work Log:
+- 【GitHub 同步】git remote 配置 token → fetch 发现本地落后 340 文件(E2 旧态)→ reset --hard origin/main(E12 态:818 物种/2516 单元/173 图);dev server 07:47 已自动重启服务新 DB;CSS 验证 #f7f4ec 羊皮纸正常(E9 陈旧缓存教训未复发);instrumentation 自动拉起 campaign-daemon(flock 单例)
+- 【窗口捕获】07:53 probe=OPEN → 孤儿化人工大批批(BATCH=999 CONCURRENCY=3)+守护并行;窗口间歇开合持续约 1 小时
+- 【中华鲎修复(P0,用户报告)】用户报告"中华鲎图片不对,和网上搜到的不一样"→ VLM 审计确认 FAIL:原图把鲎画成"哺乳动物长鼻的奇幻生物"(四项重大解剖错误:头部成吻部/刺长在头前/身体分节模糊/剑尾异化)→ 处置:坏图移 rejected/ + DB image 置空回退占位图 → 新写 Tachypleus tridentatus + Limulus polyphemus 两条 SPECIFIC_PROMPT(俯视构图:钢盔圆拱头胸甲+侧眼/三角腹甲侧缘棘刺列/细长三棱剑尾,NOT crab NOT scorpion NOT mammal 锚点)→ ONLY 定向重生成一次过审 → 独立 VLM 复核 PASS → 浏览器 1152px 渲染验证 ✓
+- 【脚本增强】generate-images.ts:①新增 ONLY 环境变量(逗号分隔拉丁名定向重生成,用户报告问题物种的长期修复通道)②SPECIFIC_PROMPT 扩容 15→28 条:海藻 5(石莼/紫菜/羊栖菜/巨藻/海带四代)、真菌 5(香菇反毒蝇伞锚点/牛肝菌管孔层而非菌褶/猴头菌 cascading icicle 构图/青霉画笔结构/玉米黑粉菌肿瘤瘿)、微生物 2(锥虫血涂片+动基体/骑行古菌电镜构图)、鲎 2;移除 Claviceps purpurea(三次内容过滤拒绘,致幻关联)
+- 【prompt 迭代方法论】v2(标本式构图)对海藻仍大量失败——生成模型对任何植物词汇(blade/leaf/ruffled/edges)都有陆生植物先验,石莼甚至被画成生菜(种名 lactuca 即生菜!);v3 转纯物体类比零植物词汇:sushi nori 常识锚点/意面边类比/海中美纹皮带;海带删 midrib(中脉诱发词)
+- 【战役战果】173→191(+18):天蓝喇叭虫/骑行纳古菌/泥炭藓/蛙壶菌(E10 十五硬骨头残留!)/地钱/巨藻(v2 破冰)/羊栖菜/中华鲎(定向重生成)/僧帽水母/布氏锥虫(波动膜+动基体过审)/水杉等;VLM 闸门持续正确拦截海藻/博比特虫等画错物种(宁缺毋滥)
+- 【断点工程】两次重置 rejected 断点(携新 prompt 重试);发现双批并存(人工+守护)会重复生成同物种(Macrocystis 双入库)耗额——后续单批由守护自理
+- 【一次误操作与恢复】误移已过审的 trypanosoma-brucei.png 至 rejected(误判为陈旧文件)→ 立即恢复 + 浏览器重验 1152px ✓;教训:移动 OUT_DIR 文件前必查该物种 progress 状态与 DB image 字段
+- 【QA】agent-browser:首页 24 img 零破损/标题正常/羊皮纸背景;移动端 390×844 无横滚 footer 正常;console 零错误;中华鲎/锥虫/天蓝喇叭虫详情页新图 1152px 全验证;tsc 零错误
+- 【守护现状】campaign-daemon(flock 单例)90s 轮询中,窗口关闭状态,一开自动跑全量批(v3 prompt 生效,海带/石莼/紫菜断点已重置);Claviceps 永久 rejected
+
+Stage Summary(当前项目状态):
+- 【稳定】818 物种/2516 单元/191 配图(本轮 +18)/48 门;SPECIFIC_PROMPT 28 条;ONLY 定向重生成通道就绪
+- 用户两项指令完成:①GitHub 拉取同步 ✓②中华鲎科学性修复(双重 VLM PASS+浏览器验证)✓;补图持续推进并 push
+- 未解决/风险:
+  1. 627 物种缺图:守护自动接力(海带 v4/石莼 v3/紫菜 v3 prompt 待窗口验证)
+  2. 海藻类生成模型先验极顽固:v3 纯物体类比是最后一招,再不过则保持占位图(宁缺毋滥)
+  3. Claviceps purpurea 内容过滤永久拒绘(保持占位图)
+  4. 双批并存重复生成耗额——保持单守护批模式
+- 下一阶段优先:
+  1. P0:守护窗口续补(重点观察海带 v4/石莼 v3/紫菜 v3 过审率)
+  2. P1:定期 VLM 抽查已入库图(防漏网错误图,中华鲎式用户报告启示:audit-images-vlm.ts 全量跑一轮)
+  3. P2:expansion6 物种扩充候选(十足类/头足纲/兰科豆科)
