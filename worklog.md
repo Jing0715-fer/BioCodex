@@ -1723,3 +1723,22 @@ Work Log:
 
 Stage Summary:
 - 打磨交付:①五档案 100% 覆盖(见 E17 主体)②画廊进度指示器③统计标签准确性④全站 QA 走查(六大视图+搜索+Agent 降级)
+
+---
+Task ID: E17(补记:NCBI 锚定战役)
+Agent: main
+Task: 585 个缺锚物种的 NCBI Taxonomy ID 在线核验批量回填
+
+Work Log:
+- 【脚本开发】scripts/link-ncbi.ts:esearch(retmode=json)→ 恰好 1 条命中 → esummary 复核(学名逐字一致 + rank=species)→ APPLY=1 回填;断点续跑 /tmp/ncbi-link.jsonl;NCBI 限速 400ms/请求
+- 【修复】初版 esearch 无 retmode=json 返回 XML 解析失败 → 加参修复
+- 【执行】4 块前台分块(沙箱回收后台进程,180+180+200+15)共 585 物种全部处理:锚定 524 / 跳过 61(全部 mismatch——NCBI 采用新组合名而库内用经典名,如 Achatina→Lissachatina、Crassostrea→Magallana、Cynops→Hypselotriton,严格闸门正确拒链)
+- 【成果】NCBI 锚定 257 → 781 物种(92.8% 覆盖);详情页「科学数据库」区直链 NCBI 的物种增加 3 倍;抽验:Passer montanus→9160 ✓、Vespa mandardinia→7446 ✓、Acinonyx jubatus→32536 ✓、Acinetobacter baumannii→470 ✓(与已知知识一致)
+- 【数据质量巡检】扫描全字段占位文本:5 处「待补/尚待完善」——4 处为诚实科学表述保留(蜜獾/日本海羊齿/沙蠋/间斑寇蛛),1 处(中华竹鼠)TODO 式结尾改写为近缘锚点式百科表述(盲鼹形鼠低氧抗癌模式);描述短于 30 字 0 条;genomeInfo 平均 46 字符(符合 20-80 规范)
+- 【QA】tsc 零错误;lint 零错误;浏览器验证 Passer montanus 详情页 NCBI 直链 href id=9160 渲染 ✓ console 零错误
+- 【推送】link-ncbi.ts + DB(781 锚定)同步 push
+
+Stage Summary(当前项目状态):
+- 【稳定】842 物种/2581 单元/209 配图/98 旗舰/**五档案 100%**/**NCBI 锚定 781(92.8%)**
+- 窗口仍关闭(守护 90s 轮询持续)
+- 下一阶段:P0 窗口开启守护补图;P1 audit-images-vlm 全量复审(需 VLM 窗口);P2 61 个分类学异名物种可考虑未来按 WoRMS 更名
