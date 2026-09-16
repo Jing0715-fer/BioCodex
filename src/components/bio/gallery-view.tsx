@@ -95,6 +95,8 @@ export function GalleryView() {
 
   const current = lightbox !== null ? filtered[lightbox] : null;
   const total = data?.total ?? 0;
+  const speciesTotal = data?.speciesTotal ?? 0;
+  const progress = speciesTotal > 0 ? Math.round((total / speciesTotal) * 100) : 0;
 
   return (
     <div ref={rootRef} className="mx-auto w-full max-w-7xl px-4 pb-16 pt-8 sm:px-6">
@@ -112,6 +114,31 @@ export function GalleryView() {
                 {total} 幅博物学插图 · 按图找物种
               </span>
             </h1>
+            {/* 配图完成度指示(插图计划持续推进中) */}
+            {speciesTotal > 0 && (
+              <div className="mt-3 max-w-md">
+                <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                  <span className="flex items-center gap-1.5">
+                    <Sparkles className="h-3 w-3 text-primary/60" aria-hidden />
+                    插图计划:{total} / {speciesTotal} 物种已配图
+                  </span>
+                  <span className="font-semibold tabular-nums text-primary/80">{progress}%</span>
+                </div>
+                <div
+                  className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-primary/10"
+                  role="progressbar"
+                  aria-label="物种插图完成度"
+                  aria-valuenow={progress}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                >
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-primary/60 to-primary transition-all duration-700"
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+              </div>
+            )}
             <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground">
               汇集图鉴全部已配图物种的复古博物学插图。点击卡片进入物种档案,
               或用放大模式逐幅浏览大图——凭借一瞥的形态印象,重新遇见你的物种。

@@ -1709,3 +1709,17 @@ Stage Summary(当前项目状态):
 - 【稳定】842 物种/2581 单元/209 配图/98 旗舰;**五科学档案 100% 全覆盖**(633 物种全含 genomeInfo)
 - 未解决/风险:633 物种缺图(守护 90s 轮询待窗口,窗口近 4h 未开)
 - 下一阶段优先:P0 窗口续补+阶段 push;P1 audit-images-vlm 全量复审;P2 更多 UI/数据打磨点
+
+---
+Task ID: E17(补记:UI 打磨批次)
+Agent: main
+Task: 画廊配图完成度指示器 + 统计标签准确性修正
+
+Work Log:
+- 【画廊进度指示器】/api/gallery 新增 speciesTotal 字段 → useGallery 类型扩展 → gallery-view 页眉新增「插图计划:N / M 物种已配图 X%」横向进度条(ARIA progressbar role + valuenow/min/max 齐备,主题色渐变填充,700ms 过渡);当前 209/842=25%
+- 【统计标签修正】首页统计带「实景配图」→「插图物种」(E7 起配图已全部为 AI 复古博物学插画而非实景照片,标签与事实不符)
+- 【全链路 QA】agent-browser:画廊 209 图 + 进度条渲染 ✓ 移动端 390px 无横滚 ✓ 首页统计带/完备度徽章墙(科学档案环 842=100%)✓ 分类探索树(20 展开节点)✓ 全局搜索(「鲎」→中华鲎/美洲鲎下拉+相关卡片)✓ Agent 限流降级体验(LLM 429 时本地检索兜底+明确提示文案,设计优良无需改动)✓ 无图物种占位体验(monogram+五档案齐备)✓ console 全程零错误;API 性能:stats 30ms/gallery 130ms/search 127ms/random 120ms
+- tsc 零错误;lint 零错误
+
+Stage Summary:
+- 打磨交付:①五档案 100% 覆盖(见 E17 主体)②画廊进度指示器③统计标签准确性④全站 QA 走查(六大视图+搜索+Agent 降级)

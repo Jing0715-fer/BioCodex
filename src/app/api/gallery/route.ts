@@ -67,7 +67,10 @@ export async function GET() {
     const counts: Record<string, number> = {};
     for (const it of items) counts[it.kingdom] = (counts[it.kingdom] || 0) + 1;
 
-    return NextResponse.json({ success: true, total: items.length, counts, items });
+    // 物种总数(配图完成度指示)
+    const speciesTotal = await db.taxon.count({ where: { rank: "species" } });
+
+    return NextResponse.json({ success: true, total: items.length, speciesTotal, counts, items });
   } catch (e) {
     console.error("[gallery] failed:", e);
     return NextResponse.json({ success: false, error: "gallery unavailable" }, { status: 500 });

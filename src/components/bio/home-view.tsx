@@ -259,7 +259,7 @@ export function HomeView() {
               { v: stats?.phyla ?? 0, l: "覆盖门类" },
               { v: stats?.families ?? 0, l: "科" },
               { v: stats?.genera ?? 0, l: "属" },
-              { v: stats?.images ?? 0, l: "实景配图" },
+              { v: stats?.images ?? 0, l: "插图物种" },
               { v: stats?.flagship ?? 0, l: "旗舰物种" },
             ].map((s, i) => (
               <div key={i} className="bg-card">

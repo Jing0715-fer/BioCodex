@@ -165,12 +165,12 @@ export interface GalleryItem {
 }
 
 export function useGallery() {
-  return useQuery<{ total: number; counts: Record<string, number>; items: GalleryItem[] }>({
+  return useQuery<{ total: number; speciesTotal: number; counts: Record<string, number>; items: GalleryItem[] }>({
     queryKey: ["bio", "gallery"],
     queryFn: async () => {
-      const r = await json<{ success: boolean; total: number; counts: Record<string, number>; items: GalleryItem[] }>("/api/gallery");
+      const r = await json<{ success: boolean; total: number; speciesTotal: number; counts: Record<string, number>; items: GalleryItem[] }>("/api/gallery");
       if (!r.success) throw new Error("gallery unavailable");
-      return { total: r.total, counts: r.counts, items: r.items };
+      return { total: r.total, speciesTotal: r.speciesTotal, counts: r.counts, items: r.items };
     },
     staleTime: 60_000,
   });
