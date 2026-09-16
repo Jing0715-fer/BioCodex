@@ -17,6 +17,8 @@ import { cn } from "@/lib/utils";
 const KINGDOM_ORDER = ["Animalia", "Plantae", "Fungi", "Protista", "Bacteria", "Archaea"];
 /** 瀑布流卡片高度节奏(4:3 原图裁切出画廊节奏感,按 id 哈希分配保证稳定) */
 const RHYTHM = ["aspect-[4/3]", "aspect-square", "aspect-[3/4]", "aspect-[4/5]"] as const;
+/** data 未到达时的稳定空数组(避免 ?? [] 每渲染产生新引用,导致 useEffect [items] 无限 setOrder 循环) */
+const EMPTY_ITEMS: GalleryItem[] = [];
 
 function hashIdx(id: string, mod: number): number {
   let h = 0;
@@ -35,7 +37,7 @@ export function GalleryView() {
   const [lightbox, setLightbox] = useState<number | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
 
-  const items = data?.items ?? [];
+  const items = data?.items ?? EMPTY_ITEMS;
 
   // 服务端数据到达(或变化)时重置排列
   useEffect(() => {
