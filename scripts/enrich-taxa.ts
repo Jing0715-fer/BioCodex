@@ -25,6 +25,8 @@ import { enrich2ProkaryotesProtists } from "../src/data/seed/enrich2-prokaryotes
 import { enrich2Plants } from "../src/data/seed/enrich2-plants";
 import { enrich2Invertebrates } from "../src/data/seed/enrich2-invertebrates";
 import { enrich2Vertebrates } from "../src/data/seed/enrich2-vertebrates";
+// ===== enrich3 轮:基因组概况专项补齐(209 条,2026-09-16) =====
+import { enrich3Genomes } from "../src/data/seed/enrich3-genomes";
 
 const entries: EnrichEntry[] = [
   ...enrichProkaryotesProtists,
@@ -36,6 +38,7 @@ const entries: EnrichEntry[] = [
   ...enrich2Plants,
   ...enrich2Invertebrates,
   ...enrich2Vertebrates,
+  ...enrich3Genomes,
 ];
 
 function fail(msg: string): never {
@@ -51,27 +54,35 @@ async function main() {
   console.log(`DB 现状: 已有科学档案字段的物种 ${beforeProfile} 个`);
   console.log(`本次补强数据: ${entries.length} 条`);
 
-  // 1. 文件内唯一
-  const seen = new Set<string>();
+  // 1. 同物种多条目合并(字段并集,后写优先;E3 起支持分文件分轮次补不同字段)
+  const merged = new Map<string, EnrichEntry>();
+  let mergedCount = 0;
   for (const e of entries) {
-    if (seen.has(e.latin)) fail(`补强数据内部重复: ${e.latin}`);
-    seen.add(e.latin);
     const hasField = FIELDS.some((f) => e[f]);
     if (!hasField) fail(`条目无任何补强字段: ${e.latin}`);
+    const prev = merged.get(e.latin);
+    if (prev) {
+      merged.set(e.latin, { ...prev, ...e });
+      mergedCount++;
+    } else {
+      merged.set(e.latin, e);
+    }
   }
+  const entryList = [...merged.values()];
+  if (mergedCount > 0) console.log(`✔ 合并同物种多条目 ${mergedCount} 处 → 实际物种 ${entryList.length} 个`);
 
   // 2. 定位校验(必须是 DB 已有物种)
   const allSpecies = await db.taxon.findMany({ where: { rank: "species" }, select: { latinName: true } });
   const dbLatin = new Set(allSpecies.map((s) => s.latinName));
-  for (const e of entries) {
+  for (const e of entryList) {
     if (!dbLatin.has(e.latin)) fail(`DB 中不存在该物种: ${e.latin}`);
   }
-  console.log(`✔ 唯一性与定位校验通过(${entries.length} 条全部命中)`);
+  console.log(`✔ 定位校验通过(${entryList.length} 条全部命中)`);
 
   // 3. 逐条更新(仅写入提供的字段)
   let updated = 0;
   const fieldStats: Record<string, number> = {};
-  for (const e of entries) {
+  for (const e of entryList) {
     const data: Record<string, string> = {};
     for (const f of FIELDS) {
       if (e[f]) {
