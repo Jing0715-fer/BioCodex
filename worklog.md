@@ -1908,3 +1908,18 @@ Stage Summary(进行中):
 - 【稳定】842 物种/2581 单元/235 配图/48 门/98 旗舰/NCBI 781;SPECIFIC_PROMPT 67 条;dev server(孤儿化)+守护(flock 单例)双存活
 - 本地 commit:SPECIFIC_PROMPT 67 + check-db/list-orphans 工具脚本
 - 待续:窗口开启守护自动收割;战果抽查后 push(需用户 token)
+
+---
+Task ID: E22-收尾(窗口全程关闭记录, 2026-09-17 11:30)
+Agent: main
+
+Work Log:
+- 【窗口监控全程】10:13-11:27+ 会话内 30+ 轮人工探测 + 守护 90s 轮询:image generation / VLM 审计 / image-search 三通道全部账户级 429 持续关闭(继 E20/E21 之后连续第三轮长关闭,累计超 4 小时)
+- 【守护换血实战】应用孤儿审计批逻辑需重启守护:kill 旧实例后 flock 被 sleep 90 孤儿子进程(fd 9 继承)持锁 90 秒——根因即 E18 定位过的「子进程继承问题」残留:exec 9> 的 fd 无 CLOEXEC,sleep/probe 子进程全部继承;修复:idle 循环的 sleep/probe 加 9>&- 显式关闭(批次 generate-images.ts 保持继承——父死批次锁仍防双跑,是特性);守护 5124 以新逻辑运行验证通过
+- 【会话结论】战备全部就绪:SPECIFIC_PROMPT 67 条 + 12 孤儿审计队列 + 守护(孤儿审计批→旗舰批→全量批);窗口一开全自动收割,无需人工干预;dev server 与守护均孤儿化(PPID=1)跨会话存活,instrumentation 自愈机制兜底(沙箱重启后 dev server 启动自动拉起守护)
+
+Stage Summary(E22 终稿):
+- 【稳定】842 物种/2581 单元/235 配图/48 门/98 旗舰/NCBI 781;SPECIFIC_PROMPT 67 条(+27)
+- 本地 3 commits:①SPECIFIC_PROMPT 67+工具脚本 ②worklog 中期 ③守护升级(孤儿审计批+fd 继承修复);推送待用户 token
+- 守护收割序列(窗口开启自动执行):12 孤儿零成本审计 → 旗舰批 15(缺 40) → 全量批 999(缺 607);断点 /tmp/gen-progress.jsonl 会话态(沙箱重启即全量重试,自洽)
+- 下一阶段:①窗口战果抽查(audit-images-vlm 复审新图) ②push(需 token) ③expansion8 候选(兰科/豆科/多孔菌)
