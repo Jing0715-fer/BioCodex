@@ -54,3 +54,6 @@ server.log
 /skills/*.pid
 skills/
 .zscripts/dev.pid
+
+# Platform artifacts
+tool-results/

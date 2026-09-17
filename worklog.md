@@ -1829,3 +1829,25 @@ Stage Summary(当前项目状态):
   1. P0:守护窗口续补全量池 571 物种(普通物种过审率高)
   2. P1:audit-images-vlm 全量复审防漏网错图;画廊增量加载(图量超 500 时)
   3. P2:expansion8 物种扩充候选(兰科/豆科/多孔菌)
+
+---
+Task ID: E20(用户指令轮:远端合并 + 孤儿保全 + 推送, 2026-09-17)
+Agent: main
+Task: 用户指令「和远程仓库进行merge并push」——沙箱重置后重建克隆、远端 E18/E19 成果合并入本地、9 张孤儿图保全、仓库卫生清理、推送
+
+Work Log:
+- 【环境盘点】沙箱又重置:biocodex-repo 消失、/tmp 断点清空;my-project 停留 E17 态(842 物种/209 图);dev server 与守护由基础设施 06:54 自动拉起(守护 90s 轮询 CLOSED)
+- 【重建克隆】git clone 远程(HEAD=914c9a7,E19)——发现远端已领先 5 提交(E18×4+E19):229→235 图(海带破冰/紫菜/桃/白蚁/对虾/蜈蚣/山鸡椒/幽灵蛸/鲇鱼/虹鳟/大西洋鲑/鳗鲡/海马/绿水螅/河鲀等)+ 画廊无限更新循环根治(EMPTY_ITEMS 稳定引用)
+- 【审计比对】本地 DB(209 图)vs 远端 DB(235 图)字段级核对(实际字段为 image/tags JSON/ncbiTaxId);全树 diff:代码差异仅 gallery-view.tsx(E19 修复);本地孤儿 12 张(含 hero 站点素材)与远端 rejected/ 同名异版——远端已用升级 prompt 重试同名物种并拒审,本地旧版为更早尝试
+- 【合并执行】停守护(防 DB 写竞态)→ 备份本地 DB+10 孤儿至 /tmp/premerge-backup → rsync 远端→本地(db/custom.db/gallery-view.tsx/public/generated --delete/worklog/.gitignore)→ 合并后全树 diff 归零
+- 【dev server 重启】rsync 换 DB 变 inode,旧 Prisma 连接仍读 209 → 整树 kill → 子壳孤儿化重启(E9 破解术 `( setsid bun run dev & )`,PPID=1 跨工具调用存活)→ stats 验证 842/235/98/781 全对;守护由 instrumentation 自动复活(pid 2390,正确读新 DB 缺图 607)
+- 【E2E 验证】agent-browser:首页 21 img 零破损;画廊 235 幅+进度条 28%(ARIA)+无「Maximum update depth exceeded」(E19 修复冷编译验证通过);幽灵蛸详情页(新图/五档案/NCBI 直链)✓;移动端 390px 无横滚;console 全程零错误;235 张 DB 引用图 HTTP 全检 200 零破损
+- 【孤儿保全】VLM 通道 429(账户级限流,generation+vision 同关)人工闸门审计中止 → 9 张孤儿(lycorma 已有远端新图除外)恢复至 public/generated/ 双树,遵循远端惯例(远端自身留有 takifugu/anguilla/hippocampus 3 孤儿待审)——下轮窗口守护 step-0 自动优先审计,过审即入库
+- 【仓库卫生】移除误提交的 tool-results/ 平台工件(18 文件)与空文件 .gitignore.extra;.gitignore 增补 tool-results/
+- 【推送】孤儿 9 PNG + worklog E20 + 卫生清理同步 clone,commit + push
+
+Stage Summary(当前项目状态):
+- 【稳定】842 物种/2581 单元/235 配图(合并远端 +26)/98 旗舰/NCBI 781(92.8%)/五档案 100%/48 门;画廊无限循环 bug 已在本地落地;dev server(孤儿化 PPID=1)+守护(90s 轮询,缺图 607)双存活
+- 本轮交付:①远端 E18/E19 全部成果合并入本地(diff 归零)②9 张历史孤儿图保全入 git(待 VLM 闸门)③仓库卫生(tool-results/.gitignore.extra 清理)④E2E 全绿验证
+- 未解决/风险:607 物种缺图(账户级限流 generation+vision 双通道全关;守护自动接力);9 孤儿+远端 3 孤儿共 12 张待下轮窗口 step-0 审计
+- 下一阶段优先:P0 窗口开启守护续补(含 12 孤儿审计);P1 audit-images-vlm 全量复审;P2 expansion8 物种扩充(兰科/豆科/多孔菌)
