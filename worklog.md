@@ -1950,3 +1950,27 @@ Stage Summary(E22 终稿):
 - 本地 3 commits:①SPECIFIC_PROMPT 67+工具脚本 ②worklog 中期 ③守护升级(孤儿审计批+fd 继承修复);推送待用户 token
 - 守护收割序列(窗口开启自动执行):12 孤儿零成本审计 → 旗舰批 15(缺 40) → 全量批 999(缺 607);断点 /tmp/gen-progress.jsonl 会话态(沙箱重启即全量重试,自洽)
 - 下一阶段:①窗口战果抽查(audit-images-vlm 复审新图) ②push(需 token) ③expansion8 候选(兰科/豆科/多孔菌)
+---
+Task ID: E23(用户指令轮:远端合并 + 窗口收割 11 图 + 推送, 2026-09-17 17:40)
+Agent: main
+Task: 用户指令「继续补图,完成后push」+ 提供 GitHub token——沙箱重置后合并并行会话 E22、19 分钟窗口收割、E2E 验证、推送
+
+Work Log:
+- 【环境盘点】沙箱又重置:biocodex-repo 克隆消失、/tmp 断点清空;my-project 保留 E22 终态(4 本地提交未推送);dev server 16:56 基础设施自动拉起,守护由 instrumentation 自动复活(pid 3167,缺图 607)
+- 【GitHub 同步】fetch 发现远端新增并行会话提交 80955e2(SPECIFIC_PROMPT 40→58:石鳖八板/水溞豆荚/涡虫箭头/盲鳗触须/蛇尾五腕/蚌蛤双壳/云杉侧柏/海绵蜂窝 + 4 条内容过滤措辞规避)→ 本地领先 4 落后 1 → merge origin/main
+- 【冲突解决】generate-images.ts 双方各自扩展 SPECIFIC_PROMPT:键级比对(远端 58/本地 67/共享 56)→ 保留本地 67 全量 + 补远端独有 2 条(鲢 Hypophthalmichthys molitrix 滤食性措辞规避版 / 中华大刀螳 Tenodera sinensis 祈祷姿锚点)= 69 条零重复;worklog.md 双方 E22 记录并存;tsc/lint 零错;提交 a79df58;清理 rsync 副作用 393 文件 mode 变更(git checkout 归零)
+- 【窗口收割 17:00-17:33(含一次短暂关闭 17:19-17:21)】守护全自动执行:
+  - 孤儿审计批:12 张存量孤儿零成本审计 → 入库 2(红鳍东方鲀 Takifugu rubripes 鼓胀体态+橙红胸鳍 ✓ / 日本海马 Hippocampus japonicus 管状吻+骨环+卷尾 ✓);10 张形态错误隔离(金发藓/隐球/蛇苔/蕺菜/姜/按蚊/旋毛虫/鳗鲡/博比特虫/帝王蟹旧版)
+  - 旗舰批:大王乌贼 Architeuthis dux 入库(E21 十腕锚点「8 等长+2 长钩腕」首次生效,尝试 1 过审!);7 硬骨头败(百岁兰多叶/血吸虫画成昆虫/海参画成章鱼/文昌鱼/Branchiostoma/Eunice 节肢先验/帝王蟹八足)
+  - 全量批×2:Cryptococcus neoformans(墨汁负染荚膜光环锚点生效)/Polytrichum commune(红柄孢蒴金绒帽)/Picea asperata(四棱针+下垂球果,尝试 2)/Conocephalum conicum(蛇皮六角网纹,尝试 2)/Zingiber officinale(beige 手掌根茎,尝试 1)/Trichinella spiralis(肌纤维内柠檬包囊钟表发条螺旋——蠕虫类首胜!)/Eisenia fetida(橡胶管+环带袖套——蚯蚓首胜!)/Rapana venosa(石球+短塔棘)
+  - 失败硬骨头(断点 rejected,下轮新锚点再战):Welwitschia 多叶/C. elegans 内容过滤/Schistosoma 节肢/Apostichopus 章鱼化/Perinereis 节肢/Conus 高锥/Meretrix 无锯齿纹/Hyriopsis 螺旋化/Tenodera+Nephila 内容过滤/Anopheles 姿态/Acanthochiton 等足化/Adiantum 羽状/Platycladus 针化/Houttuynia 花瓣化/Boletus/Nitrosopumilus/Sargassum/Ephedra+Ustilago+Claviceps 内容过滤(后三者为永久占位)
+- 【战果】235 → 246 配图(+11);缺图 607 → 596;SPECIFIC_PROMPT 69 条中本轮生效 8 条(锚点方法论持续验证:物体类比+鉴别特征前置+NOT 锚点)
+- 【新孤儿】coptis-chinensis.png 生成了但批次超时未及审计 → 下轮窗口 step-0 自动处理
+- 【E2E 验证 agent-browser】首页 21 img 零破损+统计 842/243 动态更新;画廊 243→246 img 零破损,新物种 alt 全在(云杉/蛇苔/金发藓/隐球酵母/姜/大王乌贼);灯箱全链路:放大按钮打开(1/243)→ArrowRight 翻页(2/243 肠道沙门菌)→ArrowLeft 回退→Esc 关闭 ✓;hash 路由 #taxon 物种详情页 ✓;移动端 390px 无横滚;console 全程零错误
+- 【推送】用户提供 token,commit(新图 11 张 + rejected 隔离 + DB 246 + worklog E23)push 至 origin/main
+
+Stage Summary(当前项目状态):
+- 【稳定】842 物种/2581 单元/246 配图(+11)/48 门/98 旗舰/NCBI 781(92.8%);SPECIFIC_PROMPT 69 条;dev server + 守护(90s 轮询,缺图 596)双存活
+- 本轮双交付:①并行会话战备合并(69 锚点全集) ②19 分钟窗口收割 11 图(含蠕虫类 2 连破:旋毛虫/蚯蚓——节肢先验坚冰首裂)
+- 守护自动接力中:coptis 孤儿审计 → 常规池 596;断点 /tmp/gen-progress.jsonl 会话态
+- 下一阶段:①P0 窗口续收割(守护自动) ②P1 audit-images-vlm 全量复审 ③P2 失败硬骨头第三代锚点(Schistosoma/Apostichopus/Perinereis 节肢先验同族) + expansion8 物种扩充
