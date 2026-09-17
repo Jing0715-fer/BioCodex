@@ -1851,3 +1851,32 @@ Stage Summary(当前项目状态):
 - 本轮交付:①远端 E18/E19 全部成果合并入本地(diff 归零)②9 张历史孤儿图保全入 git(待 VLM 闸门)③仓库卫生(tool-results/.gitignore.extra 清理)④E2E 全绿验证
 - 未解决/风险:607 物种缺图(账户级限流 generation+vision 双通道全关;守护自动接力);9 孤儿+远端 3 孤儿共 12 张待下轮窗口 step-0 审计
 - 下一阶段优先:P0 窗口开启守护续补(含 12 孤儿审计);P1 audit-images-vlm 全量复审;P2 expansion8 物种扩充(兰科/豆科/多孔菌)
+
+---
+Task ID: E21(用户指令轮:GitHub 拉取 + 补图战备 + 12 孤儿解锁, 2026-09-17)
+Agent: main
+Task: 用户指令「拉取最新代码并继续补图」——合并远端 E20、解锁 E20 保全孤儿、为 E19/E20 新败硬骨头撰写 12 条 SPECIFIC_PROMPT 新锚点、断点工程、窗口监控
+
+Work Log:
+- 【GitHub 同步】fetch 发现远端领先 1 提交(E20:沙箱重置重建+孤儿保全+仓库卫生)→ 本地无未提交改动,干净快进合并 ef48276;stats 验证 842/235/781/98 全对;dev server 无代码变更仅图片增补,冒烟零错误
+- 【孤儿解锁(E20 意图的必要修正)】发现 E20 保全的 9 张孤儿 PNG 被 E19 rejected 断点卡死——generate-images.ts line199 `done.has(s.id)` 会永远跳过它们,step-0 审计(磁盘已有未入库文件先审)永远轮不到;移除 9 条 rejected 记录(备份 /tmp/gen-progress.jsonl.bak-e21)→ 12 张孤儿(9 解锁+3 本就无记录)全部进入 step-0 审计队列:过审即零成本入库(audit 不耗生成额度)
+- 【SPECIFIC_PROMPT 28→40 条(E19/E20 新败硬骨头攻坚)】按海藻/海带破冰方法论(物体类比+NOT 锚点+鉴别特征前置):
+  - 蠕虫类×5(抗节肢先验):Taenia solium(丝带缎带类比)/Ascaris(橡胶管类比+三唇放大图)/Hirudo(咖啡蛭背纹+前后吸盘)/Eisenia(橡胶管+环带袖套)/Perinereis(天鹅绒缎带+肉质桨叶裙边)
+  - 鱼类×4(鉴别特征前置):Sphyrna lewini(锤头双头木锤锚点+眼在锤两端)/Gadus morhua(三背鳍+颏须计数锚点)/Paralichthys(比目鱼俯视标本+双眼左侧+对比小鱼)/Lethenteron(漏斗口+七鳃孔排成行)
+  - 贝壳×2(几何描述抗陆生蜗牛先验):Rapana(石球+短塔棘+橙色口盖)/Conus(冰激凌筒/棋卒+古地图网纹)
+  - 头足×1:Architeuthis dux(明确 TEN 臂=8 等长+2 长钩腕,抗章鱼 8 臂先验)
+- 【断点工程】重置上述 12 物种 rejected 记录 → 新锚点下轮窗口自动生效;断点剩 38 条(accepted 6/rejected 32)
+- 【QA 全绿】agent-browser:画廊 235 幅+进度器渲染✓;灯箱开→ArrowRight 翻页(切换至大肠杆菌)→Esc 关闭全链路✓;console 零错误(E19 修复持续有效);bun build 语法检查通过
+- 【窗口监控】本轮会话窗口全程关闭(07:41-08:15+ 持续 CLOSED,守护 90s 轮询不间断);vision 审计通道独立测试亦关闭;战备就绪:12 孤儿 step-0 审计+12 新锚点+595 常规池,窗口一开守护自动收割
+
+Stage Summary(当前项目状态):
+- 【稳定】842 物种/2581 单元/235 配图/48 门/98 旗舰/NCBI 781/五档案 100%;SPECIFIC_PROMPT 40 条;孤儿审计队列 12 张就绪
+- 用户两项指令完成:①拉取最新代码(快进合并 E20)✓ ②继续补图(战备强化+窗口监控,守护自动接力)✓
+- 未解决/风险:
+  1. 607 物种缺图:账户级限流(generation+vision 双关),守护 90s 轮询待窗口
+  2. 新锚点效果待窗口验证(蠕虫类节肢先验与海藻陆生先验同级顽固,若再败则永久占位图)
+  3. /tmp 断点为会话态:沙箱重置即清空(清空反而全量重试,与断点工程自洽)
+- 下一阶段优先:
+  1. P0:窗口开启守护自动收割(12 孤儿审计→12 新锚点重试→常规池);战果随下轮巡检 push
+  2. P1:audit-images-vlm 全量复审;画廊增量加载
+  3. P2:expansion8 物种扩充(兰科/豆科/多孔菌);Daphnia/Balanoglossus/Nephila 等剩余 21 条硬骨头 prompt
