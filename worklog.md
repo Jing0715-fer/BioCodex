@@ -1880,3 +1880,31 @@ Stage Summary(当前项目状态):
   1. P0:窗口开启守护自动收割(12 孤儿审计→12 新锚点重试→常规池);战果随下轮巡检 push
   2. P1:audit-images-vlm 全量复审;画廊增量加载
   3. P2:expansion8 物种扩充(兰科/豆科/多孔菌);Daphnia/Balanoglossus/Nephila 等剩余 21 条硬骨头 prompt
+
+---
+Task ID: E22(用户指令轮:GitHub 拉取 + 补图战备强化, 2026-09-17)
+Agent: main
+Task: 用户指令「拉取最新代码,并继续补图」——同步远端 E21、SPECIFIC_PROMPT 40→67 硬骨头攻坚、守护复活、窗口监控
+
+Work Log:
+- 【GitHub 同步】fetch 发现远端领先至 E21(666d55a:842 物种/235 图/NCBI 781/SPECIFIC_PROMPT 40);本地仅文件 mode 变更(rsync 恢复副作用)零内容差异 → 停守护+停 server → git reset --hard origin/main 干净同步
+- 【环境恢复】prisma generate;清 .next 重启(E9 教训:防陈旧 CSS 缓存);dev server 子壳孤儿化(PPID=1);stats 验证 842/2581/235/781/98 全对;守护由 instrumentation 自动复活(pid 2151,flock 单例,正确读新 DB 缺图 607)
+- 【事故与修复】①误删 db/custom.db → git checkout 即刻恢复;②误跑 prisma db pull 把 schema.prisma 覆盖为内省版(丢注释/乱序)→ git checkout 恢复 + 重新 generate,教训:db pull 只用于只读检查时须先备份 schema
+- 【孤儿盘点】磁盘 248 PNG/DB 引用 235/孤儿 13(hero-tree-of-life 为站点素材外)12 张待审:zingiber/anopheles/paralithodes/polytrichum/eunice/trichinella/cryptococcus/takifugu/conocephalum/houttuynia/anguilla/hippocampus——其中 takifugu/anguilla/hippocampus 实测 DB 无引用(E19 会话记录称已入库系误记),全部进入 step-0 审计队列
+- 【SPECIFIC_PROMPT 40→67(本轮核心战备)】以「rejected/ 磁盘证据 + DB 缺图 + 无 prompt」三重交叉筛出 24 真硬骨头 + 3 孤儿备用,按 E21 方法论(物体类比抗先验+NOT 锚点+鉴别特征前置+DB 形态档案锚定)逐种定制:
+  - 蠕虫/无脊椎×7:涡虫(三角头双眼带状创可贴)/旋毛虫(肌纤维内柠檬形包囊钟表发条螺旋)/柱头虫(橡子吻+领+鳃孔扣眼)/石鳖(8 板瓦片+刺环带抗帽贝)/粘盲鳗(软管+鼻孔触须玫瑰环)/按蚊(尾翘船头+翅白斑+长喙)/叶螨(8 腿红穹顶+丝网卵)
+  - 贝类×3:三角帆蚌(背帆+珍珠层)/文蛤(锯齿花纹厚碗)/浴用海绵(蜂窝弹性面包)
+  - 棘皮×2:萨氏真蛇尾(硬币盘+5 条面条细腕抗海星)
+  - 甲壳×2:帝王蟹(六长足+右巨螯+刺盾)/溞(透明扁豆壳+羊角触角+可见心脏)
+  - 鱼类×3:条纹斑竹鲨(竹节鞍带+口须+长尾)/河鲀(白臀鳍+橙红胸鳍)/鳗鲡(后半身鳍缎带+银白腹)
+  - 植物×8:金发藓(红柄孢蒴+金绒帽)/蛇苔(蛇皮六角网纹)/铁线蕨(黑钢琴丝+扇小叶)/云杉(四棱针+下垂圆柱球果)/侧柏(扁平蕾丝鳞叶屏风)/蕺菜(白十字苞+黄铅笔穗)/姜( beige 手掌根茎)/黄连(蛋黄黄金根茎+三裂叶)
+  - 微生物×1:隐球酵母(墨汁负染+荚膜光环)
+  - 蛛形×1:棒络新妇(金黄圆网+细条纹长足)
+  - 孤儿备用×3:takifugu/anguilla/hippocampus(审计失败即按新锚点重生成)
+- 【验证】entries=67/零重复/tsc 零错/lint 零错;agent-browser E2E:首页 21 img+背景羊皮纸 lab(96.35,-0.15,4.59)+842/48/535/740/235/98 统计全对;画廊 235 img 零错误(E19 修复持续有效);console 零错误
+- 【窗口监控】本轮会话 10:13-10:24+ 持续 CLOSED(image+vision 双通道账户级 429);守护 90s 轮询待命,窗口一开自动:12 孤儿 step-0 审计 → 旗舰批(15)→ 全量批(999)
+
+Stage Summary(进行中):
+- 【稳定】842 物种/2581 单元/235 配图/48 门/98 旗舰/NCBI 781;SPECIFIC_PROMPT 67 条;dev server(孤儿化)+守护(flock 单例)双存活
+- 本地 commit:SPECIFIC_PROMPT 67 + check-db/list-orphans 工具脚本
+- 待续:窗口开启守护自动收割;战果抽查后 push(需用户 token)
