@@ -1,14 +1,10 @@
-import { db } from '../src/lib/db'
-
+import { db } from '@/lib/db';
 async function main() {
-  const total = await db.taxon.count({ where: { rank: 'species' } })
-  const withImage = await db.taxon.count({ where: { rank: 'species', NOT: { image: null } } })
-  console.log(`物种总数: ${total}, 已配图: ${withImage}, 缺图: ${total - withImage}`)
-  const missing = await db.taxon.findMany({
-    where: { rank: 'species', image: null },
-    select: { chineseName: true, tags: true }
-  })
-  console.log(`缺图物种数: ${missing.length}, 其中旗舰: ${missing.filter(m => m.tags?.includes('flagship')).length}`)
-  process.exit(0)
+  const total = await db.taxon.count();
+  const species = await db.taxon.count({ where: { rank: 'species' } });
+  const withImage = await db.taxon.count({ where: { rank: 'species', image: { not: null } } });
+  const flagshipNoImg = await db.taxon.count({ where: { rank: 'species', tags: { contains: '旗舰' }, image: null } });
+  const ncbi = await db.taxon.count({ where: { rank: 'species', ncbiTaxId: { not: null } } });
+  console.log(JSON.stringify({ total, species, withImage, missing: species - withImage, flagshipNoImg, ncbi }));
 }
-main()
+main().finally(() => db.$disconnect());
