@@ -74,7 +74,7 @@ export function BioHeader() {
           <span className="relative flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm transition-transform group-hover:scale-105">
             <Dna className="h-5 w-5" />
           </span>
-          <span className="hidden flex-col leading-tight sm:flex">
+          <span className="hidden flex-col leading-tight lg:flex">
             <span className="font-display text-lg font-bold tracking-tight text-foreground">
               BioCodex
             </span>
@@ -128,7 +128,7 @@ export function BioHeader() {
         </nav>
 
         {/* 搜索 */}
-        <div ref={boxRef} className="relative ml-auto w-full max-w-xl">
+        <div ref={boxRef} className="relative ml-auto min-w-0 w-full max-w-xl">
           <form onSubmit={submit} className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -219,7 +219,7 @@ export function BioHeader() {
         <Button
           variant="outline"
           size="sm"
-          className="ml-1 hidden h-10 shrink-0 gap-1.5 rounded-full border-primary/40 text-primary hover:bg-primary hover:text-primary-foreground sm:flex"
+          className="ml-1 hidden h-10 shrink-0 gap-1.5 rounded-full border-primary/40 text-primary hover:bg-primary hover:text-primary-foreground lg:flex"
           onClick={() => setAgentOpen(true)}
         >
           <Sparkles className="h-4 w-4" />
@@ -343,7 +343,7 @@ export function BioHeader() {
         <Button
           variant="ghost"
           size="icon"
-          className="hidden h-9 w-9 shrink-0 sm:flex"
+          className="hidden h-9 w-9 shrink-0 lg:flex"
           onClick={() => setShortcutsOpen(true)}
           aria-label="查看键盘快捷键(按 ? 键也可打开)"
           title="键盘快捷键 (?)"
