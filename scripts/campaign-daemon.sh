@@ -43,9 +43,30 @@ while true; do
     break
   fi
 
-  R=$(timeout 60 bun scripts/probe-api.ts 2>/dev/null | tail -1)
+  R=$(timeout 60 bun scripts/probe-api.ts 2>/dev/null 9>&- | tail -1 9>&-)
   if [ "$R" = "OPEN" ]; then
-    log "[window] API 开启(缺图 $MISSING)→ 旗舰批"
+    # E22:孤儿存量审计批先行——磁盘已有未入库 PNG 只耗 VLM 审计额度(零生成成本),
+    #     短窗口也能零成本收割历史孤儿(12 张:河鲀/鳗鲡/海马/姜/按蚊/帝王蟹等)
+    ORPHANS=$(bun -e '
+import { PrismaClient } from "@prisma/client";
+import { existsSync } from "node:fs";
+const db = new PrismaClient();
+const rows = await db.taxon.findMany({ where: { rank: "species", image: null }, select: { latinName: true } });
+let n = 0;
+for (const r of rows) {
+  const slug = r.latinName.replace(/[^a-zA-Z0-9]+/g, "-").toLowerCase().replace(/^-|-$/g, "");
+  if (existsSync(`public/generated/${slug}.png`)) n++;
+}
+console.log(n);
+await db.$disconnect();
+' 2>/dev/null | tail -1)
+    if [ "$ORPHANS" -gt 0 ] 2>/dev/null; then
+      log "[window] API 开启(缺图 $MISSING,存量孤儿 $ORPHANS)→ 孤儿审计批(零生成成本)"
+      BATCH=999 SCOPE=all AUDIT_ONLY=1 CONCURRENCY=2 timeout 300 bun scripts/generate-images.ts 2>&1 \
+        | grep -E "^\[start|^\[入库|^\[放弃|^\[pre-reject|^\[done" | while read -r l; do log "$l"; done
+      sleep 10
+    fi
+    log "[window] 旗舰批"
     BATCH=15 SCOPE=flagship CONCURRENCY=2 RETRY=2 timeout 420 bun scripts/generate-images.ts 2>&1 \
       | grep -E "^\[start|^\[入库|^\[放弃|^\[跳过|^\[done" | while read -r l; do log "$l"; done
     sleep 30
@@ -55,6 +76,6 @@ while true; do
     sleep 60
   else
     log "[closed] $R (缺图 $MISSING),90s 后再探测"
-    sleep 90
+    sleep 90 9>&-
   fi
 done
