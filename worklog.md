@@ -2005,3 +2005,27 @@ Stage Summary(当前项目状态):
 - 打磨交付:①平板布局修复(sm→lg 断点策略+min-w-0) ②36 条三代锚点战备 ③全站 E2E 巡检全绿
 - 未解决:573 缺图(限流熔断中,守护 90s 轮询续收割);百岁兰/血吸虫等 4 代锚点方向已明;10 内容过滤物种永久占位
 - 下一阶段:①P0 窗口续收割(守护自动,36 条新锚点待验证) ②P1 血吸虫四代锚点(雄虫抱雌沟特写)/百岁兰(纯物体化"树桩+两条安全带") ③P2 audit-images-vlm 全量复审
+
+---
+Task ID: E25(用户指令轮:继续补图+项目打磨, 2026-09-18 02:15)
+Agent: main
+Task: 用户指令「继续补图和打磨项目,完成后push」——打磨新维度展开(鲁棒性/兜底/无障碍/文案)+守护复审集成+四代锚点
+
+Work Log:
+- 【环境盘点】E24(da79b06)已在远端;沙箱重置清空 /tmp(断点+审计进度双丢);430 文件 rsync mode 变更 checkout 归零;守护死而复生(touch next.config.ts 触发 dev server 重启→instrumentation 重拉,验证 setsid/nohup 均被沙箱回收,唯 dev server detached 子进程可存活)
+- 【打磨①SafeImg 破图兜底】新组件 safe-img.tsx(onError→fallback 降级):接入 13 处——画廊卡片/画廊灯箱/物种卡/类群卡/详情主图+近亲+灯箱/对比视图/对比托盘/头栏搜索下拉+足迹下拉/搜索结果/行卡/选择器/AI助手引用;agent-browser 实测毒化 src→秒变雕版占位图,269 图零 broken(动因:复审守护下架与客户端缓存存在竞态窗口,破图兜底是刚需)
+- 【打磨②坏 id 白屏崩溃修复】E2E 发现 #taxon=badid 整页崩(Next dev tools 定位 taxon-detail.tsx:86 useMemo[links]):API 返回 {success:false} 时 data 为真值但 data.taxon 未定义,memo 在骨架屏 early-return 之前先崩;修复:data?.success&&data.taxon 双守卫;同时把「坏 id 永远转骨架屏」改为明确「未找到该分类单元」空态(返回总览/全局搜索双按钮);对比视图验证本就安全
+- 【打磨③error.tsx 全局错误边界】新建(雕版标本卡风格,重试+回总览),任何客户端异常不再白屏
+- 【打磨④回顶按钮】scroll-top-button.tsx:滚动>0.9 屏出现,framer-motion 出入场,垂直叠放于 AI 助手 FAB 正上方(bottom-[92px]),实测点击回顶+自动隐藏
+- 【打磨⑤杂项】页脚过期文案「部分配图来自网络检索」→「插图均为 AI 生成的复古博物学风格作品,经科学性复审后入库」(269/269 全 AI 生成,核实 DB 路径分布);OG image 补充(生命之树铜版画);globals.css 增 prefers-reduced-motion 全局支持(晕动症用户)
+- 【守护升级】audit-images-vlm.ts 增 NO_BACKOFF 快退模式(首次 429 立即 exit,不浪费 45s×3 退避);campaign-daemon.sh CLOSED 分支集成 opportunistic 复审(每周期 3 张 APPLY=on,生图优先不变);VLM 与生图同池 429 已实测确认
+- 【断点重建】沙箱重置丢了 E24 终态断点,10 内容过滤永久占位物种(麦角/玉米黑粉/秀线虫/麻黄/肝吸虫/鲢/络新妇/缅甸蟒/大刀螳/大斑啄木鸟)按 DB id 重建 rejected 记录,防止窗口重开浪费配额
+- 【四代锚点】血吸虫(单体雄虫:去掉雌虫线,单根蜡绳+纵向抱雌沟,消除雌雄异形判分点)/百岁兰(去「frayed streamers」措辞——它诱导模型画多叶,改 two unbroken leather belts)
+- 【E2E 回归全绿】首页 22 图零破/画廊 269 图零破/详情 5 版块/浏览/红色名录/收藏空态+F 键 toast/对比双物种+差异行/搜索银杏→详情/坏 id 未找到态/390px 三视图零横滚/暗色切换/console 零真实错误(Fast Refresh 警告除外)
+- 【数据质量巡检】842 物种五档案字段零空缺;98 无 tags 物种均为扩张批次散点(UI 仅用 3 精选标签,不可见,无碍);「species」垃圾 tag 不渲染(仅 DB 内部)
+
+Stage Summary(当前项目状态):
+- 【稳定】842 物种/2581 单元/269 配图/48 门/98 旗舰/NCBI 781;SPECIFIC_PROMPT 74 条(含四代 2 条);本地 commit 044b8a0 待窗口收割后随新图一并 push
+- 打磨交付:SafeImg 全站兜底(13 处)+坏 id 崩溃修复+全局错误边界+回顶按钮+文案/OG/reduced-motion
+- 守护(pid 4494,instrumentation 托管):90s 轮询生图窗口 + CLOSED 分支 opportunistic VLM 复审(3 张/周期,APPLY=on)
+- 待办:①窗口开启自动收割(36+2 条新锚点待验证) ②VLM 配额恢复后全量复审+截图像素复审(/tmp/e25-*.png 3 张) ③push
