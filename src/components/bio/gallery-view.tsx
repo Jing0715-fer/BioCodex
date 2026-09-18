@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  Images, Search, Shuffle, X, ChevronLeft, ChevronRight, ZoomIn, ArrowRight,
+  Images, Search, Shuffle, X, ChevronLeft, ChevronRight, ChevronDown, ZoomIn, ArrowRight,
   Sparkles, ExternalLink, MapPin, Crown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -21,6 +21,8 @@ const KINGDOM_ORDER = ["Animalia", "Plantae", "Fungi", "Protista", "Bacteria", "
 const RHYTHM = ["aspect-[4/3]", "aspect-square", "aspect-[3/4]", "aspect-[4/5]"] as const;
 /** data 未到达时的稳定空数组(避免 ?? [] 每渲染产生新引用,导致 useEffect [items] 无限 setOrder 循环) */
 const EMPTY_ITEMS: GalleryItem[] = [];
+/** 增量渲染批次大小:288+ 幅一次性全渲会卡,未来全配图 800+ 更甚 */
+const PAGE_SIZE = 60;
 
 function hashIdx(id: string, mod: number): number {
   let h = 0;
@@ -37,7 +39,9 @@ export function GalleryView() {
   const [shuffled, setShuffled] = useState(false);
   const [order, setOrder] = useState<GalleryItem[]>([]);
   const [lightbox, setLightbox] = useState<number | null>(null);
+  const [visible, setVisible] = useState(PAGE_SIZE);
   const rootRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
   const items = data?.items ?? EMPTY_ITEMS;
 
@@ -45,6 +49,11 @@ export function GalleryView() {
   useEffect(() => {
     setOrder(items);
   }, [items]);
+
+  // 数据/筛选/洗牌变化时重置增量渲染窗口
+  useEffect(() => {
+    setVisible(PAGE_SIZE);
+  }, [items, kingdom, q, flagshipOnly, shuffled]);
 
   // 随机洗牌(按图找物种的漫游模式)
   const shuffle = useCallback(() => {
@@ -77,6 +86,24 @@ export function GalleryView() {
     });
   }, [order, kingdom, q, flagshipOnly]);
   const flagshipCount = useMemo(() => items.filter((it) => it.isFlagship).length, [items]);
+
+  // 增量渲染:只渲染前 visible 幅,灯箱翻页仍可覆盖全量列表
+  const shown = useMemo(() => filtered.slice(0, visible), [filtered, visible]);
+  const hasMore = visible < filtered.length;
+
+  // 哨兵接近视口时自动加载下一批(无限滚动)
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el || !hasMore) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) setVisible((v) => v + PAGE_SIZE);
+      },
+      { rootMargin: "600px 0px" }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [hasMore]);
 
   // 灯箱前后翻页(键盘 ←/→,跨过滤后列表)
   const step = useCallback((dir: 1 | -1) => {
@@ -264,7 +291,7 @@ export function GalleryView() {
         </div>
       ) : (
         <div className="columns-2 gap-3 sm:columns-3 sm:gap-4 lg:columns-4 xl:columns-5">
-          {filtered.map((it, i) => {
+          {shown.map((it, i) => {
             const th = KINGDOM_THEME[it.kingdom];
             const iucn = it.conservation ? IUCN_INFO[it.conservation] : null;
             return (
@@ -335,11 +362,34 @@ export function GalleryView() {
         </div>
       )}
 
+      {/* ====== 增量加载控制(按钮 + 滚动哨兵双保险) ====== */}
+      {!isLoading && hasMore && (
+        <div ref={sentinelRef} className="mt-8 flex flex-col items-center gap-2.5">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setVisible((v) => v + PAGE_SIZE)}
+            className="h-10 gap-2 rounded-full px-6"
+            aria-label="加载更多插图"
+          >
+            <ChevronDown className="h-4 w-4" />
+            加载更多插图
+            <span className="text-xs tabular-nums text-muted-foreground">
+              {Math.min(visible, filtered.length)} / {filtered.length}
+            </span>
+          </Button>
+          <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground/70">
+            <MapPin className="h-3 w-3" />
+            继续向下滚动也会自动加载
+          </p>
+        </div>
+      )}
+
       {/* ====== 底部统计条 ====== */}
       {!isLoading && filtered.length > 0 && (
         <footer className="mt-8 flex items-center justify-center gap-2 text-xs text-muted-foreground">
           <MapPin className="h-3 w-3" />
-          当前展示 {filtered.length} / {total} 幅插图
+          {hasMore ? `已展示 ${Math.min(visible, filtered.length)} / ${total} 幅插图` : `当前展示 ${filtered.length} / ${total} 幅插图`}
           {kingdom && ` · ${KINGDOM_THEME[kingdom]?.name ?? kingdom}`}
           {q && ` · 检索「${q}」`}
           <span className="mx-1 text-foreground/20">|</span>

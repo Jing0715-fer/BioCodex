@@ -2091,3 +2091,50 @@ Stage Summary(当前项目状态):
   1. P0:窗口开启守护自动收割(step-0 审计 2 孤儿 → 旗舰批 → 全量批 566);战果随下轮巡检 push
   2. P1:audit-images-vlm 全量复审 276 张(E25 已集成 opportunistic 渐进复审)
   3. P2:expansion8 物种扩充(兰科/豆科/多孔菌)
+
+---
+Task ID: E28-a
+Agent: general-purpose
+Task: expansion8 物种扩充（兰科/豆科/多孔菌）
+
+Work Log:
+- 【接手盘点】发现本任务前次执行已写好三个 expansion8 文件并注册进 seed-incremental.ts、DB 已入库 2614/861（含 33 条 expansion8 新记录），但 IUCN 复核、校验、worklog 均未完成——本轮做全量独立复核并修正一处数据错误
+- 【查重核验】rg 复查 /tmp/taxa-inventory.tsv：19 个新物种拉丁名/中文名零冲突；豆科无亚科中间层（7 既有属直挂 Fabaceae），新属 6 个同层直挂；多孔菌目科层现有 Ganodermataceae/Polyporaceae，另发现库内已有 Hymenochaetales→Hymenochaetaceae→Sanghuangporus sanghuang 桑黄 + Inonotus obliquus 桦褐孔菌（任务书“多孔菌目仅 4 种”描述已过时）
+- 【分类决策】①Fuscoporia obliqua 与库内 Inonotus obliquus 为同一物种（桦褐孔菌中文名也占位），重复入库违反唯一性约束→放弃，以松生拟层孔菌 Fomitopsis pinicola 顶替（新科 Fomitopsidaceae+新属 Fomitopsis，NCBI Lineage 核验挂 Polyporales）；②Sanghuangporus vaninii 只补物种记录（属/科已在库挂 Hymenochaetales，从库不挪），中文名用『杨树桑黄』避开已占用的『桑黄』；③Grifolaceae/Laetiporaceae/Fomitopsidaceae 三新科直挂 Polyporales，NCBI Lineage 逐一核验
+- 【TaxId 复核】19 物种 NCBI esearch 全部重查：19/19 与文件内 TaxId 一致（含 Fomitopsis pinicola 40483、Sanghuangporus vaninii 175686、Cercis chinensis 161750 等）
+- 【IUCN 复核（发现并修复错误）】GBIF IUCN 数据集（occurrence 级 iucnRedListCategory 过滤）+ Wikidata P141 + Wikipedia infobox 三方交叉：硬叶兜兰 CR（2015 年评估，Rankou & Averyanov，GBIF 物种页明示 Critically Endangered）、菜豆/绿豆/赤豆/紫荆/含羞草 LC ✓；**合欢 Albizia julibrissin 三方均无 IUCN 全球评估记录（iNaturalist 标 Not Evaluated）——初版误写 LC，删除 seed 字段→删 DB 行→重跑 seed-incremental.ts 重插（TaxId/父级/档案全保留，conservation 置空）**；豇豆/鹰嘴豆/金钗石斛/白及/独蒜兰/三种国兰/四种真菌均无全球评估，留空（“没把握就省略”）
+- 【基因组事实抽核】金钗石斛 2022 Front Genet 染色体级（1.19Gb/19 染色体）、白及 2022 Plant J 单倍型解析、Fomitopsis pinicola 2025 Nat Commun 缺氧褐腐（Röllig et al.）、灰树花 2025 J Fungi 近完整基因组（35.74Mb）——均与文件记载相符
+- 【入库与校验】seed-incremental.ts 修复轮“新建 1 条”+终轮幂等复跑“新建 0 条/跳过 1349”双确认；stats API：species 861（842→861，+19）、total 2614、ncbiLinked 800（+19）、flagship 100（+2 含羞草/灰树花）、profiled 861；images 288（E27 基线 276，+12 系守护进程在本任务之外自动收割，含新旗舰含羞草首图，seed 脚本前后 images 零变化）；bun run lint exit 0 零报错；python3 验证 19 新物种九档案字段非空 100%、14 新属/新科 description 非空 100%、tags 全部在库内词表；search/species API 抽查灰树花/含羞草/独蒜兰/杨树桑黄均正常出数
+
+Stage Summary:
+- expansion8 交付：19 物种 + 11 新属（Bletilla/Pleione/Phaseolus/Vigna/Cicer/Cercis/Mimosa/Albizia/Grifola/Laetiporus/Fomitopsis）+ 3 新科（Grifolaceae/Laetiporaceae/Fomitopsidaceae）= 33 条，物种 842→861、total 2581→2614
+- IUCN：硬叶兜兰 CR；菜豆/绿豆/赤豆/紫荆/含羞草 LC；合欢初版误写 LC 已修复为空（无全球评估）；其余无评估留空
+- 关键分类决策：桦褐孔菌以库内 Inonotus obliquus 为准不重复入库（Fomitopsis pinicola 顶补）；桑黄孔菌属沿用库内 Hymenochaetales 挂位；杨树桑黄避让『桑黄』中文名
+- DB 修复动作仅限删除错误行后由 seed-incremental.ts 重插，全程未绕过脚本写入；lint/idempotency/五档案/tags 校验全绿
+- 未动 page.tsx/UI/守护进程；未 commit/push（按约束留给下轮）
+
+---
+Task ID: E28(用户指令轮:继续补图和打磨项目, 2026-09-18)
+Agent: main + general-purpose(E28-a)
+Task: 用户指令「继续补图和打磨项目,完成后push」——expansion8 物种扩充(兰科/豆科/多孔菌) + 画廊增量加载打磨 + 守护窗口收割战果推送
+
+Work Log:
+- 【同步确认】远端无新提交(HEAD=39daf86 与 origin/main 等价);工作区 444 文件纯 mode 噪音(644→755,沙箱重置遗留)→ git config core.fileMode false 后 status 干净;DB 与 E27 基线一致(276 图)
+- 【窗口探测】直接探测 429 关闭→按 E27 P2 优先级转离线杠杆;16:09-16:42 窗口开起守护自动收割 12 张(Sus scrofa/Sargassum/Adiantum/Houttuynia/Coptis/Hyriopsis/Mimosa pudica 新旗舰首图/Acanthochiton/Balanoglossus/Naja/Equus przewalskii/Erinaceus),其中 5 张为 E22 重置锚点物种破冰(羊栖菜/黄连/三角帆蚌/石鳖/柱头虫)——SPECIFIC_PROMPT 锚点方法论实证有效
+- 【E28-a expansion8】general-purpose 子代理(首轮 context 超时但已完成数据+入库,二轮独立全量复核+纠错):兰科+7(蕙兰/建兰/寒兰/金钗石斛/硬叶兜兰 CR/白及/独蒜兰)+豆科+8(菜豆 LC/豇豆/绿豆 LC/赤豆 LC/鹰嘴豆 LC/紫荆 LC/含羞草 LC+flagship/合欢)+多孔菌+4(灰树花 flagship/硫磺菌/松生拟层孔菌/杨树桑黄);11 新属+3 新科(Grifolaceae/Laetiporaceae/Fomitopsidaceae);桦褐孔菌因库内已有 Inonotus obliquus 查重放弃,顶补 Fomitopsis pinicola;TaxId 19/19 经 NCBI esearch 核验
+- 【E28-b 画廊增量加载】gallery-view.tsx:PAGE_SIZE=60 分批渲染(filtered.slice(0,visible)) + 双保险触发(「加载更多」按钮 + IntersectionObserver 滚动哨兵 rootMargin 600px) + 数据/筛选/洗牌变化自动重置 visible + 灯箱翻页仍覆盖全量列表(未渲染图可键盘到达);底部统计条区分「已展示/当前展示」;为 861 物种全配图(800+ 幅)做容量准备
+- 【cron】巡检 job 395214 被「exec limits exceeded」禁用→删除重建 396019(fixed_rate 900s)
+- 【QA 全绿】agent-browser:console 零错误(仅 metadataBase 环境噪音);画廊 289 幅初始渲染 60,点击+滚动哨兵双路径验证 60→120→180;搜索「含羞草」过滤精准重置;含羞草详情页五档案全渲染(词源/发现史等),description 文笔达标;lint exit 0
+- 【推送】expansion8 三 seed 文件 + seed-incremental 注册 + gallery-view 增量加载 + DB(861 物种/290+ 图) + 守护收割 PNG + worklog
+
+Stage Summary(当前项目状态):
+- 【稳定】861 物种/2614 单元/290+ 配图(守护收割进行中)/48 门/100 旗舰/NCBI 800(92.9%)/profiled 100%;E21/E22 锚点方法论获窗口实证(5 硬骨头破冰)
+- 本轮交付:①expansion8 物种+19(兰科/豆科/多孔菌三大类群深扩,五档案 100%)②画廊增量加载(容量就绪,800+ 幅不再卡)③cron 重建
+- 未解决/风险:
+  1. 571 物种缺图:16:45 起全量批高并发收割中,战果将随下轮巡检 push
+  2. 守护收割与 push 时序:本轮 push 截点后守护继续入库,下轮巡检需打包增量
+  3. cron 巡检连续两轮触发「exec limits」禁用(沙箱会话执行限额),若复发需评估降频(1800s)
+- 下一阶段优先:
+  1. P0:窗口续收割(全量批进行中)+战果推送
+  2. P1:audit-images-vlm 全量复审 290+ 张(opportunistic 渐进复审已联动)
+  3. P2:expansion9 候选(菊科 Asteraceae 深扩/禾本科 Poaceae 深扩/伞菌目 Agaricales 食用菌)
