@@ -2029,3 +2029,19 @@ Stage Summary(当前项目状态):
 - 打磨交付:SafeImg 全站兜底(13 处)+坏 id 崩溃修复+全局错误边界+回顶按钮+文案/OG/reduced-motion
 - 守护(pid 4494,instrumentation 托管):90s 轮询生图窗口 + CLOSED 分支 opportunistic VLM 复审(3 张/周期,APPLY=on)
 - 待办:①窗口开启自动收割(36+2 条新锚点待验证) ②VLM 配额恢复后全量复审+截图像素复审(/tmp/e25-*.png 3 张) ③push
+
+---
+Task ID: E25-终稿(窗口干旱记录, 2026-09-18 06:45)
+Agent: main
+Task: E25 收尾——5.5 小时守窗未开(01:26-06:42 全程 CLOSED,自 E24 收割后累计 12.5h 配额干旱),打磨成果已推送
+
+Work Log:
+- 【守窗监控】01:26-06:42 共 5.5h:守护 90s 轮询零窗口,手动 probe 复核确认真 429 非误报;VLM 与生图同池同步干旱(复审 429-fast 快退 0 张推进)
+- 【推送】da79b06..4744635 → origin/main(打磨 commit 044b8a0 + worklog 4744635)
+- 【终态验证】首页 21 图零破/页脚新文案生效/console 零错误/守护 pid 4494 存活(instrumentation 托管)
+- 【战备状态(下轮窗口自动执行)】孤儿审计批 → 旗舰批 15(缺 40) → 全量批 999(缺 573);SPECIFIC_PROMPT 74 条(36 三代 + 2 四代首验待试:血吸虫单体雄虫/百岁兰双皮带);断点 10 内容过滤占位已重建;CLOSED 分支 opportunistic VLM 复审 3 张/周期自动推进
+
+Stage Summary(当前项目状态):
+- 【稳定】842 物种/2581 单元/269 配图/48 门/98 旗舰/NCBI 781;origin/main = 4744635(含 E25 全部打磨)
+- 守护全自动待命,窗口开启即收割;新图入库后需后续 commit+push(DB+PNG)
+- E25 交付:SafeImg 13 处兜底/坏 id 白屏修复/error 边界/回顶按钮/文案+OG+reduced-motion/a11y 扫描全绿/74 锚点键零错位
