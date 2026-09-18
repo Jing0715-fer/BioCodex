@@ -2045,3 +2045,23 @@ Stage Summary(当前项目状态):
 - 【稳定】842 物种/2581 单元/269 配图/48 门/98 旗舰/NCBI 781;origin/main = 4744635(含 E25 全部打磨)
 - 守护全自动待命,窗口开启即收割;新图入库后需后续 commit+push(DB+PNG)
 - E25 交付:SafeImg 13 处兜底/坏 id 白屏修复/error 边界/回顶按钮/文案+OG+reduced-motion/a11y 扫描全绿/74 锚点键零错位
+
+---
+Task ID: E26(用户指令轮:拉取同步 + 补图守窗 + 推送, 2026-09-18)
+Agent: main
+Task: 用户指令「拉取最新代码,并继续进行补图,完成后push」——沙箱重置后同步远端 E21-E25 十一提交、补图窗口守候 3h+、会话记录推送
+
+Work Log:
+- 【环境盘点】沙箱又重置:biocodex-repo 消失、/tmp 断点清空;my-project 停留 E20 态(235 图);dev server 06:54 自动重启,守护自动拉起
+- 【拉取同步】重建克隆(HEAD=21eb580)发现远端领先 11 提交(E21-E25):①269 图(+34:E23 十一张含我 E20 保全孤儿中 7 张被收割入库——隐球菌/金发藓/蛇苔/姜/旋毛虫/河鲀/海马;E24 二十三张含双髻鲨/鳕鱼/玳瑁/绿海龟/黑猩猩/狼)②SPECIFIC_PROMPT 74 条(36 三代锚点+2 四代)③SafeImg 全站破图兜底 13 处+坏 id 白屏修复+error.tsx 全局边界+回顶按钮+OG 图+prefers-reduced-motion ④守护 flock fd 继承修复+opportunistic VLM 复审(NO_BACKOFF 快退)
+- 【孤儿清算】我 E20 保全的 9 孤儿:7 张经 E23 收割入库;余 4 张(按蚊/蕺菜/博比特虫/帝王蟹)+anguilla 经远端 VLM 审计拒审隔离 rejected/——不复活,尊重远程闸门裁决;远端现存 2 待审孤儿(branchiostoma/apostichopus)由守护 step-0 下轮窗口自动审计
+- 【同步执行】停守护 → 备份 DB → rsync 全量(db/scripts/src/prisma/public --delete/worklog)→ 两树 diff 归零;dev server 子壳孤儿化重启(PPID=1);stats 842/269/98/781/842 全对
+- 【守护复活】旧守护 kill 后 flock 空窗期与 instrumentation 擦肩(旧 sleep 子进程持锁 ≤90s)→ 手动拉起显式接管 /tmp/campaign.log(pid 1858,正确读新 DB 缺图 573)
+- 【E2E 验证】首页 21 img 零破损/统计 842+269+781;画廊 269 幅+进度条 32%;路氏双髻鲨(E24 收割)详情页新图 ✓;E24 五物种 HTTP 200 全通;390px 无横滚;console 零错误
+- 【补图守窗】07:00-10:07 会话全程 CLOSED(守护 90s 轮询不间断 + 手动 probe ×3 复核确认真 429);VLM 同池同步干旱(opportunistic 复审 429-fast 快退,~130 周期零推进);干旱自 E24 收割(09-17 18:38)累计 16.5h+,超 E25 记录的 5.5h
+- 【战备移交】守护全自动待命:窗口开启即「孤儿审计批(branchiostoma/apostichopus)→旗舰批 15→全量批 573」;断点 10 内容过滤占位已由 E25 重建;下轮会话收割累计成果后 push
+
+Stage Summary(当前项目状态):
+- 【稳定】842 物种/2581 单元/269 配图/48 门/98 旗舰/NCBI 781(92.8%)/五档案 100%;E25 全部代码演进(SafeImg/error 边界/回顶/74 锚点)已本地落地;dev server(PPID=1)+守护(pid 1858)双存活
+- 本会话窗口全关零新图(16.5h+ 账户级干旱,史上最长);守护 90s 轮询续守,窗口开启自动收割
+- 下一阶段:P0 窗口续收割(守护自动)+新图推送;P1 VLM 全量复审(audit-images-vlm 269 张,需窗口);P2 expansion8 候选(兰科/豆科/多孔菌)
