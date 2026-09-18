@@ -12,6 +12,8 @@ import {
   Sparkles, ExternalLink, MapPin, Crown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { SafeImg } from "./safe-img";
+import { TaxaPlaceholder } from "./taxa-icon";
 
 /** 六界固定顺序(筛选胶囊) */
 const KINGDOM_ORDER = ["Animalia", "Plantae", "Fungi", "Protista", "Bacteria", "Archaea"];
@@ -277,11 +279,11 @@ export function GalleryView() {
                   aria-label={`查看物种档案:${it.chineseName}(${it.latinName})`}
                 >
                   <div className={cn("relative w-full overflow-hidden", RHYTHM[hashIdx(it.id, 4)])}>
-                    <img
+                    <SafeImg
                       src={it.image}
                       alt={`${it.chineseName}(${it.latinName})博物学插图`}
-                      loading="lazy"
                       className="img-fade-in h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.05]"
+                      fallback={<TaxaPlaceholder latinName={it.latinName} kingdom={it.kingdom} className="h-full w-full" />}
                     />
                     {/* 悬浮渐变与物种名(按图找物种的核心交互) */}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent opacity-70 transition-opacity duration-300 group-hover:opacity-100" />
@@ -388,11 +390,16 @@ export function GalleryView() {
             </>
           )}
 
-          <img
+          <SafeImg
             src={current.image}
             alt={`${current.chineseName}(${current.latinName})插图放大`}
-            onClick={(e) => e.stopPropagation()}
             className="nh-scroll max-h-[74vh] max-w-full rounded-lg object-contain shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+            fallback={
+              <div className="flex max-h-[74vh] w-full max-w-2xl items-center justify-center overflow-hidden rounded-lg border border-white/15">
+                <TaxaPlaceholder latinName={current.latinName} kingdom={current.kingdom} big className="h-[52vh] w-full" />
+              </div>
+            }
           />
           <figcaption className="max-w-2xl text-center" onClick={(e) => e.stopPropagation()}>
             <p className="font-display text-xl font-bold text-white">{current.chineseName}</p>

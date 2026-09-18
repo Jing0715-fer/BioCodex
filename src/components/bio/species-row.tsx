@@ -4,6 +4,7 @@ import { useBioStore } from "@/lib/bio-store";
 import type { SpeciesItem } from "@/hooks/use-bio";
 import { KINGDOM_THEME, IUCN_INFO, phylumZh } from "@/lib/bio-domain";
 import { GitCompareArrows, Check, ArrowRight, Bookmark } from "lucide-react";
+import { SafeImg } from "./safe-img";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useFavorites, toggleFavorite, FAVORITES_MAX } from "@/lib/favorites";
@@ -68,22 +69,20 @@ export function SpeciesRow({ species, index = 0 }: { species: SpeciesItem; index
       aria-label={`查看${species.chineseName}(${species.latinName})`}
     >
       {/* 缩略图 */}
-      {species.image ? (
-        <img
-          src={species.image}
-          alt={`${species.chineseName}复古博物学插图`}
-          className="h-11 w-11 shrink-0 rounded-lg border border-foreground/10 object-cover"
-          loading="lazy"
-        />
-      ) : (
-        <span
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-foreground/10 font-display text-sm font-bold text-white"
-          style={{ background: `linear-gradient(135deg, ${theme.color}, ${theme.color}aa)` }}
-          aria-hidden
-        >
-          {species.latinName.charAt(0)}
-        </span>
-      )}
+      <SafeImg
+        src={species.image}
+        alt={`${species.chineseName}复古博物学插图`}
+        className="h-11 w-11 shrink-0 rounded-lg border border-foreground/10 object-cover"
+        fallback={
+          <span
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-foreground/10 font-display text-sm font-bold text-white"
+            style={{ background: `linear-gradient(135deg, ${theme.color}, ${theme.color}aa)` }}
+            aria-hidden
+          >
+            {species.latinName.charAt(0)}
+          </span>
+        }
+      />
 
       {/* 名称与描述 */}
       <div className="min-w-0 flex-1">

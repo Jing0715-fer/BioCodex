@@ -7,6 +7,7 @@ import { KINGDOM_THEME, IUCN_INFO } from "@/lib/bio-domain";
 import { useViewHistory, relativeTime, clearHistory } from "@/lib/view-history";
 import { useFavorites } from "@/lib/favorites";
 import { KingdomIcon } from "./taxa-icon";
+import { SafeImg } from "./safe-img";
 import { KingdomOrnament } from "./kingdom-ornament";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -515,25 +516,23 @@ export function HomeView() {
                   style={{ animationDelay: `${i * 60}ms` }}
                 >
                   <div className="relative aspect-[4/3] overflow-hidden">
-                    {f.image ? (
-                      <img
-                        src={f.image}
-                        alt={f.chineseName}
-                        className="img-fade-in h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                        loading="lazy"
-                      />
-                    ) : (
-                      <div
-                        className="flex h-full w-full items-center justify-center"
-                        style={{
-                          background: `linear-gradient(140deg, ${KINGDOM_THEME[f.kingdom]?.color}30, var(--parchment))`,
-                        }}
-                      >
-                        <span className="latin text-5xl text-foreground/20">
-                          {f.latinName.charAt(0)}
-                        </span>
-                      </div>
-                    )}
+                    <SafeImg
+                      src={f.image}
+                      alt={f.chineseName}
+                      className="img-fade-in h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      fallback={
+                        <div
+                          className="flex h-full w-full items-center justify-center"
+                          style={{
+                            background: `linear-gradient(140deg, ${KINGDOM_THEME[f.kingdom]?.color}30, var(--parchment))`,
+                          }}
+                        >
+                          <span className="latin text-5xl text-foreground/20">
+                            {f.latinName.charAt(0)}
+                          </span>
+                        </div>
+                      }
+                    />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/0 to-black/0" />
                     <div className="absolute bottom-0 left-0 right-0 p-3.5">
                       <p className="font-display text-base font-bold text-white drop-shadow-sm">
@@ -630,21 +629,19 @@ export function HomeView() {
                       style={{ background: `linear-gradient(90deg, ${theme.color}, ${theme.color}66)` }}
                     />
                     <div className="relative h-24 overflow-hidden sm:h-28">
-                      {r.image ? (
-                        <img
-                          src={r.image}
-                          alt={r.chineseName}
-                          className="img-fade-in h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <div
-                          className="flex h-full w-full items-center justify-center"
-                          style={{ background: `linear-gradient(140deg, ${theme.color}26, var(--parchment))` }}
-                        >
-                          <span className="latin text-3xl text-foreground/20">{r.latinName.charAt(0)}</span>
-                        </div>
-                      )}
+                      <SafeImg
+                        src={r.image}
+                        alt={r.chineseName}
+                        className="img-fade-in h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        fallback={
+                          <div
+                            className="flex h-full w-full items-center justify-center"
+                            style={{ background: `linear-gradient(140deg, ${theme.color}26, var(--parchment))` }}
+                          >
+                            <span className="latin text-3xl text-foreground/20">{r.latinName.charAt(0)}</span>
+                          </div>
+                        }
+                      />
                       <span
                         className="absolute left-1.5 top-1.5 flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-bold text-white shadow"
                         style={{ background: theme.color }}

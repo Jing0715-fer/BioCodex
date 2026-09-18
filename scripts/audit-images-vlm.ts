@@ -26,6 +26,8 @@ const OUT = "/tmp/vlm-audit.jsonl";
 const LIMIT = parseInt(process.env.LIMIT || "999", 10);
 const APPLY = process.env.APPLY === "1";
 const CONCURRENCY = parseInt(process.env.CONCURRENCY || "3", 10);
+// NO_BACKOFF=1:首次 429 立即退出(守护进程 opportunistic 探测用,不浪费等待)
+const NO_BACKOFF = process.env.NO_BACKOFF === "1";
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 interface Verdict {
@@ -118,6 +120,7 @@ async function main() {
     } catch (e: any) {
       const msg = String(e?.message || e);
       if (msg.includes("429") || msg.toLowerCase().includes("too many")) {
+        if (NO_BACKOFF) { log(`[429-fast] VLM 配额不可用,快速退出 (${t.latinName})`); process.exit(0); }
         consecutive429++;
         log(`[429] 连续第 ${consecutive429} 次,退避 ${45 * consecutive429}s (${t.latinName})`);
         if (consecutive429 >= 3) { log("[stop] 限流持续,本轮中止,进度已保存,可稍后续跑"); process.exitCode = 0; return false; }

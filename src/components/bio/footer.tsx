@@ -69,7 +69,7 @@ export function BioFooter() {
           </p>
           <p className="flex items-center gap-1">
             <Shield className="h-3.5 w-3.5" />
-            部分配图来自网络检索,仅作展示用途
+            插图均为 AI 生成的复古博物学风格作品,经科学性复审后入库,仅作教育科普用途
           </p>
         </div>
       </div>

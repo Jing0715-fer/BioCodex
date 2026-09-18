@@ -6,6 +6,7 @@ import { useBioStore, MAX_COMPARE } from "@/lib/bio-store";
 import { useTaxaBatch, type TaxonDetailResponse } from "@/hooks/use-bio";
 import { buildDbLinks, IUCN_INFO, KINGDOM_THEME, rankLabel } from "@/lib/bio-domain";
 import { TaxaPlaceholder, KingdomIcon } from "./taxa-icon";
+import { SafeImg } from "./safe-img";
 import { ShareDialog } from "./share-dialog";
 import { SpeciesPickerDialog } from "./species-picker-dialog";
 import { copyText } from "@/lib/clipboard";
@@ -494,15 +495,12 @@ export function CompareView({ ids }: { ids: string[] }) {
                     aria-label={`查看${t.chineseName}图鉴详情`}
                     className="absolute inset-0 h-full w-full cursor-pointer"
                   >
-                    {t.image ? (
-                      <img
-                        src={t.image}
-                        alt={`${t.chineseName}(${t.latinName})`}
-                        className="img-fade-in h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      />
-                    ) : (
-                      <TaxaPlaceholder latinName={t.latinName} kingdom={t.kingdom} className="h-full w-full" />
-                    )}
+                    <SafeImg
+                      src={t.image}
+                      alt={`${t.chineseName}(${t.latinName})`}
+                      className="img-fade-in h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      fallback={<TaxaPlaceholder latinName={t.latinName} kingdom={t.kingdom} className="h-full w-full" />}
+                    />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                     {/* hover 查看详情提示 */}
                     <span className="absolute inset-x-0 bottom-11 flex translate-y-1 items-center justify-center gap-1 bg-black/45 py-1.5 text-[11px] font-semibold text-white opacity-0 backdrop-blur-sm transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">

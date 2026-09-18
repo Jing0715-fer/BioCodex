@@ -4,6 +4,7 @@ import { useBioStore, MAX_COMPARE } from "@/lib/bio-store";
 import type { SpeciesItem } from "@/hooks/use-bio";
 import { KINGDOM_THEME, IUCN_INFO, phylumZh } from "@/lib/bio-domain";
 import { KingdomIcon, TaxaPlaceholder } from "./taxa-icon";
+import { SafeImg } from "./safe-img";
 import { GitCompareArrows, Check, ArrowRight, Microscope, Star, Bookmark } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -65,16 +66,12 @@ export function SpeciesCard({ species, index = 0 }: { species: SpeciesItem; inde
     >
       {/* 图片/占位 */}
       <div className="relative aspect-[5/3] overflow-hidden">
-        {species.image ? (
-          <img
-            src={species.image}
-            alt={`${species.chineseName}(${species.latinName})复古博物学插图`}
-            className="img-fade-in h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-            loading="lazy"
-          />
-        ) : (
-          <TaxaPlaceholder latinName={species.latinName} kingdom={species.kingdom} className="h-full w-full" />
-        )}
+        <SafeImg
+          src={species.image}
+          alt={`${species.chineseName}(${species.latinName})复古博物学插图`}
+          className="img-fade-in h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          fallback={<TaxaPlaceholder latinName={species.latinName} kingdom={species.kingdom} className="h-full w-full" />}
+        />
         {species.conservation && (
           <button
             onClick={(e) => {

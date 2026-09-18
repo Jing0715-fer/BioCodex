@@ -14,6 +14,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { KingdomIcon, kingdomTheme, RankBadge } from "./taxa-icon";
+import { SafeImg } from "./safe-img";
 
 export function BioHeader() {
   const { view, goHome, explore, openTaxon, openSearch, openBrowse, openFavorites, openGallery, setAgentOpen, setShortcutsOpen } = useBioStore();
@@ -168,21 +169,19 @@ export function BioHeader() {
                           inputRef.current?.blur();
                         }}
                       >
-                        {r.image ? (
-                          <img
-                            src={r.image}
-                            alt={r.chineseName}
-                            className="h-9 w-9 shrink-0 rounded-md object-cover"
-                            loading="lazy"
-                          />
-                        ) : (
-                          <span
-                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md"
-                            style={{ background: `${kingdomTheme(r.kingdom).color}18` }}
-                          >
-                            <KingdomIcon kingdom={r.kingdom} className="h-4 w-4" />
-                          </span>
-                        )}
+                        <SafeImg
+                          src={r.image}
+                          alt={r.chineseName}
+                          className="h-9 w-9 shrink-0 rounded-md object-cover"
+                          fallback={
+                            <span
+                              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md"
+                              style={{ background: `${kingdomTheme(r.kingdom).color}18` }}
+                            >
+                              <KingdomIcon kingdom={r.kingdom} className="h-4 w-4" />
+                            </span>
+                          }
+                        />
                         <span className="min-w-0 flex-1">
                           <span className="flex items-center gap-2">
                             <span className="truncate font-medium text-foreground">{r.chineseName}</span>
@@ -307,21 +306,19 @@ export function BioHeader() {
                             setHistOpen(false);
                           }}
                         >
-                          {h.image ? (
-                            <img
-                              src={h.image}
-                              alt={h.chineseName}
-                              className="h-8 w-8 shrink-0 rounded-md object-cover"
-                              loading="lazy"
-                            />
-                          ) : (
-                            <span
-                              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md"
-                              style={{ background: `${kingdomTheme(h.kingdom).color}18` }}
-                            >
-                              <KingdomIcon kingdom={h.kingdom} className="h-3.5 w-3.5" />
-                            </span>
-                          )}
+                          <SafeImg
+                            src={h.image}
+                            alt={h.chineseName}
+                            className="h-8 w-8 shrink-0 rounded-md object-cover"
+                            fallback={
+                              <span
+                                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md"
+                                style={{ background: `${kingdomTheme(h.kingdom).color}18` }}
+                              >
+                                <KingdomIcon kingdom={h.kingdom} className="h-3.5 w-3.5" />
+                              </span>
+                            }
+                          />
                           <span className="min-w-0 flex-1">
                             <span className="block truncate text-[13px] font-medium text-foreground">{h.chineseName}</span>
                             <span className="latin block truncate text-[10px] text-muted-foreground">{h.latinName}</span>

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { KingdomIcon } from "./taxa-icon";
+import { SafeImg } from "./safe-img";
 import ReactMarkdown from "react-markdown";
 import { Sparkles, Send, X, RotateCcw, Bot, User, ChevronRight, GitCompareArrows, Bookmark, WifiOff, Compass, Dices, Copy, Link2, Scale } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -430,21 +431,19 @@ export function AgentPanel() {
                                       }}
                                       className="flex min-w-0 flex-1 items-center gap-2.5 rounded-lg border border-foreground/10 bg-muted/40 p-2 text-left transition-all hover:border-primary/40 hover:bg-primary/5"
                                     >
-                                    {mt.image ? (
-                                      <img
-                                        src={mt.image}
-                                        alt={mt.chineseName}
-                                        className="h-9 w-9 shrink-0 rounded-md object-cover"
-                                        loading="lazy"
-                                      />
-                                    ) : (
-                                      <span
-                                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md"
-                                        style={{ background: `${theme.color}18` }}
-                                      >
-                                        <KingdomIcon kingdom={mt.kingdom} className="h-4 w-4" />
-                                      </span>
-                                    )}
+                                    <SafeImg
+                                      src={mt.image}
+                                      alt={mt.chineseName}
+                                      className="h-9 w-9 shrink-0 rounded-md object-cover"
+                                      fallback={
+                                        <span
+                                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md"
+                                          style={{ background: `${theme.color}18` }}
+                                        >
+                                          <KingdomIcon kingdom={mt.kingdom} className="h-4 w-4" />
+                                        </span>
+                                      }
+                                    />
                                     <span className="min-w-0 flex-1">
                                       <span className="flex items-center gap-1.5">
                                         <span className="truncate text-[13px] font-semibold">

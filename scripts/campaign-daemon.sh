@@ -76,6 +76,12 @@ await db.$disconnect();
     sleep 60
   else
     log "[closed] $R (缺图 $MISSING),90s 后再探测"
+    # E25:VLM 全量复审 opportunistic——生图配额关闭但 VLM 配额独立恢复时,
+    #     每周期推进 3 张复审(fail 自动下架回退占位图,物种自动重回生成队列);
+    #     NO_BACKOFF 首次 429 秒退,不拖慢窗口探测节奏
+    AUDIT_OUT=$(APPLY=1 LIMIT=3 CONCURRENCY=1 NO_BACKOFF=1 timeout 75 bun scripts/audit-images-vlm.ts 2>/dev/null \
+      | grep -E "^\[(vlm-audit|ok|warn|fail|summary|429-fast)" | head -5)
+    [ -n "$AUDIT_OUT" ] && echo "$AUDIT_OUT" | while read -r l; do log "[复审] $l"; done
     sleep 90 9>&-
   fi
 done

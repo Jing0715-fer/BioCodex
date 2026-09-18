@@ -311,3 +311,16 @@
   mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
   -webkit-mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
 }
+
+/* ===== E25 打磨:减少动画偏好(前庭障碍/晕动症用户) =====
+   尊重系统级 prefers-reduced-motion:停用入场/循环动画与过渡,仅保留透明度即时变化 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

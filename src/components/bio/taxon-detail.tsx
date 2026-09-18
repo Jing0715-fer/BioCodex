@@ -5,6 +5,7 @@ import { useBioStore, MAX_COMPARE } from "@/lib/bio-store";
 import { useTaxon, useTree, type TreeNodeDTO } from "@/hooks/use-bio";
 import { buildDbLinks, IUCN_INFO, KINGDOM_THEME, rankLabel } from "@/lib/bio-domain";
 import { TaxaPlaceholder, KingdomIcon } from "./taxa-icon";
+import { SafeImg } from "./safe-img";
 import { KingdomOrnament } from "./kingdom-ornament";
 import { TaxonCard } from "./taxon-card";
 import { LineageTimeline } from "./lineage-timeline";
@@ -57,7 +58,7 @@ function SectionCard({
 }
 
 export function TaxonDetail({ id }: { id: string }) {
-  const { openTaxon, explore, goBack, compareIds, toggleCompare, openCompare, openRedlist } = useBioStore();
+  const { openTaxon, explore, goBack, goHome, openSearch, compareIds, toggleCompare, openCompare, openRedlist } = useBioStore();
   const favorites = useFavorites();
   const { data, isLoading } = useTaxon(id);
   const { data: tree } = useTree();
@@ -80,7 +81,9 @@ export function TaxonDetail({ id }: { id: string }) {
 
   const links = useMemo(
     () =>
-      data
+      // E25 修复:坏 id 时 API 返回 {success:false}(data 为真值但 taxon 未定义),
+      // 必须以 success 为准,否则本 memo 在下方骨架屏 early-return 之前先崩
+      data?.success && data.taxon
         ? buildDbLinks({
             latinName: data.taxon.latinName,
             chineseName: data.taxon.chineseName,
@@ -150,7 +153,7 @@ export function TaxonDetail({ id }: { id: string }) {
     }
   }, [data]);
 
-  if (isLoading || !data?.success) {
+  if (isLoading) {
     return (
       <div className="mx-auto max-w-[1400px] px-4 py-8 sm:px-6">
         <div className="flex flex-col gap-4">
@@ -161,6 +164,27 @@ export function TaxonDetail({ id }: { id: string }) {
               <Skeleton className="h-40 w-full rounded-xl" />
             </div>
             <Skeleton className="h-40 rounded-xl" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // E25:坏 id / 已删除条目 → 明确的未找到态(此前为无限骨架屏,更早版本甚至整页崩溃)
+  if (!data?.success || !data.taxon) {
+    return (
+      <div className="mx-auto max-w-[1000px] px-4 py-16 sm:px-6">
+        <div className="flex flex-col items-center gap-4 rounded-2xl border border-foreground/10 bg-card p-12 text-center paper-texture">
+          <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-foreground/5">
+            <KingdomIcon kingdom="Animalia" className="h-7 w-7 text-muted-foreground" />
+          </span>
+          <h2 className="font-display text-xl font-bold">未找到该分类单元</h2>
+          <p className="max-w-md text-sm leading-6 text-muted-foreground">
+            链接中的条目编号无效或已被移除。可能是分享链接已过期,或地址被截断。
+          </p>
+          <div className="mt-2 flex gap-3">
+            <Button onClick={goHome}>返回总览</Button>
+            <Button variant="outline" onClick={() => openSearch("")}>全局搜索</Button>
           </div>
         </div>
       </div>
@@ -217,10 +241,12 @@ export function TaxonDetail({ id }: { id: string }) {
             aria-label="放大查看物种插图"
             className="group/img block w-full cursor-zoom-in"
           >
-            <img
+            <SafeImg
               src={taxon.image}
               alt={`${taxon.chineseName}(${taxon.latinName})博物学插图`}
               className="img-fade-in h-[320px] w-full object-cover transition-transform duration-500 group-hover/img:scale-[1.02] sm:h-[420px]"
+              eager
+              fallback={<TaxaPlaceholder latinName={taxon.latinName} kingdom={taxon.kingdom} big className="h-[320px] w-full sm:h-[420px]" />}
             />
           </button>
         ) : (
@@ -541,16 +567,12 @@ export function TaxonDetail({ id }: { id: string }) {
                     className="group relative w-40 shrink-0 overflow-hidden rounded-lg border border-foreground/10 bg-muted/30 text-left transition-all hover:border-primary/40 hover:shadow-md"
                   >
                     <div className="relative h-24 w-full overflow-hidden">
-                      {r.image ? (
-                        <img
-                          src={r.image}
-                          alt={r.chineseName}
-                          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <TaxaPlaceholder latinName={r.latinName} kingdom={taxon.kingdom} className="h-full w-full" />
-                      )}
+                      <SafeImg
+                        src={r.image}
+                        alt={r.chineseName}
+                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                        fallback={<TaxaPlaceholder latinName={r.latinName} kingdom={taxon.kingdom} className="h-full w-full" />}
+                      />
                       {r.conservation && (
                         <span
                           className={cn(
@@ -845,11 +867,16 @@ export function TaxonDetail({ id }: { id: string }) {
           >
             <X className="h-5 w-5" />
           </button>
-          <img
+          <SafeImg
             src={taxon.image}
             alt={`${taxon.chineseName}(${taxon.latinName})插图放大`}
-            onClick={(e) => e.stopPropagation()}
             className="nh-scroll max-h-[78vh] max-w-full rounded-lg object-contain shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+            fallback={
+              <div className="flex max-h-[78vh] w-full max-w-2xl items-center justify-center overflow-hidden rounded-lg border border-white/15">
+                <TaxaPlaceholder latinName={taxon.latinName} kingdom={taxon.kingdom} big className="h-[56vh] w-full" />
+              </div>
+            }
           />
           <figcaption className="max-w-2xl text-center">
             <p className="font-display text-xl font-bold text-white">{taxon.chineseName}</p>

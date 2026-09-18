@@ -16,6 +16,7 @@ import { CompareView } from "@/components/bio/compare-view";
 import { CompareTray } from "@/components/bio/compare-tray";
 import { AgentPanel } from "@/components/bio/agent-panel";
 import { ShortcutsDialog } from "@/components/bio/shortcuts-dialog";
+import { ScrollTopButton } from "@/components/bio/scroll-top-button";
 import { BioFooter } from "@/components/bio/footer";
 import { browseFilterToParams } from "@/lib/clipboard";
 
@@ -101,6 +102,7 @@ function AppShell() {
       <BioFooter />
       <AgentPanel />
       <CompareTray />
+      <ScrollTopButton />
       <ShortcutsDialog />
     </div>
   );

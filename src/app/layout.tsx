@@ -22,6 +22,7 @@ export const metadata: Metadata = {
     description: "从原核生物到高等脊椎动物的专业生物学百科",
     siteName: "BioCodex",
     type: "website",
+    images: [{ url: "/generated/hero-tree-of-life.png", width: 1152, height: 864, alt: "BioCodex 生命之树复古铜版画" }],
   },
 };
 

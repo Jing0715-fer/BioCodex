@@ -4,6 +4,7 @@ import { useBioStore, MAX_COMPARE } from "@/lib/bio-store";
 import { useTaxaBatch } from "@/hooks/use-bio";
 import { KINGDOM_THEME, IUCN_INFO } from "@/lib/bio-domain";
 import { TaxaPlaceholder } from "./taxa-icon";
+import { SafeImg } from "./safe-img";
 import { Button } from "@/components/ui/button";
 import { X, GitCompareArrows, Trash2, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -55,15 +56,18 @@ export function CompareTray() {
                     aria-label={`查看${t?.chineseName || "物种"}`}
                   >
                     <span className="h-9 w-9 shrink-0 overflow-hidden rounded-lg">
-                      {t?.image ? (
-                        <img src={t.image} alt={t.chineseName} className="h-full w-full object-cover" />
-                      ) : (
-                        <TaxaPlaceholder
-                          latinName={t?.latinName || "?"}
-                          kingdom={t?.kingdom || "Animalia"}
-                          className="h-full w-full"
-                        />
-                      )}
+                      <SafeImg
+                        src={t?.image}
+                        alt={t?.chineseName || "物种"}
+                        className="h-full w-full object-cover"
+                        fallback={
+                          <TaxaPlaceholder
+                            latinName={t?.latinName || "?"}
+                            kingdom={t?.kingdom || "Animalia"}
+                            className="h-full w-full"
+                          />
+                        }
+                      />
                     </span>
                     <span className="hidden min-w-0 flex-col leading-tight sm:flex">
                       <span className="truncate text-xs font-semibold text-foreground">

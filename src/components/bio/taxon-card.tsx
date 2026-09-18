@@ -3,6 +3,7 @@
 import type { ChildDTO } from "@/hooks/use-bio";
 import { KINGDOM_THEME, IUCN_INFO, rankLabel } from "@/lib/bio-domain";
 import { KingdomIcon, TaxaPlaceholder } from "./taxa-icon";
+import { SafeImg } from "./safe-img";
 import { useBioStore, MAX_COMPARE } from "@/lib/bio-store";
 import { ArrowRight, GitCompareArrows, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -43,11 +44,32 @@ export function TaxonCard({
       {/* 图片/占位 */}
       <div className="relative aspect-[5/3] overflow-hidden">
         {taxon.image ? (
-          <img
+          <SafeImg
             src={taxon.image}
             alt={taxon.chineseName}
             className="img-fade-in h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-            loading="lazy"
+            fallback={
+              isSpecies ? (
+                <TaxaPlaceholder latinName={taxon.latinName} kingdom={kingdom} className="h-full w-full" />
+              ) : (
+                <div
+                  className="flex h-full w-full flex-col items-center justify-center gap-2.5"
+                  style={{
+                    background: `linear-gradient(145deg, ${theme.color}1f 0%, var(--parchment) 55%, ${theme.color}14 100%)`,
+                  }}
+                >
+                  <span
+                    className="flex h-12 w-12 items-center justify-center rounded-xl text-white shadow-md"
+                    style={{ background: theme.color }}
+                  >
+                    <KingdomIcon kingdom={kingdom} className="h-6 w-6" />
+                  </span>
+                  <span className="latin text-sm text-muted-foreground/70">
+                    {taxon.rank !== "species" ? taxon.latinName.split(" ")[0] : ""}
+                  </span>
+                </div>
+              )
+            }
           />
         ) : isSpecies ? (
           <TaxaPlaceholder latinName={taxon.latinName} kingdom={kingdom} className="h-full w-full" />

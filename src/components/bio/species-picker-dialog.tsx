@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useSearch, type SearchRow } from "@/hooks/use-bio";
 import { KINGDOM_THEME, IUCN_INFO } from "@/lib/bio-domain";
 import { KingdomIcon, TaxaPlaceholder } from "./taxa-icon";
+import { SafeImg } from "./safe-img";
 import { MAX_COMPARE } from "@/lib/bio-store";
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
@@ -154,11 +155,12 @@ function PickerBody({
                     )}
                   >
                     <span className="relative h-11 w-14 shrink-0 overflow-hidden rounded-md border border-foreground/10">
-                      {r.image ? (
-                        <img src={r.image} alt={r.chineseName} className="h-full w-full object-cover" loading="lazy" />
-                      ) : (
-                        <TaxaPlaceholder latinName={r.latinName} kingdom={r.kingdom} className="h-full w-full text-[8px]" />
-                      )}
+                      <SafeImg
+                        src={r.image}
+                        alt={r.chineseName}
+                        className="h-full w-full object-cover"
+                        fallback={<TaxaPlaceholder latinName={r.latinName} kingdom={r.kingdom} className="h-full w-full text-[8px]" />}
+                      />
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="flex items-center gap-1.5">

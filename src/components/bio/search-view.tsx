@@ -5,6 +5,7 @@ import { useBioStore, MAX_COMPARE } from "@/lib/bio-store";
 import { rankLabel, IUCN_INFO, KINGDOM_THEME } from "@/lib/bio-domain";
 import { highlightText } from "@/lib/highlight";
 import { TaxaPlaceholder, RankBadge, KingdomIcon } from "./taxa-icon";
+import { SafeImg } from "./safe-img";
 import { Loader2, SearchX, ChevronRight, GitCompareArrows, Check, Bookmark } from "lucide-react";
 import { useFavorites, toggleFavorite } from "@/lib/favorites";
 import { cn } from "@/lib/utils";
@@ -66,16 +67,12 @@ export function SearchView({ q }: { q: string }) {
               aria-label={`查看${r.chineseName}(${r.latinName})`}
             >
               {/* 缩略图 */}
-              {r.image ? (
-                <img
-                  src={r.image}
-                  alt={r.chineseName}
-                  className="h-16 w-20 shrink-0 rounded-lg object-cover"
-                  loading="lazy"
-                />
-              ) : (
-                <TaxaPlaceholder latinName={r.latinName} kingdom={r.kingdom} className="h-16 w-20 shrink-0 rounded-lg" />
-              )}
+              <SafeImg
+                src={r.image}
+                alt={r.chineseName}
+                className="h-16 w-20 shrink-0 rounded-lg object-cover"
+                fallback={<TaxaPlaceholder latinName={r.latinName} kingdom={r.kingdom} className="h-16 w-20 shrink-0 rounded-lg" />}
+              />
 
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
