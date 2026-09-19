@@ -364,7 +364,7 @@ export function GalleryView() {
 
       {/* ====== 增量加载控制(按钮 + 滚动哨兵双保险) ====== */}
       {!isLoading && hasMore && (
-        <div ref={sentinelRef} className="mt-8 flex flex-col items-center gap-2.5">
+        <div ref={sentinelRef} className="relative z-20 mt-8 flex flex-col items-center gap-2.5">
           <Button
             variant="outline"
             size="sm"
