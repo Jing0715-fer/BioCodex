@@ -2287,3 +2287,116 @@ Stage Summary(当前项目状态):
 - 【稳定】861 物种(含 expansion8×19)/302 配图/98 旗舰/NCBI 800/五档案 100%;五代锚点战备(中华鲎 v2 半圆盘盾锚点系/偕老同穴 v1 钩编玻璃蕾丝锚点)已入库并推送
 - 用户四项指令:①拉取最新代码 ✓(E27+E28 三提交合并)②继续补图 ✓(守窗 4.4h 窗口未开;守护自动接力)③真实图研究 ✓(VLM 诊断+8 张网络真实参考+五代锚点)④push ✓(三笔)
 - 下一阶段:窗口开启守护自动重生两物种+续收割 559;下轮会话 push 新图
+
+---
+Task ID: E30(用户指令轮:拉取同步 + 窗口收割, 2026-09-19)
+Agent: main
+Task: 用户指令「拉取最新代码,并继续补图」——沙箱重置后同步远端 E28+E29(E29 merge 38c1ee0:306图/大类回填885/档案扩写743/prompt引擎),窗口收割接力
+
+Work Log:
+- 【环境盘点】沙箱又重置:本地 HEAD 停 E27 态(292e9f5,276图),远端领先 8 提交至 38c1ee0(E29 merge);本地 292e9f5 与远端 39daf86 内容零差异(444 files 纯 mode 噪音),无独有战果
+- 【同步执行】备份 DB + 5 张孤儿 PNG(branchiostoma/apostichopus/sus-scrofa/camelus-ferus/hero)→ reset --hard 38c1ee0 → 仅 branchiostoma-belcheri 为本地独有已恢复(其余远端已有),313 PNG;杀 dev 树重启(DB inode 变更,E20 教训);stats 2614/861/306图/100旗舰 全对
+- 【E29 成果验证】①高阶元配图:PHYLUM/CLASS 等回填代表物种图(变形菌门→大肠杆菌图),DB 总配图 1191=306物种级+885高阶元占位 ②字数阈值全库达标复审:高阶元 desc<30 字=0(family/genus min 30/phylum min 46)、species morphology/habitat/distribution<20=0、species description avg 105/min 68 ③agent-browser E2E:变形菌门详情页占位图+概述 76 字渲染✓、γ-变形菌纲✓、图 HTTP 200✓、console 零错误
+- 【窗口探测】手动 probe 发现窗口 OPEN(非 429);probe 顺手产出 yersinia-pestis/zea-mays/zingiber-officinale/volvox/vorticella 等新图
+- 【守护 step-0 审计】5 张存量问题图 VLM 复审拒审隔离(百岁兰多叶片/文昌鱼画成硬骨鱼/松茸画成毒鹅膏/黄曲霉画成蘑菇/安络小皮伞比例失真)+ 猴头菌过审入库(磁盘存量图直接过审);"库内当前有效配图 1192 张"
+- 【旗舰批】守护 16:16:20 自动开旗舰批(timeout 420s);两块五代硬骨头(百岁兰/血吸虫)仍在拒审循环,断点 attempts 压制不死磕
+
+(进行中:旗舰批跑毕后手动接力 SCOPE=all 全量批收割 554 缺图物种)
+
+Stage Summary(当前项目状态):
+- 【稳定】2614 单元/861 物种/306 物种级图+885 高阶元占位/48 门/100 旗舰/NCBI 800;E29 三大件(大类配图/字数阈值/prompt 引擎)已验证全部落地
+- 窗口 OPEN 中,守护收割进行时;战果待全量批接力后 push
+
+---
+Task ID: E30-p1
+Agent: general-purpose
+Task: 缺图物种专属图像生成 prompt 编写批次1(132种)
+
+Work Log:
+- 读取 worklog 尾部(E29/E30 段)掌握 SPECIFIC_PROMPT 方法论五要素与既有锚点风格基准(血吸虫橡胶软管/文昌鱼磨砂玻璃/百岁兰双皮带等五代精华)
+- 解析 /tmp/e30-batch-1.json:132 物种全量带 chineseName/morphology(60-110字)/habitat/description,morphology 为唯一事实源逐条编写英文专属 prompt
+- 【方法论执行】①风格锚定:每条以 antique/vintage 自然史版画开头、统一以 "ink stippling, no text no letters no labels" 收尾 ②物体类比:全部 132 条含静物类比(儒艮=皮革沙发垫、松果穿山甲=铜瓦、帝企鹅=瓷燕尾服绅士、炭疽杆菌=竹节/penne 长链、翻车鱼=竖立银餐盘+波浪皱边、藏羚角=竖琴弦、金枪鱼=钢鱼雷、柄海鞘=橡胶鼓槌、泥蚶=心形革袋等) ③NOT 锚点:每条 "absolutely NO ..." 列相邻类群(雪鸮→无耳簇无心形脸;眼镜王蛇→无眼镜斑;竹节虫→无叶状翅;翻车鱼→无新月尾;鹿角珊瑚→非脑纹非扇形;毒鹅膏→非红斑白点) ④计数前置大写:EXACTLY FIVE 红松针叶/EXACTLY FOUR 达氏鳇须+FIVE 行骨板/FIVE PAIRS 泥鳅须/EXACTLY TWO 红火蚁腹柄节/SEVEN 田螺螺层/THREE TO FIVE 镰刀菌隔膜/ABOUT TWENTY 泥蚶肋/MORE THAN THIRTY 毛蚶肋/TWO PAIRS 白蚁翅等 ⑤单一主体+简单背景(石板/黑天鹅绒/解剖盘/沙滩/培养皿/透镜视场) ⑥字数 81-111 词全在 80-150 区间 ⑦微生物 31 条(细菌15+古菌2+原生与藻类7+显微真菌7)统一 antique microscope field-of-view plate;宏观真菌11条(伞菌/褶孔菌/菌核/麦角/蛹虫草/白僵虫尸)走标本静物构图
+- 分 5 个 part 文件编写(每份 25-27 条),python 合并+九项自校验:键集与输入 latinName 逐一比对(132/132 无缺无多无重)、字数区间、antique/vintage 开头、结尾句、absolutely NO 存在、物体类比存在、大写强化存在、无中文字符、JSON 合法;首轮揪出 1 条缺类比(大斑啄木鸟),补"乌木衣夹+浆白肩章+格纹围巾"类比后零失败
+- Read/Grep 抽查终稿 5 条(麦角菌/大斑啄木鸟/翻车鱼/炭疽杆菌/可可)确认格式与方法论合规
+- 产出:/home/z/my-project/tmp-out/e30-out-batch-1.json(132 条 {"latinName":"英文prompt"});中间件 5 个 part 文件与 compact 提取件留存 tmp-out;DB 只读未动、未碰 UI/git
+
+Stage Summary:
+- 完成 132/132 物种专属 SPECIFIC_PROMPT(字典格式,键与输入 latinName 逐字符一致),零遗漏零多余,九项自校验全过,字数 81-111 词
+- 方法论五要素(风格锚定/物体类比/NOT 锚点/计数前置/单一主体)100% 覆盖;微生物 31 条走显微视野、宏观真菌 11 条走标本静物的分流判断已固化
+- 保守处理清单(特征存疑或过细而省略/弱化):金琥棱数 21-37→"more than twenty"(刺数 8-12/1-4 弃);三七小叶 5-7→画 5 小叶轮一枚;虾夷扇贝约 20 余条肋→"about twenty";草麻黄节间长/径数值弃;珙桐苞片 2-3→取 TWO 大苞片;藏羚角长 50-70cm 弃数值留"竖琴状+环棱";体长体重类数字(缅甸蟒5米/翻车鱼3米/帝企鹅1米+)一律以体型词表现防失真;乌贼类茎化腕与吸盘精确行数弱化为"rows of suckers"(枪乌贼中央增大吸盘弃);桃花水母缘膜弃、辐管以"four faint radial lines+pale gland"呈现;沙蚕触手触角合并为"short feelers"、两对眼→four eye-spots;红火蚁仅取触角端两节锤不写总 10 节;长耳鸮喙爪色弃、帝企鹅雏鸟与白冠长尾雉雌鸟不入图(单一主体);大麦三联小穗弱化为成对排列不入精确计数;可可纵棱保留"five or ten"双值;花生 1-4 粒→画 2 粒;麦角菌子囊壳孔口以"tiny round drum"子座示意
+- 交棒:main 可将本批映射按 generate-images.ts 既有 SPECIFIC_PROMPT 格式合入(锚点优先级高于 featureHints 拼装)
+
+---
+Task ID: E30-p2
+Agent: general-purpose
+Task: 缺图物种专属图像生成 prompt 编写批次2(132种)
+
+Work Log:
+- 读取 worklog 尾部(E29 档案扩写/E30 窗口收割/E30-p1 批次1 段)掌握 SPECIFIC_PROMPT 方法论五要素与既有锚点风格基准,并核对 generate-images.ts 现有 75 条 SPECIFIC_PROMPT 全部键名
+- 解析 /tmp/e30-batch-2.json:132 物种(植物4/昆虫与蛛形贝类头足棘皮等无脊椎27/鱼26/两爬3/鸟27/哺乳12…实际构成:栽培植物4、陆生节肢约40、水生无脊椎14、鱼26、两爬3、鸟27、兽13)全带 chineseName/morphology(60-110字)/habitat/description,morphology 为唯一事实源逐条编写英文专属 prompt
+- 【方法论执行】①风格锚定:每条以 antique/vintage 自然史版画开头、统一 "no text no letters no labels" 收尾(ink stippling 变体 7 条/copperplate watercolor 变体 125 条) ②物体类比:132 条全含静物类比(按蚊=倾斜潜望镜、舌蝇=交叉剪刃翅、姬蜂产卵器=三根垂丝马尾、海蜇=颤动玻璃半瓜、船蛸=摇篮中皱纸壳、角鮟鱇=焦油黑瓜+灯笼饵、匙吻鲟=烤箱平铲、刺鲀=水雷、裸鼹鼠=粉色泡泡胶、白鹭=金拖鞋、蜜獾=银灰披风) ③NOT 锚点:每条 "absolutely NO .../NOT a ..." 列相邻类群(龙虾→无巨螯、鲟→非鲨、匙吻鲟→非锯鳐(无锯齿!)、王企鹅→非帝企鹅、雨燕→非燕、大杜鹃→非雀鹰(喙无钩)、河狸→非鼠非麝鼠、兰花螳螂→非绿色螳螂、蠼螋→非蟑螂非蝎) ④计数前置大写:FORTY-FIVE DEGREE 按蚊停立面角、EIGHT 条口腕海蜇、EIGHT 腕章鱼×2、SIX 鳃羽钝口螈(THREE pairs)、FOUR 指FIVE 趾、EIGHT 须FOUR 对叉尾鮰、ELEVEN 硬棘石斑、EXACTLY THREE 白环小丑鱼、TWO 黑纵纹小蠊、THREE 尾丝二尾蜉、EIGHT 眼两列园蛛、FIVE 行骨板俄罗斯鲟、FIVE 长鳃裂姥鲨 ⑤单一主体+简单背景(石板/黑天鹅绒/碎冰/泥滩/南极卵石/巢洞口/显微视野) ⑥字数 110-146 词全在 80-150 区间 ⑦无微生物条目,但微型节肢(赤眼蜂0.5mm/书虱1mm/蚜虫/粉虱/客蚤/人虱/瘿蚊/果蝇)统一走 antique microscope field-of-view plate+倍数放大构图,宏观动植物走标本静物构图
+- 构建 tmp-out/e30-build-b2.py(Python dict→json.dump 保证键与输入 latinName 逐字符一致并保留输入顺序),内嵌九项自校验:键集覆盖 132/132 无缺无多、字数区间、antique/vintage 开头、结尾句、NOT 锚点存在、JSON 合法;再独立跑正则复核:中文仅出现在 "(中文名)" 括号内零散落、无未转义引号、括号配平、与既有 75 条 SPECIFIC_PROMPT 及 batch-1/3/4 物种键集零重叠(四批 526 种互不冲突)
+- Read 工具抽查 5 条(冈比亚按蚊/霍氏角鮟鱇/斑头鸺鹠/松毛虫赤眼蜂/蜜獾)+ 全文件抽样(甜菜/荔枝/海蜇/震旦鸦雀/旋木雀等)确认格式与方法论合规;修正 2 处:Pantala 尾刺误植中文字符、湖北钉螺螺层 5-7→5-8 对齐 morphology
+- 产出:/home/z/my-project/tmp-out/e30-out-batch-2.json(132 条 {"latinName":"英文 prompt"});构建脚本留存 tmp-out;DB 只读未动、未碰 UI/git
+
+Stage Summary:
+- 完成 132/132 物种专属 SPECIFIC_PROMPT,键与输入 latinName 逐字符一致(含输入顺序),零遗漏零多余,九项自校验+独立正则复核全过,字数 110-146 词(均值 129)
+- 方法论五要素(风格锚定/物体类比/NOT 锚点/计数前置/单一主体)100% 覆盖;微型节肢走显微视野、宏观动植物走标本静物的分流与既有 75 条锚点体系风格完全一致
+- 保守处理清单(特征存疑或过细而省略/弱化):Amphiprion ocellaris 背/臀鳍黑缘眼斑存疑(E29 复核候选)整条省略,锚点集中于橙身三条白环带;Danio rerio 纵纹 4-6 条区间不写精确数,只做"horizontal LENGTHWISE never vertical"方向锚;Harmonia axyridis 斑点 0-19 变异不锁数量并置黑化型第二标本;Pieris rapae 中室黑点写"one or two"区间;Cloeon dipterum 三尾丝按 morphology 照写;翘嘴鳜背鳍棘数不计数只写"long prickly crest";尼罗尖吻鲈与布氏朴丽鱼"十余枚硬棘"弱化为两段鳍结构/"a dozen-plus";Musa acuminata 浆果内黑种子省略、假茎高度弃数值;体量数字(沙漠蝗60-75mm/海蜇伞径/船蛸壳径/王企鹅90cm/长爪沙鼠体重)一律弃用改物体类比表现;湖北钉螺螺层取 5-8 区间;十字园蛛三爪与纺器弃;大杜鹃赤褐型、雨燕雏鸟、黑化王企鹅幼鸟等非主要识别型不入图
+- 交棒:main 可将本批映射按 generate-images.ts 既有 SPECIFIC_PROMPT 格式合入(锚点优先级高于 featureHints 拼装);与 E30-p1/p3/p4 四批共 526 条可一次性合并
+
+---
+Task ID: E30-p3
+Agent: general-purpose
+Task: 缺图物种专属图像生成 prompt 编写批次3(物种132)
+
+Work Log:
+- 读 worklog 尾部(E29/E30/E30-p1 段)掌握 SPECIFIC_PROMPT 五代方法论;读 generate-images.ts 既有 SPECIFIC_PROMPT 锚点(血吸虫橡胶软管/文昌鱼磨砂玻璃/百岁兰双皮带)确认文风密度基准与锚点优先级机制
+- 解析 /tmp/e30-batch-3.json:132 物种(脊椎 16+植物 27+棘皮 22+扁形/寄生蠕虫海绵蛭沙蚕 23+甲壳 12+蛛形螨 12+软体 20),morphology(60-110字)为唯一事实源逐条编写英文专属 prompt
+- 【方法论执行】①风格锚定:全部以 antique/vintage 自然史版画开头、统一 "ink stippling, no text no letters no labels" 收尾 ②物体类比 132/132:伶鼬=天鹅绒手套指、貉=给了腿的熊皮地毯、虎斑颈槽蛇=翠绿浇水软管、莽山原矛头蝮=缠青铜丝网船缆、鼋=泄气灰褐革沙袋、火蝾螈=泼黄漆焦木、甘蔗=巨型绿蜡烛、狗尾草=绿猫尾刷、薏苟=瓷泪珠念珠、杏黄兜兰=软革零钱包、天麻=去皮木棒、面包海星=五瓣大面包卷、蓝指海星=蓝黏土圆柱、梅花参=侧卧大菠萝、藤壶=灰白火山锥、帝王蝎=黑漆雕像配红棕拳击手套、虎斑宝贝=瓷蛋、唐冠螺=象牙王冠、缢蛏=剃刀柄、大珠母贝=叠瓦屋顶耳+金唇、海地瓜=粉薯/香肠等 ③NOT 锚点 132/132(每条 absolutely NO 列最易误入的相邻类群):貉→NO ring-striped raccoon tail(防画成浣熊)、鬃狮蜥→NO sail-fin、海燕→NO bird NO wings(中文名字面化风险)、棘冠海星→NO exactly five arms、牛带绦虫→NO crown of hooks(别于猪带绦虫)、美洲板口线虫→NO hook teeth(别于十二指肠钩虫)、阿文绶贝→NO real letters(防行云纹被字面画成文字)、绿刺参→NO round worm shape、散大蜗牛→NO operculum(别于环棱螺)等 ④计数前置大写/exactly:乌龟 THREE 纵棱+前肢五爪后肢四爪、四爪陆龟每足 FOUR 爪、火蝾螈前肢四趾后肢五趾、海地瓜 FIFTEEN 枚盾触手、玉足/黑乳/绿刺参 TWENTY 枚楯触手、宽体金线蛭 FIVE PAIRS 眼点、日本医蛭 THREE 枚锯齿颚、虎斑颈槽蛇颈部 TWO 腺、棘冠海星 ELEVEN 乃至 TWENTY 腕、杂色鲍 SEVEN-NINE 呼水孔、远海梭子蟹 FOUR 额刺/红星梭子蟹 THREE 血斑/锈斑蟳 SIX 额齿/拟穴青蟹额缘 FOUR 圆叶、帝王蝎 SMALL 毒刺、织锦芋螺 THREE 道横带+LOW 螺塔、铜锈环棱螺六至七层、三突花蛛 FIRST TWO PAIRS 步足横展、人疥螨前两对长柄吸盘+后两对长鬃、二斑叶螨每侧 exactly ONE 大暗斑、智利小植绥螨 fourteen pairs 背毛 ⑤单一主体+简单背景(石板/黑天鹅绒/解剖盘/冰面/瓷皿/透镜圆场);群体性生物(两种藤壶/正颤蚓/二斑叶螨与尘螨)以 cluster/tangle/colony 居中 ⑥字数 92-118 词全落 80-150 区间 ⑦构图分流:antique microscope field-of-view plate 13 条(涡虫3+微小膜壳绦虫+根结/茎线虫2+正颤蚓+桡足2+螨4),寄生吸虫与大型绦虫/钩虫 10 条走寄生学器皿静物(沿用血吸虫橡胶软管范例),海绵 3 条与全部宏观动植物 109 条走标本静物 ⑧体长体重壳径数值一律转体型类比词(no longer than a hand / as long as a forearm / nearly as wide as a dinner plate)防标尺失真
+- 分 7 个 part 文件编写(16/27/22/23/12/12/20 条),python 合并+九项自校验:键集与输入 latinName 逐字符比对(含 Fragaria × ananassa 的 U+00D7 乘号)、字数区间、antique/vintage 开头、结尾句、ink stippling 存在、absolutely NO 存在、无 CJK 字符、无重复键、JSON 合法——一次全过零返工;唯一手补为糙海参触手"约二十"模糊化为 twenty-or-so 后重跑仍全绿
+- Read/Grep 抽查终稿 10 条(伶鼬/貉/甘蓝/萝卜/二斑叶螨/散大蜗牛/根结线虫/茎线虫/Sarcoptes/Conus textile,另 Fragaria 键专项核对)确认格式与方法论合规
+- 产出:/home/z/my-project/tmp-out/e30-out-batch-3.json(132 条 {"latinName":"英文 prompt"} 有序映射);7 个 part 文件与 e30-p3-merge.py 留存 tmp-out 备查;DB 只读未动、未碰 UI/git
+
+Stage Summary:
+- 完成 132/132 物种专属 SPECIFIC_PROMPT,键与输入 latinName 逐字符一致(含 Fragaria × ananassa 乘号),零遗漏零多余零重复,九项自校验全过,字数 92-118 词
+- 方法论五要素(风格锚定/物体类比/NOT 锚点/计数前置/单一主体)100% 覆盖;构图分流落地:显微视野 13 条、寄生器皿静物 10 条、宏观标本静物 109 条
+- 保守处理清单(特征存疑或过细而省略/弱化):①Calanus 触角"约25节"弃(E29-b2 既定存疑项),仅保留触角长过体 ②Schmidtea mediterranea 原文「无耳突/半透明乳白」存疑,照录淡化处理,不加 NO ear flaps 锚点 ③糙海参"约二十枚"触手→twenty-or-so;玉足/黑乳/绿刺参"二十枚"为确定计数保留 ④日本海羊齿"腕数十条"不写精确数 ⑤体长壳径体重数值全部转体型词(鼋 1-1.3m/梅花参 1m/法螺半米/大珠母贝 30cm/帝王蝎 12-18cm 等) ⑥牛带绦虫 4-8m/孕节 15-30 侧枝、阔节裂头绦虫 3000+ 节片等大数弃,留"satin band/数百节宽砖链" ⑦远海梭子蟹仅取雄体蓝紫白斑(雌体青灰紫斑不入单一主体) ⑧杏黄兜兰花径与叶背紫斑(E29-b4 既定存疑)不写,仅取单花+兜囊 ⑨拟穴青蟹"约九齿"保留 about nine 措辞、四爪陆龟前四后四爪为确定计数强化 ⑩细粒/多房棘球绦虫按原文 3-4/3-5 节片区间呈现不作单值
+- 交棒:main 可将本批映射按 generate-images.ts 既有 SPECIFIC_PROMPT 字面格式合入(锚点优先级高于 featureHints 拼装,与 E30-p1/p2 批次合并时注意 latinName 撞键检查)
+
+---
+Task ID: E30-p4
+Agent: general-purpose
+Task: 缺图物种 SPECIFIC_PROMPT 编写批次4(130种)
+
+Work Log:
+- 读 worklog 尾部掌握 SPECIFIC_PROMPT 五代方法论(E6 教训锚点→E13 海藻压制标本→E27 五代锚点);读 /tmp/e30-batch-4.json:130 缺图物种,morphology 已扩写 60-110 字为主要事实源,habitat 仅作构图线索
+- 覆盖类群:蛸/乌贼/鱿头足类 14、鹅膏与高等真菌 13(含桑黄 2/桦褐孔菌/硫磺菌/拟层孔菌)、地衣 3+黏菌 1、苔藓 2+苔类 1、蕨类与水生蕨 8、深海鱼 6、鳄/巨蜥/守宫/变色龙 6、鳍足与鲸豚 7、灵长 4、两栖 2、大型兽 23、多毛环节 9、蜘蛛 6、等足 6、十足 8、兰科 7、菜豆族 5+紫荆、合欢
+- 方法论五要素全量执行:①130/130 以 antique/vintage 自然史版画开头,结尾固定 ink stippling/copperplate 变体 + no text no letters no labels ②每条含日常静物类比(橡皮软管/鹅卵靠枕滚边/律师假发滴墨/羽毛掸/糕点裱花管龙介虫管/炒蛋黏菌/大理石纹书皮缨鳃虫鳃冠/烫金刻花皮革桑黄孔面/钢琴键斑马/蜡封漆滴赤豆……)③NOT 锚点对准最易误画相邻类群:豹斑鹅膏等 3 鹅膏全部 NOT red fly agaric、白鲸 NO dorsal fin、双斑蛸 NO scattered electric-blue rings(防蓝环章鱼化)、皱鳃鲨 NO five gill slits、白头叶猴 NO golden adult fur、长踦幽灵蛛 NO one-piece harvestman body 等 ④鉴别计数前置大写:九带犰狳 EXACTLY NINE bands、鳞沙蚕 EXACTLY TWELVE PAIRS、多鳞虫 FIFTEEN PAIRS、黄道蟹 EXACTLY NINE blunt lobes、日本蟳 SIX+ SIX、萤火乌贼 THIRD AND FOURTH ARMS 黑色发光器珠、普通乌贼 FOUR ROWS 腕吸盘与 W-SHAPED PUPIL ⑤单一主体+简单背景(石板/黑天鹅绒/碎冰盘/解剖盘/瓷盘沙床/苔藓岩壁)
+- 构图分流:宏观动植物标本静物;微生物仅 Fuligo septica 一条,因其复囊体数厘米肉眼可见按宏观静物处理(腐木"炒蛋"+NO mushroom 锚点,偏离显微视野规则已在此注明);Cymothoa exigua 改"瓷盘单标本"构图规避鱼舌寄生的血腥画面;Spirula 双主体(活体+剥离内壳)是鉴别特性故保留
+- 风格决策:prompt 文本不内嵌拉丁/中文名(沿用 E30-p1 批次与任务范例的纯物体描述风格,键名即关联,规避分类词触发"典型形态"先验)
+- 自校验三轮(python):①键与输入 latinName 逐字符一致 130/130,零缺漏零多余零重复 ②全部 antique/vintage 开头、no text no letters no labels 结尾、每条含 absolutely NO/NOT 锚点与 ink stippling/copperplate 风格词、每条含 like 物体类比 ③字数 101-140 词/条∈[80,150],均值 117;产出 /home/z/my-project/tmp-out/e30-out-batch-4.json(94KB),由 4 个 part 文件合并;Read 工具抽查 12 条(乌贼/鹅膏/沙蠋/缨鳃虫/龙介虫/桑黄/合欢等)格式合规
+- 保守处理清单(存疑特征省略/弱化):①Watasenia 眼柄发光器枚数(原文无值)只写 small blue points beneath each eye ②座头鲸尾鳍腹面黑白个体差异不指定 ③Giraffa camelopardalis 斑纹照 morphology 网状多边形描写(网纹型现属 G. reticulata,不写亚种归属) ④体重体长数值全部转体型词(湾鳄 6m/狮 200kg/河马 3t 等仅 immense/tonne 级) ⑤豹与美洲豹黑化个体不画(防黑豹混淆) ⑥Idotea balthica 雄体较窄/第二触角鞭状弱化,体色多变取绿褐+红纹一例 ⑦Cymothoa 雄虫(小、浅黄黑斑)不入图 ⑧Marsupenaeus 横斑写 about TEN(原文"十余道") ⑨细痣疣螈侧瘰疣按原文"两列"写每侧一列 orange knobby warts,不扩列数 ⑩合欢小叶"昼开夜合"、满江红秋红按静态一例呈现;⑪Spirula 壳长 2cm、Sabella 鳃丝"数十枚"不写精确数
+- 未动 DB/git/UI;产出仅 tmp-out/e30-b4-part-1~4.json、e30-out-batch-4.json 与本 worklog 段
+
+Stage Summary:
+- 完成 130/130 物种专属 SPECIFIC_PROMPT,键与输入 latinName 逐字符一致,零遗漏零多余零重复,风格/锚点/类比/字数自校验全过(101-140 词,均值 117)
+- 方法论五要素 100% 覆盖;构图分流:宏观标本静物 129 条 + Fuligo 宏观化特例 1 条(已注明);Cymothoa 瓷盘单标本规避血腥
+- 交棒:main 合入 generate-images.ts SPECIFIC_PROMPT 时与 E30-p1/p2/p3 批次注意 latinName 撞键检查(本批含 14 头足类与 13 真菌硬骨头,均为 VLM 高拦截类群,专属锚点优先)
+
+---
+Task ID: E30-p4(重发复核)
+Agent: general-purpose
+Task: E30-p4 重发——上次会话产出与 worklog 记录均已落盘,疑似仅终报因网络超时丢失;按开工指令执行"已存在且校验合格则复用并补齐记录"路径,不重做
+
+Work Log:
+- 【盘点】/home/z/my-project/tmp-out/e30-out-batch-4.json 已存在(94.8KB,与 4 个 part 文件同批落盘),worklog 已含完整 E30-p4 段(含保守处理清单与交棒说明);判定为"完成但终报丢失"型重发
+- 【全量复核 python】①键与 /tmp/e30-batch-4.json 的 130 个 latinName 逐字符一致(含输入顺序),零缺漏零多余零重复 ②字数 101-140 词/条全落 [80,150],均值 117 ③全部 antique/vintage 开头、no text no letters no labels 收尾、含 absolutely NOT 锚点、含 ink stippling/copperplate 风格词 ④无 CJK 字符——九项全绿
+- 【跨批撞键检查】与 e30-out-batch-1/2/3 键集交集为零(四批 526 条互不冲突)
+- 【抽查升级为事实对账】Read/Grep 抽 9 条(Octopus minor/Octopus bimaculoides/Amanita pantherina/Azolla imbricata/Giraffa camelopardalis/Sabella spallanzanii/Sepia pharaonis/Varanus salvator/Orcinus orca)逐条与输入 morphology 对照:虎斑乌贼 W 形瞳孔+八腕四行吸盘+环胴窄鳍带+虎纹横带、豹斑鹅膏棕盖白疣+环领菌托+NOT red fly agaric、长颈鹿网状多边形斑+紫黑舌+前肢长于后肢、虎鲸眼后白斑+灰鞍斑+立剑状背鳍+无喙、缨鳃虫双扇橙紫鳃冠+泥沙革管、满江红覆瓦小三角+悬根+秋红渐变——全部吻合零失真;类比复核:like/X-shaped/resembling 构式覆盖全量(部分条目以 "like polished chestnut leather"/"shuttlecock clump" 等变体呈现,此前宽正则漏计为假阴性)
+- 【计数前置覆盖度】120/130 条含大写计数/测量强调词;未含计数的 10 条均为地衣/蕨类/兰科/真菌等无数可计类群(宁缺毋滥,与保守原则一致)
+- 产出零改动原样复用;未动 DB/git/UI
+
+Stage Summary:
+- E30-p4 终态确认:130/130 专属 SPECIFIC_PROMPT 复核合格(键精确一致/字数 101-140 均值 117/五要素全覆盖/跨批零撞键/抽查 9 条事实对账零失真),产出文件与上次会话 worklog 记录齐备,本次重发仅补充复核记录
+- 交棒不变:main 将四批 526 条(p1 132+p2 132+p3 132+p4 130)合并入 generate-images.ts SPECIFIC_PROMPT,注意与既有 75 条锚点的 latinName 撞键检查,锚点优先级高于 featureHints 拼装;本批 14 头足类与 13 真菌为 VLM 高拦截类群,专属锚点优先生成
