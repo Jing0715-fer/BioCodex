@@ -214,11 +214,16 @@ const SPECIFIC_PROMPT: Record<string, string> = {
     "antique zoological plate: ONE greater horseshoe bat hanging upside-down from a cave beam with wings folded about its body like a closed umbrella, its face dominated by the elaborate HORSESHOE NOSELEAF — a wide U-shaped fleshy flap around the nostrils like a tiny horseshoe magnet glued to the face, above it a pointed lance rising between the eyes, the ears large cupped and pointed with no tragus, fur fine and rusty-red-brown, tiny bright black eyes, the wing membranes thin and translucent with visible finger bones, absolutely NO simple flat face NO plain nose, ink stippling, no text no letters no labels",
 };
 
-/** 从中文形态/描述档案提炼关键鉴别特征注入 prompt(防止张冠李戴) */
-function featureHints(morphology?: string | null, description?: string | null): string {
-  const src = [morphology, description].filter(Boolean).join(" ");
-  if (!src) return "";
-  return ` The true diagnostic morphology (MUST depict accurately, from species profile): ${src.replace(/\s+/g, " ").slice(0, 110)}`;
+/** E29-c:从中文档案提炼关键鉴别特征注入 prompt(防止张冠李戴)。
+ * 档案扩写后 morphology 已达 60-110 字,全量注入(截断 240 保安全);
+ * habitat 提供生境构图线索(水底/沙掘/寄生宿主等),description 补兑底。 */
+function featureHints(morphology?: string | null, description?: string | null, habitat?: string | null): string {
+  const parts: string[] = [];
+  if (morphology) parts.push(`TRUE morphology of this species (count fins/limbs/segments accurately, match colors and shapes exactly): ${morphology.replace(/\s+/g, " ").slice(0, 240)}`);
+  if (description) parts.push(`species profile summary: ${description.replace(/\s+/g, " ").slice(0, 120)}`);
+  if (habitat) parts.push(`natural habitat for composition (underwater / on host / in soil etc.): ${habitat.replace(/\s+/g, " ").slice(0, 80)}`);
+  if (!parts.length) return "";
+  return ` MANDATORY accuracy anchors from the scientific profile: ${parts.join(" | ")}`;
 }
 
 async function getKingdoms(): Promise<Map<string, string>> {
@@ -257,7 +262,7 @@ function parseVerdict(raw: string): { ok: boolean; reason: string } | null {
 
 type Task = {
   id: string; latinName: string; chineseName: string;
-  morphology?: string | null; description?: string | null;
+  morphology?: string | null; description?: string | null; habitat?: string | null;
   file: string; exists: boolean;
 };
 
@@ -278,7 +283,7 @@ async function main() {
   const species = await db.taxon.findMany({
     where,
     orderBy: { sortOrder: "asc" },
-    select: { id: true, latinName: true, chineseName: true, morphology: true, description: true },
+    select: { id: true, latinName: true, chineseName: true, morphology: true, description: true, habitat: true },
   });
 
   // 断点续跑:已处理(accepted|rejected)物种跳过
@@ -376,6 +381,8 @@ async function main() {
       const style = KINGDOM_STYLE[kingdom] || KINGDOM_STYLE.Animalia;
       // E10:疑难旗舰物种优先使用逐种定制 prompt(两轮通用模板未过审的硬骨头)
       const basePrompt = SPECIFIC_PROMPT[t.latinName] || style(t.chineseName, t.latinName);
+      // E29-c:全量档案锚点拼装(形态 240 字 + 生境 80 字 + 描述兑底)
+      const anchoredPrompt = basePrompt + featureHints(t.morphology, t.description, t.habitat);
 
       // 0) 磁盘已有未入库文件:先审计旧文件(未经闸门的历史遗留)
       let acceptedThis = false, lastReason = "";
@@ -400,7 +407,7 @@ async function main() {
       let filteredOut = false;  // E10:内容过滤终态失败
       while (!acceptedThis && !AUDIT_ONLY && !stopAll && attempts < MAX_RETRY) {
         attempts++;
-        const gres = await generate(basePrompt + featureHints(t.morphology, t.description), t.file);
+        const gres = await generate(anchoredPrompt, t.file);
         if (gres !== "ok") {
           if (stopAll || gres === "ratelimited") return; // 熔断:不记录,物种留待下轮窗口
           if (gres === "filtered") { filteredOut = true; lastReason = "内容过滤拒绘"; }

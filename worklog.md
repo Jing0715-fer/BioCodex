@@ -2138,3 +2138,111 @@ Stage Summary(当前项目状态):
   1. P0:窗口续收割(全量批进行中)+战果推送
   2. P1:audit-images-vlm 全量复审 290+ 张(opportunistic 渐进复审已联动)
   3. P2:expansion9 候选(菊科 Asteraceae 深扩/禾本科 Poaceae 深扩/伞菌目 Agaricales 食用菌)
+
+---
+Task ID: E29-b3
+Agent: general-purpose
+Task: 档案扩写批次3(物种173)
+
+Work Log:
+- 【接手】读 worklog E28 段了解项目背景(861 物种/复古博物学 AI 插图/缺图物种 morphology 将注入图像生成 prompt);解析 /tmp/e29-batch3.json:173 物种、195 个待扩字段(morphology 143 其中 noimg 140、有图 3;habitat 24;distribution 28)
+- 【扩写策略】noimg morphology 扩至 60-110 字、有图 25-45 字、habitat/distribution 25-50 字;保留原全部事实点(数字类事实逐条核对 100% 保留),按类群补可视化形态学:体型/体色/体表结构/特化器官/附肢数目/雌雄差异/幼体特征
+- 【事实自核】对易错点主动保守化:河流弧菌删去 TCBS 绿菌落(蔗糖发酵性状记载不一)改为嗜盐兼性厌氧等稳妥描述;耐辐射球菌「花岗岩深部」降格为「花岗岩碎屑」;美洲板口线虫弃阴门位置等不确定细节;Calanus 触角25节/海胆约20余条放射肋等取文献常引值并留余量;阿德利企鹅「喙红褐」等存疑原始事实按规则原样保留不引入新矛盾
+- 【写入与自校验】Write 工具受 /home/z 目录限制,先写项目内临时文件再 cp 至 /tmp/e29-out-batch3.json;python3 全量校验:物种 173/173 对齐、fields_to_expand 集合完全一致(未多扩少扩)、字数首检 2 项不达标(恶臭假单胞菌 59、红带织纹螺 54)→ 补触酶阳性/体螺层特征后复检 195/195 达标(morphology noimg 60-110、有图 25-45、habitat/distribution 25-50 全在区间);数字 token 保真校验 0 缺失;higher 空占位;未动 UI/未 git/DB 只读
+
+Stage Summary:
+- 交付 /tmp/e29-out-batch3.json:173 物种 195 字段(morphology 143[noimg 140/有图 3]+habitat 24+distribution 28),字数达标率 100%(195/195)
+- 图像生成弹药增强:140 缺图物种 morphology 全部进入 60-110 字区间,颜色/形状/结构/数量等可视化特征优先
+- 保守处理物种(拿不准处从简):河流弧菌(TCBS 菌落色弃写)、耐辐射球菌(花岗岩生境降格)、美洲板口线虫(弃阴门位置)、阿德利企鹅(存疑原事实原样保留)、Calanus finmarchicus(触角节数取常引值)
+
+---
+Task ID: E29-b2
+Agent: general-purpose
+Task: 档案扩写批次2(物种173)
+
+Work Log:
+- 读取 worklog 尾部 E28 段与 /tmp/e29-batch2.json(173 物种/193 待扩字段:morphology 143[其中 noimg 140→60-110字,有图 3→25-45字]、habitat 20、distribution 30),导出现有字段全文以逐条保留原事实点
+- 基于真实形态学逐条扩写:可视化特征优先(尺寸/体色色纹/体表结构/特化器官/附肢计数/雌雄差异),补入类群专属鉴别细节(如鲎的书鳃与尾剑翻正、医蛭三枚锯齿颚、鼓虾眼被头胸甲覆盖、黄道蟹九枚缘齿饼皮褶边、豹斑鹅膏盖缘无条纹、金琥顶部绵毛丛开花、金枪鱼小鳍列、鸺鹠后颈假眼、小熊猫尾环与假拇指、企鹅灯鱼发光器串珠等);不确定细节宁缺毋滥(删去 Calanus 触角节数、Arenicola 鳃对数、Watasenia 腕端发光器枚数等无法确证计数)
+- 3 处事实保守处理:Schmidtea mediterranea 原文「无耳突」与「半透明乳白」存疑(该种通常具耳突、野生型褐色),扩写时保留原文描述但不再强化该特征;Amphiprion ocellaris 原文「背/臀鳍眼斑」照录但标记待核;Meretrix 检索字数超标 1 字修剪(51→48)
+- Write 工具受限于 /home/z 之外路径,先写 /home/z/.e29tmp/e29-out-batch2.json 再 cp 至 /tmp/e29-out-batch2.json
+- python3 自校验三轮:①字段覆盖 193/193、无多余物种/字段、JSON 合法 ②字数分段全过(noimg morphology 60-95[区间60-110]、有图 morphology 36-40[25-45]、habitat 34-45[25-50]、distribution 32-50[25-50]) ③原文字数字与关键词保留启发式扫描,首轮揪出 3 处遗漏(杂色鲍 8 厘米/石韦 10-25 厘米/灰大袋鼠 60-90 公斤),回补后零警告
+- DB 只读未动;未碰 UI/git;产出仅 /tmp/e29-out-batch2.json 与 worklog 本段
+
+Stage Summary:
+- 扩写字段 193/193(物种 173;含双字段物种 19 个),字数达标率 100%;原事实点全保留,数字/测量值启发式校验零丢失
+- 产出:/tmp/e29-out-batch2.json(格式 {"species":{...},"higher":{}},仅含本批实际扩写字段)
+- 保守处理清单:Schmidtea mediterranea(耳突/体色存疑,照录原文不再强化)、Amphiprion ocellaris(眼斑描述照录待核)、若干计数细节主动舍弃(Calanus 触角节/Arenicola 鳃对/Watasenia 发光器枚数)
+
+---
+Task ID: E29-b2
+Agent: general-purpose
+Task: 档案扩写批次2重试(物种173)
+
+Work Log:
+- 【重试确认】发现 worklog 尾部已有前次 E29-b2 段落,而 /tmp/e29-out-batch2.json 需重产;按重试流程重新基于 /tmp/e29-batch2.json(173 物种/193 待扩字段:morphology 143[noimg 140→60-110 字,有图 3→25-45 字]、habitat 20、distribution 30)完整重做
+- 【上下文】以只读方式核对 db/custom.db Taxon 表(2614 条),确认批次 cur 字段与库内一致、173 物种全部在库;导出 description/morphology/habitat/distribution 全文作为扩写底稿
+- 【扩写】逐物种按真实形态学重写:保留原全部事实点并补可视化特征——尺寸/体色色纹/体表结构/特化器官/附肢数目/雌雄差异/幼体特征(如蛔虫三唇瓣与交合刺、竹叶青颊窝、鲎交配钩与六对侧刺、美洲鲎雌大于雄、雨燕嘴裂、石鸡黑项圈、貉面罩纹、河狸梳爪、猎豹尾白尖、豹斑鹅膏盖缘无条纹、普通乌贼W形瞳孔、萤乌贼黑色发光器、鼋吻突不及眼径之半等)
+- 【保守处理】拿不准处宁缺毋滥:删参环毛蚓体节精确计数、Calanus 腹部节数、Watasenia 眼柄发光器枚数、Arenicola 鳃对数、Asterias 北美西海岸存疑记录仅照录原文不深化;虎皮鹦鹉原文「喉部小紫斑」按实际颊部紫斑+喉部黑点重述;美国白蛾「部分雌虫前翅黑点」改为「部分个体」回避存疑性别归属;Amphiprion 眼斑、Schmidtea「无耳突」两处原文存疑描述照录不强化
+- 【五处事实修正】初稿自审后修正:Nitrosopumilus 分离地「西雅图近海」→「西雅图海水水族箱」;普氏立克次体「非洲中东与东部」→「非洲中东部」;尼罗尖吻鲈「前部十余枚硬棘」→「前为硬棘后为软条」;鼋「鳖科体型之最」→「最大者之一」;杂色鲍呼水孔位置改「沿壳缘一列排列」
+- 【产出与自校验】构建脚本 scripts/e29-build-b2.py 直接生成 /tmp/e29-out-batch2.json;独立校验脚本复核:①结构 {"species","higher"},higher 空占位 ②fields_to_expand 集合完全对齐、无多扩少扩 ③字数 193/193 全达标(morphology noimg 60-88[区间60-110]、有图 37-40[25-45]、habitat 31-43[25-50]、distribution 34-48[25-50]) ④原字段数字 token 保真校验零缺失 ⑤全部以。收尾、半角逗号+顿号分号风格与现库一致
+- 未动 UI、未 git、DB 只读;产出仅 /tmp/e29-out-batch2.json、scripts/e29-build-b2.py 与本 worklog 段
+
+Stage Summary:
+- 扩写字段 193/193(物种 173;morphology 143[noimg 140/有图 3]+habitat 20+distribution 30),字数达标率 100%
+- 140 个缺图物种 morphology 全部进入 60-110 字,颜色/形状/结构/数量等可视化特征密度显著提升,直接服务 AI 插图 prompt 的鉴别特征注入
+- 保守处理清单:参环毛蚓/Calanus/Watasenia/Arenicola(计数细节弃写)、Asterias 北美西海岸(照录不深化)、虎皮鹦鹉与美国白蛾(存疑描述重述回避)、Amphiprion 眼斑与 Schmidtea 无耳突(原文存疑照录不强化)
+---
+Task ID: E29-b1
+Agent: general-purpose
+Task: 档案扩写批次1-物种部分(173种)
+
+Work Log:
+- 读取 /tmp/e29-batch1.json,统计需求:morphology 142(noimg=true 140 需60-110字;noimg=false 2 需25-45字)、habitat 22、distribution 34,合计 198 字段
+- 逐种撰写扩写文本:保留原全部事实点,补充可视化形态学细节(体型/体色/体表结构/特化器官/附肢/雌雄与幼体差异);微生物与寄生虫补可观察的菌落/孢子/附器特征;habitat/distribution 补生境与地理要点
+- 编写 /home/z/my-project/tmp-out/e29-build.py 构建输出(/tmp/e29-out-batch1.json),内嵌字数区间断言;编写 e29-verify.py 独立校验(结构/字数/结尾/关键词保留率)
+- 关键词校验发现 9 处事实点遗漏(谷氨酸棒杆菌菌酸、可可果荚大、大棕蝠吻粗钝、伶鼬体细长、火蝾螈背腺、甘蔗秆粗壮、北海狮体粗壮、食蟹猴颊须短、欧鳗背臀鳍相连),已逐条修订并复检通过
+- 保守处理:人疥螨足端吸盘归属按性别更正(原cur将雄性特征误系于雌螨);朱砂叶螨不写滞育型体色(与二斑叶螨分类存疑);地纹芋螺分布不提红海;三疣梭子蟹不扩至南海;不确定量度(荔枝小叶对数等)宁缺毋滥
+- 终检:173/173 物种、198/198 字段全部达标(morphology noimg 60-110、有图 25-45;habitat/distribution 25-50)
+
+Stage Summary:
+- 扩写字段 198/198(morphology 142、habitat 22、distribution 34),覆盖物种 173/173,达标率 100%
+- 产出:/tmp/e29-out-batch1.json(species 173 条,higher 留空待 main)
+---
+Task ID: E29-b4
+Agent: general-purpose
+Task: 档案扩写批次4(物种172)
+
+Work Log:
+- 读取 /tmp/e29-batch4.json：172 物种，195 个待扩字段（morphology 143 / distribution 31 / habitat 21；noimg:true 140 种）
+- 逐种核对 cur 现值与描述字段，按类群补充可视化形态学细节（体色斑纹、结构、数量、附肢、雌雄差异等），保留原有全部事实点
+- Write 写出 /home/z/my-project/tmp-out-b4.json（Write 工具不能直写 /tmp），bash cp 至 /tmp/e29-out-batch4.json，格式 {"species":{...},"higher":{}}
+- python3 自校验：195/195 字段全部达标（morphology noimg 61-91 字∈[60,110]；有图 morphology 33-39∈[25,45]；habitat 32-45∈[25,50]；distribution 31-47∈[25,50]）；无缺漏、无多余字段、无 ASCII 标点；关键事实点抽查 16 种全部保留
+- 事实存疑处保守处理：拟暗果蝇"雄虫前足跗节无性梳"未沿用（该种雄虫应具性梳，改用腹末浓黑与外生殖器差异）；短蛸腕长比例、杏黄兜兰花径/叶背紫斑、灰林鸮喙色、长颈鹿中央额角等不确定细节省略或弱化；斑鬣狗咬合力沿用原文量级表述
+
+Stage Summary:
+- 扩写字段 195（morphology 143、distribution 31、habitat 21），覆盖物种 172/172，达标率 100%（无字段低于下限或高于上限）
+
+---
+Task ID: E29(用户指令轮:大类配图回填+字数阈值+prompt细化, 2026-09-19)
+Agent: main + general-purpose×4(E29-b1/b2/b3/b4)
+Task: 用户三项需求——①门纲目等大类配图用代表物种图回填 ②全阶元文字介绍字数阈值与补写 ③剩余缺图物种生成 prompt 全面细化
+
+Work Log:
+- 【E29-a 大类配图回填】新脚本 scripts/backfill-ancestor-images.ts:885 条高阶元(domain3/kingdom4/phylum45/class89/order193/family257/genus290/subphylum2/subclass2)从子树选代表物种(flagship>IUCN CR/EN> sortOrder 序位)复制 image+caption「代表物种:XXX 的复古博物学插图」;幂等只填 NULL;stats/gallery 只统计 species 不受污染(species 配图保持 297);agent-browser 验证多孔菌目/鸟纲详情页 hero 图生效、放大按钮可用
+- 【E29-b 字数阈值审计+全库扩写】审计基线:高阶元<30字 52 条+species 短字段 221(morphology11/habitat87/distribution123)+缺图种 morphology<60 共 560 种(扩写即 prompt 弹药,一箭双雕);4 个并行子代理交错分片扩写(b1 198 字段/b2 193/b3 195/b4 195,b1 首两轮网络超时拆分重试成功),main 自写高阶元 52 条(74-105字,保留原事实+补类群共有形态/规模/演化地位);统一应用脚本 apply-e29-enrich.ts 字数门槛校验(morphology 缺图≥55/有图≥20、habitat/distribution≥25、高阶元≥35、新值必长于旧值);复审计全部清零:高阶元<30字 0、morphology<20 0、habitat<20 0、distribution<20 0、缺图种 morphology<60 0;扩写质量抽查(牛肝菌/侧柏/伟蜓/园蛛等)可视化特征密集,子代理保守处理清单记录于各自 worklog 段
+- 【E29-c prompt 引擎增强】generate-images.ts featureHints 重构:morphology 全量注入(截 240 字,原 110)+description 兑底(120)+habitat 生境构图线索(80,水底/宿主/土壤),MANDATORY accuracy anchors 句式;Task 类型/findMany/调用处同步加 habitat;SPECIFIC_PROMPT 74 条锚点优先级不变,专属锚点物种不受影响;守护每轮新进程自动用新引擎
+- 【战况】守护 E28 push 后续收 5 图(292→297);本轮窗口关(429),VLM 复审 opportunistic 12 张已完成
+- 【QA】lint exit 0;agent-browser:多孔菌目/鸟纲大类图渲染✓、鸟纲扩写 description 完整展示✓、console 零错误
+- 【推送】回填脚本+应用脚本+generate-images 引擎增强+DB(885 高阶元配图+743 条档案扩写)+worklog
+
+Stage Summary(当前项目状态):
+- 【稳定】861 物种/297 species 配图+885 高阶元代表图(全站图文覆盖率 1182/2614=45%)/48 门/100 旗舰/NCBI 800
+- 字数阈值全库达标:高阶元 description≥30 字 100%、species morphology≥20/habitat≥20/distribution≥20 100%、缺图种 morphology≥60 100%
+- 未解决/风险:
+  1. 564 物种缺图:档案弹药已备(60-110字 morphology 全量注入),窗口开启后新引擎首验效果待观察
+  2. 高阶元图为代表物种复用(非专属生成),caption 已标注;未来可选做门纲级拼图版画
+  3. 子代理保守清单中 Amphiprion 眼斑/Schmidtea 耳突两处原文存疑,列入全库事实复核候选
+- 下一阶段优先:
+  1. P0:窗口开启守护收割(新引擎弹药加持,重点观察此前 3 次拒审物种的通过率)
+  2. P1:VLM 全量复审 297 张+新图;全库事实复核(存疑描述清单)
+  3. P2:expansion9(菊科/禾本科/伞菌目);高阶元专属"类群拼图版画"(一图纳多物种的经典博物画形式)
