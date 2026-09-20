@@ -2426,3 +2426,21 @@ Stage Summary:
 - 偕老同穴已修复✓;中华鲎 v5 锚点+严格闸门已就位,守护待窗口重试(失败史 v2/v3/edit1 存档 rejected/)
 - 新方法论沉淀:①AUDIT_HINTS 细粒度严格闸门 ②NO_HINTS 档案毒源隔离 ③「先验压倒锚点」时换框架(标本图解)而非改词 ④否定词「粉红大象」反噬效应确认
 - 守护+dev server 双存活,断点/vlm-audit 状态已与 E31 基线对齐
+
+---
+Task ID: E31-final
+Agent: main(campaign session)
+Task: E31 收尾——中华鲎待窗口自动重试的状态交接与 v6 后备策略
+
+Work Log:
+- 窗口干旱:01:54 熔断后持续 CLOSED(02:30 仍关),生成/编辑/VLM 三端点共用账户级配额池,编辑端点实测同 429,无捷径
+- E31-b 追加:九物种锚点病灶修复(茅膏菜/猪笼草/芍药/郁金香/克氏锥虫/棘阿米巴/黄曲霉/尖孢镰刀菌/蛹虫草)+AUDIT_HINTS 扩至 11 物种,全部清除否决标记获重试资格,已推 54f1fdf
+- 断点终态:327 accepted + 0 rejected(今日否决 9 条已随锚点修复全部清零,待新锚点验证)
+
+Stage Summary:
+- 偕老同穴已修复✓(新图入库+E2E 验证+已推送);中华鲎 v5 机制就位待窗口(守护自动重试,无需人工干预)
+- 中华鲎 v6 后备策略(若 v5 失败,下个会话执行):放弃对抗「horseshoe crab」先验,改为顺着真实解剖学校准——
+  真实中华鲎头胸甲本就是适度圆拱(圆汤匙背弧度),腹甲本就有 6-7 个短三角尖棘;
+  v6 prompt 应直接要求「smooth dome like the back of a rounded teaspoon」+「three short triangular spines like small shark fins per side」,
+  即让生成结果落在真实形态区间内,而非要求不可能的「完全扁平+圆头蜡珠」;严格闸门已放宽至解剖学公平线,真实形态图必过
+- 守护存活(flock 单例,instrumentation 托管,断点/审计状态与 E31 对齐),窗口开启即自动:中华鲎 v5 → 9 修复物种 → 全量池 534
