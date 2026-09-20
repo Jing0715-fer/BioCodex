@@ -113,14 +113,23 @@ const SPECIFIC_PROMPT: Record<string, string> = {
     "antique botanical plate of a maize ear with corn smut (Ustilago maydis 玉米黑粉菌): a plump corn cob with husk leaves peeled back, several kernels swollen into large smooth glossy grey-white pods like river pebbles, one pod split open oozing a wet mass of dense sooty black spore powder, a few loose black spores drawn magnified beside the ear as tiny round spiked balls, autumn corn field behind, copperplate engraving with watercolor tinting on aged parchment, no text no letters no labels",
   // —— 肢口纲剑尾目 E27 五代锚点:用户报告图不对,VLM 诊断真实图后重制 ——
   // v1 失因:helmet 类比诱导背甲卷曲;"eyes" 诱导脊椎动物大眼;腹部比例过小;三段拼接感
-  // v2 锚点:半圆盘盾类比(防卷曲)+ 极小黑珠眼(防大眼)+ 腹部等宽比例(防过小)+ 织针尾 + 一条平滑连续轮廓(防拼接)
+  // v2 失因(E31 用户报告):头胸甲仍过拱(半球形)+ 腹甲侧缘画成密集长尖刺(应为每侧 3 个短棘)
+  // v3 七代/v4 八代失因(E31 严格复审×5):「horseshoe crab」先验压倒一切文本锚——模型的视觉
+  //   记忆就是拱背+刺缘;钢琴键/封蜡珠类比、比例硬约束、纯正向描述均无法覆盖强先验
+  // v5 九代锚点(E31):换框架——「压平标本/教科书背视图技术图解」是最强压平先验(技术图必扁平)+
+  //   三段式直线布局 + 棘刺仅要求「稀疏短小」(解剖学公平线:真实每侧3短棘略尖非圆头)
   "Tachypleus tridentatus":
-    "vintage natural history plate of a Chinese horseshoe crab Tachypleus tridentatus (中华鲎) seen from directly above on wet estuary sand, NOT a crab NOT a scorpion NOT a mammal — no pincers no fur no face: its body is one continuous smooth hard outline made of three parts in a straight line, first the largest part is a wide polished half-moon disk of glossy brown chitin like a solid horseshoe magnet seen flat, its front edge a gentle even curve and its rear edge perfectly straight, with two tiny dark glass beads sitting flush on the rim near the front corners, second attached directly behind it a hexagon plate nearly as wide as the half-moon disk carrying six short blunt spikes evenly spaced along its side edges, third from the hexagon tip one single long thin straight spike like a polished knitting needle lying flat on the sand pointing straight away, about half the body length, the three parts form one unbroken silhouette like a single piece of carved armor, shallow water ripple at the edge, copperplate engraving with watercolor tinting on aged parchment, no text no letters no labels",
+    "vintage biology textbook plate, dorsal-view technical illustration of a Chinese horseshoe crab Tachypleus tridentatus (中华鲎) drawn as a pressed-flat museum specimen lying level on wet estuary sand, the whole drawing reading as a completely flat design like a bronze belt-buckle ornament seen from directly above, made of three parts in one straight line: first and largest a wide glossy olive-brown half-moon head shield, front edge one gentle even curve and rear edge perfectly straight, its surface only slightly domed like a shallow upside-down saucer, smooth and polished, with two tiny dark glassy beads near the front rim; second, attached directly behind it, a smooth-edged trapezoid belly plate clearly narrower than the shield, its two side rims almost bare and plain, each carrying only three small short spikes set far apart — six small spikes in all, sparse like the few short teeth of a leaf rake, nothing like a dense thorny fringe; third, from the plate's rear tip one long thin straight polished-needle tail spike lying flat on the sand pointing straight away, about half the body length; the entire animal pressed flat and low, one unbroken smooth silhouette in a single plane, shallow water ripple at the edge, copperplate engraving with watercolor tinting on aged parchment, no text no letters no labels",
   // —— 六放海绵纲 E27 五代锚点(新增):用户报告图不对,VLM 诊断被画成字面化菜篮子 ——
-  // 真实形态研究(网络真实图×4):白色半透明硅质玻璃骨架,圆筒-花瓶形,壁为斜向交叉的编织网格,
-  // 顶部有交叉格筛盖+中央孔,底部细玻璃丝根须束;锚点=钩编白蕾丝镂空花瓶(非竹藤篮!)
+  // v2(五代)失因(E31 用户报告):prompt 残留 "Venus flower basket"/"basket-weave" 字面毒源 +
+  //   档案文本「似花篮/编织/笼状」经 featureHints 二次投毒 → 画成竹篮+植物根茎(陆生器物)
+  // v3 七代锚点(E31):彻底清除 basket/编织/cage 词汇;玻璃试管类比;虾共生关系作为海洋语境
+  //   强锚(一对小虾透过网格可见,强制海洋解读+物种签名特征);深海泥背景;NO_HINTS 隔离档案投毒
   "Euplectella aspergillum":
-    "antique scientific specimen plate of a Venus flower basket glass sponge Euplectella aspergillum (偕老同穴) standing upright centered on a dark background like a museum study photograph: one tall narrow elegant vase-shaped cage of fine white glass lace, as if a delicate vase had been crocheted from translucent white silk thread — its wall is a sheer see-through lattice of thin white rods crossing in a regular diagonal basket-weave pattern of diamond openings, near the top the lattice gathers into a flat criss-cross sieve cap with a small round hole in its center, at the very bottom a sparse beard of fine white glass root threads curls downward, the whole skeleton is slender and rigid like polished frosted glass, pale ivory white with slight translucency, NO basket handle NO bamboo NO wicker NO wooden weave NO coral branches NO soft sponge blob — it is one single rigid woven glass skeleton, ink stippling with subtle watercolor tinting on aged parchment, no text no letters no labels",
+    "antique deep-sea biology plate of a glass sponge Euplectella aspergillum (偕老同穴) raised as a museum specimen, one tall slender upright tube made entirely of rigid white frosted glass, shaped like a slim test tube standing on end, taller than it is wide: its transparent wall is a sheer regular lattice of thin straight white glass beams crossing diagonally to form neat rows of small square openings all around the tube, the top rim closes into a flat sieve disc of finer white glass mesh with one small round hole in its center, the very bottom tapers into a loose beard of fine white glass threads that once anchored it in pale deep-sea mud, the whole skeleton gleams translucent ivory-white like polished frosted crystal, and through the open lattice wall a single pair of tiny translucent deep-sea shrimp can be glimpsed sheltering together inside the hollow tube — the sponge remains the only large object, the shrimp are barely visible tiny guests, NOT bamboo NOT wicker NOT rattan NOT wood NOT a basket handle NOT a flowering plant NOT coral branches NOT a soft sponge blob — it is one single rigid glass lattice skeleton of a deep-sea animal, dark abyssal water hinted in the background wash, ink stippling with subtle watercolor tinting on aged parchment, no text no letters no labels",
+  // E31 NO_HINTS 隔离集:这些物种的 DB 档案文本含字面毒源(如偕老同穴「似花篮/编织/笼状」),
+  //   featureHints 拼接会投毒第七代自含锚点 prompt → 对该集合物种不拼档案文本(锚点已自含全部鉴别特征)
+  "__NO_HINTS__": "Euplectella aspergillum,Tachypleus tridentatus",
   "Limulus polyphemus":
     "vintage natural history plate of an Atlantic horseshoe crab Limulus polyphemus (美洲鲎) drawn from directly above on a sandy seabed, NOT a crab NOT a trilobite NOT a scorpion: one large smooth arched helmet-shaped cephalothoracic shield of dark reddish brown like a polished round dome with two small round lateral eyes at the sides, followed by a flatter triangular abdomen shield whose side edges bear a neat row of small backward-pointing spines, and one long slender rigid sword-like telson tail lying straight on the sand, a second smaller male shown behind clinging onto the larger female's shield edge, copperplate engraving with watercolor tinting on aged parchment, no text no letters no labels",
   // —— E21:蠕虫类抗节肢先验(物体类比+NOT 锚点)/鱼类鉴别特征前置/贝壳几何描述 ——
@@ -1275,6 +1284,15 @@ const SPECIFIC_PROMPT: Record<string, string> = {
 
 };
 
+/** E31 每物种严格审查标准:通用闸门只对照档案文本,而 DB 档案对细粒度鉴别特征(扁平度/
+ *  棘刺计数/材质)盲检 → 对用户报告过问题的物种注入逐项审查清单,任一不满足即拒 */
+const AUDIT_HINTS: Record<string, string> = {
+  "Tachypleus tridentatus":
+    "①头胸甲必须宽而扁(仅适度隆起如浅碟),不得呈高耸半球形;②腹甲侧缘棘刺稀疏而短(每侧约 3 个小短棘),不得呈密集长尖刺/荆棘冠;③一条细长直尾剑;④不得画成螃蟹/蝎子",
+  "Euplectella aspergillum":
+    "①主体必须是白色半透明玻璃质网格骨架(细长圆筒形),不得是竹编/藤编篮子等陆生器物;②壁为规则网格+顶部筛盖+底部细玻璃丝根须;③海洋生物语境",
+};
+
 /** E29-c:从中文档案提炼关键鉴别特征注入 prompt(防止张冠李戴)。
  * 档案扩写后 morphology 已达 60-110 字,全量注入(截断 240 保安全);
  * habitat 提供生境构图线索(水底/沙掘/寄生宿主等),description 补兑底。 */
@@ -1372,12 +1390,13 @@ async function main() {
     for (let i = 0; i < 2; i++) {
       try {
         const b64 = Buffer.from(readFileSync(t.file)).toString("base64");
+        const strict = AUDIT_HINTS[t.latinName] ? ` 重点逐项审查(任一不满足即 match=false):${AUDIT_HINTS[t.latinName]}` : "";
         const vres = await zai.chat.completions.createVision({
           model: "glm-4.5v",
           messages: [{
             role: "user",
             content: [
-              { type: "text", text: `你是一位严格的博物学审图员。这张图是为物种 ${t.latinName}(${t.chineseName}) 生成的复古博物学插图。真实档案:${[t.description, t.morphology].filter(Boolean).join(" ").slice(0, 180)}。只输出 JSON:{"match":true/false,"anatomy_errors":true/false,"reason":"一句话"}` },
+              { type: "text", text: `你是一位严格的博物学审图员。这张图是为物种 ${t.latinName}(${t.chineseName}) 生成的复古博物学插图。真实档案:${[t.description, t.morphology].filter(Boolean).join(" ").slice(0, 180)}。${strict}。只输出 JSON:{"match":true/false,"anatomy_errors":true/false,"reason":"一句话"}` },
               { type: "image_url", image_url: { url: `data:image/png;base64,${b64}` } },
             ],
           }],
@@ -1443,7 +1462,12 @@ async function main() {
       // E10:疑难旗舰物种优先使用逐种定制 prompt(两轮通用模板未过审的硬骨头)
       const basePrompt = SPECIFIC_PROMPT[t.latinName] || style(t.chineseName, t.latinName);
       // E29-c:全量档案锚点拼装(形态 240 字 + 生境 80 字 + 描述兑底)
-      const anchoredPrompt = basePrompt + featureHints(t.morphology, t.description, t.habitat);
+      // E31 NO_HINTS 隔离:档案文本含字面毒源的物种(如偕老同穴「似花篮/编织」)不拼 featureHints,
+      //   第七代自含锚点 prompt 已内嵌全部鉴别特征,拼接档案反而二次投毒
+      const noHints = new Set((SPECIFIC_PROMPT["__NO_HINTS__"] || "").split(",").map((s) => s.trim()).filter(Boolean));
+      const anchoredPrompt = noHints.has(t.latinName)
+        ? basePrompt
+        : basePrompt + featureHints(t.morphology, t.description, t.habitat);
 
       // 0) 磁盘已有未入库文件:先审计旧文件(未经闸门的历史遗留)
       let acceptedThis = false, lastReason = "";
