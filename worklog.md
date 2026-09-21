@@ -2444,3 +2444,23 @@ Stage Summary:
   v6 prompt 应直接要求「smooth dome like the back of a rounded teaspoon」+「three short triangular spines like small shark fins per side」,
   即让生成结果落在真实形态区间内,而非要求不可能的「完全扁平+圆头蜡珠」;严格闸门已放宽至解剖学公平线,真实形态图必过
 - 守护存活(flock 单例,instrumentation 托管,断点/审计状态与 E31 对齐),窗口开启即自动:中华鲎 v5 → 9 修复物种 → 全量池 534
+
+---
+Task ID: E32
+Agent: main(campaign session)
+Task: E31 战果推送核销 + 双问题图渲染验证 + 窗口值守
+
+Work Log:
+- 环境盘点:沙箱夜间重置,/tmp 断点丢失,instrumentation 已自动复活守护(pid=1173,flock 单例验证正常:01:29 第二实例正确退出)
+- 核销发现:E31 的 4 个提交(4f73d77/2c38ea0/54f1fdf/372f2c2)实际未上远程,远程另有平行会话的 ea90f61(worklog-only,内容与本地 E31-final 段逐字一致);git rebase FETCH_HEAD 干净合并(无重复段落),推送 ea90f61..6e39c02 成功
+- 工作树 74 个 M 文件经 md5+git diff 甄别全部为 rsync mode 位变更(644→755,零内容差异),git checkout 归零
+- 双问题图终态确认:①偕老同穴(E31 修复,DB 指向 euplectella-aspergillum.png,URL 200/196KB)②中华鲎 v5 于 09-20 18:31 过严格 AUDIT_HINTS 闸门入库(压平标本/教科书背视图框架+棘刺解剖学公平线),随 372f2c2 提交,md5 与 HEAD 一致
+- E2E 验证(agent-browser):中华鲎详情页新图渲染成功(naturalW 1152/complete/可见宽 1230),控制台零错误零警告;偕老同穴 E31 已验证+本次 URL 复核
+- lint 干净;DB 快照:861 物种/354 配图/507 缺/40 旗舰缺图/NCBI 800
+- 窗口值守:01:25→04:02 共 15 轮监控(~2.6h),生成/VLM 双端点全程 429(共用配额池),符合夜间闭窗规律(历史窗口:白天 17:00-18:30 开启)
+
+Stage Summary:
+- E31 全部战果(含偕老同穴✓/中华鲎 v5✓/+27 图收割)已推送远程 6e39c02,远程与本地完全同步
+- 守护进程完全自治:窗口开启即自动执行「9 修复物种 → 全量池 507」,收割结果落盘 public/generated/ + DB,无需人工干预;下个会话只需 commit+push 新收割
+- 中华鲎 v6 后备策略仍有效(若下轮 VLM 复审否决 v5):顺着真实解剖学校准——smooth dome like rounded teaspoon back + three short triangular spines like small shark fins per side
+- 遗留:vlagship 40 旗舰缺图为优先目标;P1 全量 VLM 复审(库内 354 张)待配额
