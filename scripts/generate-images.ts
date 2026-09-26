@@ -1373,9 +1373,11 @@ async function main() {
   const kingdoms = await getKingdoms();
   const zai = await ZAI.create();
 
+  // E39-b: 旗舰批双标签联合——英文 tag「flagship」(原始100)+中文 tag「旗舰」(巨兽区40),
+  // 让狮/虎鲸/湾鳄等高知名度巨兽享受旗舰优先级(窗口宝贵,高成功率物种优先收割)
   const where: any = SCOPE === "all"
     ? { rank: "species", image: null }
-    : { rank: "species", image: null, tags: { contains: "flagship" } };
+    : { rank: "species", image: null, OR: [{ tags: { contains: "flagship" } }, { tags: { contains: "旗舰" } }] };
   if (ONLY.length) where.latinName = { in: ONLY };
   const species = await db.taxon.findMany({
     where,
