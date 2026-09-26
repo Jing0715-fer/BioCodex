@@ -2690,3 +2690,19 @@ Stage Summary(当前项目状态):
 - 用户三项指令完成度:①拉取最新代码并merge ✓(reset --hard origin/main 获取 E28-E39 全量)②继续补图 ✓(窗口开启一次,收割 1 图)③push ✓(本 commit)
 - 未解决/风险:①417 物种缺图(账户级限流间歇,守护全自动待命)②2 顽固旗舰(Welwitschia/Eunice)需十代锚点或替代策略 ③沙箱频繁回收 dev server 进程
 - 下一阶段:①P0 窗口开启守护自动收割(全量批 417)②P1 顽固旗舰十代锚点探索(百岁兰纯物体化/博比特虫穴口五触须)③P2 VLM 全量复审 444 张
+
+---
+Task ID: E30-追加2(第三/四轮窗口收割+push, 2026-09-26)
+Agent: main
+Task: 继续守窗补图——第三/四轮窗口开启收割 7 图(含 2 孤儿待审)+三次 push
+
+Work Log:
+- 【第三轮窗口】~14:00 短窗:全量批+1入库(Cipangopaludina chinensis 中国圆田螺✓)/7 VLM 拒审/429 熔断;push commit 8ae2bd5
+- 【第四轮窗口】14:14 守护捕获窗口:旗舰批启动(2 顽固 Welwitschia/Eunice 待 v10 锚点)/全量批+5入库(Manta birostras 巨蝠鱝✓/Emberiza aureola 黄胸鹀✓/Psittacus erithacus 非洲灰鹦鹉✓/Anodorhynchus hyacinthinus 紫蓝金刚鹦鹉✓/Pygoscelis adeliae 阿德利企鹅✓)/多物种 VLM 拒审(白鱀豚/云豹/鸿雁等鉴别特征不达标)/429 熔断
+- 【2 孤儿待审】Candida albicans(白色念珠菌)/Planktothrix rubescens(浮游颤藻)PNG 已生成在 public/generated/ 但 VLM 审计 429 未完成,DB image=null;守护下轮孤儿审计批将自动审验
+- 【push】commit 9d831a7(E30 基线+Rhinolophus)+8ae2bd5(Cipangopaludina)+本 commit(5 鸟类/鱼类新图+2 孤儿+断点)→ origin/main
+
+Stage Summary(当前项目状态):
+- 【稳定】861 物种/2614 单元/450 配图(远端 443+本会话 7)/48 门/100 旗舰/NCBI 800/五档案 100%;旗舰缺 2(Welwitschia/Eunice 顽固,需十代锚点)
+- 本会话总补图战果:+7 图(Rhinolophus/Cipangopaludina/Manta/Emberiza/Psittacus/Anodorhynchus/Pygoscelis)+2 孤儿待审;4 轮窗口(每轮~5-8 分钟)间歇恢复
+- 守护(instrumentation 托管,45s 轮询)续守;2 孤儿下轮自动审计
