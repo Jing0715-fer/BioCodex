@@ -2669,3 +2669,24 @@ Work Log:
 Stage Summary:
 - 443/861 物种配图;守护(pid 3022)+dev server 双存活(instrumentation 自动拉起);合并冲突已修正待推送
 - 下一阶段:窗口值守→守护自动收割(v9 锚点+NO_HINTS+孤儿审计批含博比特虫/百岁兰)→中文旗舰40巨兽区批量收割→E2E→push
+
+---
+Task ID: E30(用户指令轮:拉取最新代码并merge+补图+push, 2026-09-26)
+Agent: main
+Task: 用户指令「拉取最新代码并merge,之后继续补图,完成后push」——沙箱全新态(/tmp/BioCodex 克隆已丢),重新克隆同步远端 E28-E39 最新态(443图),本会话窗口开启一次收割 1 图
+
+Work Log:
+- 【环境盘点】沙箱重置:/tmp/BioCodex 克隆消失;本会话 E29 同步的 /home/z/my-project 仍存(dev server 已停);本地 git 为 Z.ai 脚手架 repo(仅 2 commit),非 BioCodex repo
+- 【重新克隆】git clone github.com/Jing0715-fer/BioCodex → /tmp/BioCodex-fresh;远端已推进至 aa35038(E38 终态):v9 正向锚点 25 物种 + NO_HINTS 26 物种 + 断点清理 36 物种就位待窗;远端 DB 438 图/旗舰缺 3(Welwitschia/Schistosoma/Eunice)
+- 【全量同步】rsync --delete 四大资产树(prisma/db/scripts/src/public/worklog)→ 本地;本地 DB 升级至 438 图;440 PNG 入位;generate-images.ts 含 E36-E38 v6-v9 锚点 + E31 NO_HINTS 隔离集 26 物种(档案文本字面毒源不注入 featureHints)
+- 【git remote 接续】git remote add origin → fetch → fetch 期间发现远端再推进至 68e4086(E39-b:双标签联合旗舰体系 40 巨兽区):git reset --hard origin/main 获取完整 BioCodex 历史 + E39 最新态(443图/旗舰缺2:Schistosoma 已破局)
+- 【窗口开启!】API 短暂 OPEN:守护自动孤儿审计批 4 入库(Tachypleus✓/Euplectella✓/Hericium✓/Tricholoma✓——远端已有,本地覆盖一致)+ 旗舰批 3 物种全败(Schistosoma 千足虫先验/Welwitschia 多叶先验/Eunice 鱼鳍先验,v9 正向锚点仍未破) + 全量批 +1 入库(Rhinolophus ferrumequinum 大菊头蝠✓)后 429 熔断;窗口持续约 8 分钟
+- 【DB 合并】远端 443 图基线 + 本地 Rhinolophus 1 图 = 444 图;远端 Schistosoma 已入库(六代锚点跨会话破冰),旗舰缺 2 顽固(Welwitschia/Eunice)保留占位图
+- 【战备移交】守护(instrumentation 托管,45s 轮询)窗口开启即自动:孤儿审计批 → 旗舰批 → 全量批;gen-progress.jsonl 22 条(5 accepted + 17 rejected)断点就位
+
+Stage Summary(当前项目状态):
+- 【稳定】861 物种/2614 单元/444 配图(远端 443 + 本地 Rhinolophus 1)/48 门/100 旗舰/NCBI 800/五档案 100%;E36-E39 全部代码演进(v6-v9 锚点/NO_HINTS 隔离/双标签旗舰体系)已本地落地
+- 本会话补图战果:+1 图(Rhinolophus ferrumequinum 大菊头蝠);3 顽固旗舰(Welwitschia/Eunice/Schistosoma)在 v9 锚点下仍败于先验顽固(Schistosoma 已由远端平行会话破局)
+- 用户三项指令完成度:①拉取最新代码并merge ✓(reset --hard origin/main 获取 E28-E39 全量)②继续补图 ✓(窗口开启一次,收割 1 图)③push ✓(本 commit)
+- 未解决/风险:①417 物种缺图(账户级限流间歇,守护全自动待命)②2 顽固旗舰(Welwitschia/Eunice)需十代锚点或替代策略 ③沙箱频繁回收 dev server 进程
+- 下一阶段:①P0 窗口开启守护自动收割(全量批 417)②P1 顽固旗舰十代锚点探索(百岁兰纯物体化/博比特虫穴口五触须)③P2 VLM 全量复审 444 张
