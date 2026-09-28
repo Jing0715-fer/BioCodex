@@ -43,7 +43,13 @@ while true; do
     break
   fi
 
-  R=$(timeout 60 bun scripts/probe-api.ts 2>/dev/null 9>&- | tail -1 9>&-)
+  # E44:probe 超时/异常时输出空(窗口刚开 API 排队慢,60s 内无响应被 timeout 杀)→
+  #     误判 CLOSED 错过窗口。修复:空返回重试一次(90s),两次皆空才判 CLOSED。
+  R=$(timeout 90 bun scripts/probe-api.ts 2>/dev/null 9>&- | tail -1)
+  if [ -z "$R" ]; then
+    R=$(timeout 90 bun scripts/probe-api.ts 2>/dev/null 9>&- | tail -1)
+    [ -z "$R" ] && R="CLOSED(探测超时×2)"
+  fi
   if [ "$R" = "OPEN" ]; then
     # E22:孤儿存量审计批先行——磁盘已有未入库 PNG 只耗 VLM 审计额度(零生成成本),
     #     短窗口也能零成本收割历史孤儿(12 张:河鲀/鳗鲡/海马/姜/按蚊/帝王蟹等)
