@@ -2900,3 +2900,27 @@ Stage Summary(当前项目状态):
 - 用户指令完成度:①拉取最新代码 ✓(纯 reset 吸收 E41-E44,547 基线,零丢失审计)②继续补图 ✓(+9 图含双顽固破冰)
 - 未解决/风险:①305 缺图池待窗(账户级限流间歇)②四顽固 v5/v17 待窗检验(若再败:姥鲨考虑鲸鲨表亲框定,百岁兰考虑标本瓶,鼋考虑半水侧视,白犀考虑幼崽构图)③VLM 复审仅 3/556(配额同池受限)
 - 下一阶段:窗口开启守护自动收割(v5/v17 四顽固首测+全量 305 池);战果随下轮会话/巡检 job push
+
+---
+Task ID: E41(用户指令轮:拉取最新代码并继续补图, 2026-10-01)
+Agent: main
+Task: 用户指令「拉取最新代码并继续补图」——同步远端 E41-E45 平行会话战果(556 基线)后窗口收割 +7 图 + 五顽固 v18 锚点工程 + cron 巡检 job 重建
+
+Work Log:
+- 【拉取审计】git fetch 发现远端推进 11 commits 至 a22cb5b(E45-final:黄金窗口收割 9 图 547→556/斑鬣狗 v3 几何隐喻破冰/博比特虫 v15 十六代终破删触角触发词/四顽固 v5/v17 上膛);本地 E40 后零本地提交
+- 【史上最干净合并】双 DB 审计:本地 535 ⊂ 远端 556(本地独有图 0,远端独有 21,同物种异图 0)→ git reset --hard origin/main 直接同步,零回填需求;reset 后验证:556 图/幽灵引用零/PNG 559
+- 【运维修复×2】①沙箱重置致 Prisma client 生成物丢失(bunx prisma generate 重生成 v6.19.2;注意 bun 缓存有 @prisma/client@7.10.0 版本打架,以项目 package.json 为准)②旧守护子进程 generate-images.ts(pid 1404,12:57 启动)继承 flock fd 9 持锁且连 reset 前旧 DB inode(战果会写进孤儿文件)→ kill 后锁释放,flock fd 继承是特性但 git 替换 DB 后必须清旧任务
+- 【dev 树重启】杀 next-server+campaign-daemon → 双 fork 孤儿模式重启(( setsid bun run dev & ))→ instrumentation 自动拉守护 pid 2025;stats API 确认连新 DB inode(558)
+- 【cron 巡检 job 重建】两轮被打断的 P0 待办落地:job_id 428473,fixed_rate 900s,webDevReview 模式,priority 10
+- 【窗口收割】13:03 probe OPEN→守护孤儿审计批+全量批三轮滚动收割:+7 物种图(556→563,65.5%)——Tyto alba 仓鸮(心形面盘)/Cacatua galerita 葵花凤头鹦鹉(黄色冠羽)/Perinereis aibuhitensis 双齿围沙蚕/Davidia involucrata 珙桐(白色苞片,尝试1)/Aspergillus fumigatus 烟曲霉(烧瓶顶囊,尝试2破冰)/Mayetiola destructor 麦瘿蚊/Cloeon dipterum 二尾蜉
+- 【存量复审闭环持续】VLM 复审隔离不合格存量图:Ceratotherium simum 白犀(v5 再败,深褶皱尖唇=黑犀特征)/Oncomelania hupensis 湖北钉螺(螺层过多)/Rhopilema esculentum 海蜇(口腕 2 条应 8 条)/Helicoverpa armigera 棉铃虫(画成天蚕蛾大眼斑)——隔离物种自动回缺图池等待重生成
+- 【五顽固 v18 锚点工程】拒审原因逐条对症:①Drosera rotundifolia 茅膏菜(画成捕蝇草夹合捕虫夹→显式否定 hinged jaws/clamshell trap/nothing folds shut)②Mola mola 翻车鱼(普通鱼流线型→灰色磨石磨盘几何隐喻+否定 forked tail/torpedo body)③Neofelis nebulosa 云豹(实心斑点→六七片大空心云朵轮廓 amber 透底+否定 solid spots/rosette rings)④Tetrahymena pyriformis 四膜虫(两次画成节肢动物→死标本染色片静物化 pear-shaped blot of dye+否定全部附肢)⑤Acyrthosiphon pisum 豌豆蚜(两次画成甲虫→博物馆针插标本静物化单一个体+否定 wing cases/beetle back)——沿 E43 标本静物化成功路径
+- 【断点解锁】6 条 rejected 断点清除(茅膏菜/翻车鱼/云豹/四膜虫/豌豆蚜/中华虎凤蝶),v18 上膛待窗重试
+- 【QA 全绿】agent-browser:首页渲染✓(861 物种 hero/21 图零失败)/stats API✓(558 实时图数+IUCN+界分布)/gallery API✓(含博比特虫十六代终破图)/species API✓(博比特虫/斑鬣狗入库可查)/画廊视图✓(60 图渲染零失败,"558 幅博物学插图"计数实时正确)/dev.log 零错误/lint 全绿
+
+Stage Summary(当前项目状态):
+- 【稳定】861 物种/2614 单元/563 物种图(65.5%)/48 门/100 旗舰/NCBI 800/五档案 100%;守护(pid 2025)90s 轮询续守,窗口持续开火中
+- 本会话三项指令完成度:①拉取最新代码 ✓(reset 同步 E41-E45 全量,史上最干净零回填合并)②继续补图 ✓(+7 图,v18 锚点工程)③push ✓(本 commit)
+- v18 五顽固已上膛:茅膏菜/翻车鱼/云豹/四膜虫/豌豆蚜(断点已清,下轮窗口自动重试);四顽固 v17(姥鲨/百岁兰/鼋/白犀)仍在前线
+- 未解决/风险:①298 缺图物种持续收割(守护全自动)②白犀 v5 再败(黑犀先验极顽固,考虑 v19 双宽唇正向强调)③沙箱环境 bun 缓存 Prisma 版本打架(每次沙箱重置后需 bunx prisma generate)
+- 下一阶段:①P0 窗口持续收割(守护+全量批 298 池)②P1 监控 v18 五顽固首测(尤其四膜虫/豌豆蚜标本静物化路径)③P2 白犀 v19 锚点(正向宽唇几何隐喻,类似斑鬣狗 v3 破冰法)④P3 cron 巡检 job 首轮触发验证
