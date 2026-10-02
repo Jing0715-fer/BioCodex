@@ -80,6 +80,10 @@ await db.$disconnect();
     BATCH=999 SCOPE=all CONCURRENCY=3 RETRY=2 timeout 570 bun scripts/generate-images.ts 2>&1 \
       | grep -E "^\[start|^\[入库|^\[放弃|^\[跳过|^\[done" | while read -r l; do log "$l"; done
     sleep 60
+    # E42:幽灵引用自愈——批后校验 DB 引用与磁盘文件一致性,
+    #     历史多进程/inode 交叉事故曾产生幽灵(白头叶猴事件),此处自动清除回退占位图
+    GHOST_OUT=$(timeout 60 bun scripts/ghost-check.ts 2>/dev/null | grep -E "^\[ghost" | head -10)
+    [ -n "$GHOST_OUT" ] && echo "$GHOST_OUT" | while read -r l; do log "$l"; done
   else
     log "[closed] $R (缺图 $MISSING),45s 后再探测"
     # E25:VLM 全量复审 opportunistic——生图配额关闭但 VLM 配额独立恢复时,
