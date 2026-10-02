@@ -129,6 +129,10 @@ async function main() {
         return true;
       }
       log(`[err] ${t.latinName}: ${msg.slice(0, 120)}`);
+      // E42-fix:非 429 的瞬时错误(401/5xx 等)不得写入 journal——
+      // 否则 done 集合会把该物种永久标记为"已审计"(unknown 毒化),失去复审机会。
+      // 直接 return,物种留在 pending 池下轮重试。
+      return true;
     }
 
     if (!verdict) {

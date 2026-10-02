@@ -86,7 +86,7 @@ await db.$disconnect();
     #     每周期推进 3 张复审(fail 自动下架回退占位图,物种自动重回生成队列);
     #     NO_BACKOFF 首次 429 秒退,不拖慢窗口探测节奏
     AUDIT_OUT=$(APPLY=1 LIMIT=3 CONCURRENCY=1 NO_BACKOFF=1 timeout 75 bun scripts/audit-images-vlm.ts 2>/dev/null \
-      | grep -E "^\[(vlm-audit|ok|warn|fail|summary|429-fast)" | head -5)
+      | grep -E "^\[(vlm-audit|ok|warn|fail|summary|429-fast|err)" | head -5)
     [ -n "$AUDIT_OUT" ] && echo "$AUDIT_OUT" | while read -r l; do log "[复审] $l"; done
     sleep 45 9>&-
   fi
