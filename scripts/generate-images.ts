@@ -292,7 +292,8 @@ const SPECIFIC_PROMPT: Record<string, string> = {
   "Nepenthes mirabilis":
     "vintage botanical plate on aged parchment: ONE pitcher plant bearing two hanging flask-shaped pitchers the size of a forefinger — each flask swollen at the base, streaked green with soft red flushes, hanging from a thin curling tendril beneath its leaf, the mouth of each pitcher ringed by ONE thick smooth glossy rolled rim like a polished ceramic doughnut, and a small oval lid tilted above each mouth like a little roof, copperplate engraving with hand-tinted watercolor, no text no letters no labels",
   "Drosera rotundifolia":
-    "vintage botanical plate on aged parchment: ONE small sundew seen from directly above — a flat round rosette of eight or ten leaves lying perfectly OPEN and flat on damp moss, no leaf touches another, every leaf one perfectly ROUND flat disc like a small green full moon lying still, and every disc studded all over with tiny dew drops that glisten like glass beads on pins — absolutely NO hinged jaws NO clamshell trap NO closing leaves NO two-lobed snapping mouth of any kind, nothing folds shut, one slender stem rising from the center carrying a few small white five-petal buds, soft moss-green wash background, ink stippling, no text no letters no labels",
+    // v22(E43):v18 整株俯视仍画捕蝇草夹——去整株模板,只画 ONE 单片叶特写满版,消除「多叶植物体」可供性
+    "vintage botanical plate on aged parchment: ONE single sundew LEAF alone, hugely magnified and seen straight from above, filling the whole frame like one round green full-moon coin — a perfect flat CIRCLE of a leaf lying perfectly still, its edge perfectly round like a coin's rim, and across the whole upper face of this one disc stand hundreds of tiny glass beads of dew, each drop shining on its own hair-fine pin — the whole leaf face sparkling like a pincushion dusted with diamonds — the leaf's one thin green stalk entering the frame from the lower corner, nothing else in the picture — absolutely NO whole plant NO rosette of many leaves NO flowers NO other leaves NO hinged jaws NO folding trap NO closed clamshell of any kind, only this one open flat round dewy disc, soft moss-green wash, ink stippling, no text no letters no labels",
   "Paeonia suffruticosa":
     "vintage botanical plate on aged parchment: ONE tree peony branch in bloom bearing a single HUGE bowl-shaped flower of layered crinkled petals like crumpled silk handkerchiefs or tissue-paper roses in soft rose-pink, dozens of rounded ruffled petals in loose rows around a small cushion of golden stamens, with lobed green leaves below on a woody brown twig — absolutely NO spots NO stripes NO spurs NO long trailing stamens, pale parchment background with soft shadow, ink stippling, no text no letters no labels",
   "Paeonia lactiflora":
@@ -330,7 +331,8 @@ const SPECIFIC_PROMPT: Record<string, string> = {
   "Fallopia multiflora":
     "vintage materia medica still-life on aged parchment: ONE fleeceflower root like a fat russet sweet potato or a weathered wooden gourd, its skin banded with coarse lengthwise ridges, shown whole with one slice cut to reveal pale flesh flushed rose-pink, tangled with a slender dry vine like a coil of old brown string and one heart-shaped pressed leaf — absolutely NO ginseng humanoid root NO carrot NO flower cluster NO green leaves massed, plain slate-grey table with soft shadow, ink stippling, no text no letters no labels",
   "Luehdorfia chinensis":
-    "vintage entomological specimen plate on aged parchment: ONE butterfly pinned with wings fully spread — both forewings YELLOW crossed by bold black tiger-stripe bands sweeping diagonally like strokes of ink, the hindwings yellow with a black rim and a clear row of red-orange spots along the margin, each hind wing ending in only a SHORT stubby tail, the body furry and black, soft parchment background, ink stippling, no text no letters no labels",
+    // v22(E43):长线顽固补否定块——金凤蝶(长飘带尾+蓝斑)为最强混淆模板,必须显式否定
+    "vintage entomological specimen plate on aged parchment: ONE butterfly pinned with wings fully spread — both forewings YELLOW crossed by bold black tiger-stripe bands sweeping diagonally like strokes of ink, the hindwings yellow with a black rim and a clear row of red-orange spots along the margin, each hind wing ending in only a SHORT stubby tail, the body furry and black — absolutely NO long slender swallowtail streamers NO tail filaments trailing longer than a fingertip NO large blue eye-spots NO white or cream ground colour NO plain yellow wings without black bands, soft parchment background, ink stippling, no text no letters no labels",
   "Teinopalpus aureus":
     "vintage entomological specimen plate on aged parchment: ONE large golden butterfly pinned with wings spread like a panel of black velvet inlaid with gold leaf, the black forewings crossed by a band of yellow-green patches like streaks of gilt, each hindwing carrying ONE large round golden-yellow patch ringed with black and ONE long slender tail, the body dark and furry — absolutely NO red spots NO blue NO tiger stripes NO yellow wing base NO swallowtail streamers, soft parchment background with shadow, ink stippling, no text no letters no labels",
   "Solenopsis invicta":
@@ -388,7 +390,8 @@ const SPECIFIC_PROMPT: Record<string, string> = {
   "Thunnus orientalis":
     "vintage ichthyology plate on aged parchment: ONE bluefin tuna in profile like a polished steel torpedo, its deep back midnight-blue melting down to flanks of bright silver, behind the dorsal and anal fins a neat ROW of tiny button-like finlets like a strip of stamps along the tail base, the tail a stiff CRESCENT blade like a sickle, the first dorsal fin partly folded flat into a groove — absolutely NO spots NO stripes NO long bill NO sail fin NO barbels NO round eyes drawn large, soft watery wash background, ink stippling, no text no letters no labels",
   "Mola mola":
-    "vintage ocean naturalist plate on aged parchment: ONE enormous ocean sunfish seen in full side profile — a fish that looks like a huge grey MILLSTONE or grinding wheel with a bite sliced off the back edge: the body one deep blunt oval disc, taller than it is long, thick and slab-sided like a loaf of bread stood on end, one tall pointed dorsal fin rowing like a shark fin above and one exactly matching anal fin below, and where a tail should be there is ONLY one short blunt rounded RUDDER-PADDLE like the stern of a wooden boat — absolutely NO flowing forked tail fin NO stream-lined torpedo body NO pointed snout, a tiny round mouth like a small O on the blunt grey face, two small round eyes, rough silver-grey skin with a dull slate sheen, pale deep-water wash, ink stippling, no text no letters no labels",
+    // v22(E43):v18 侧视磨石仍画流线鱼——改仰视构图(face-on 圆盘),侧视流线模板无法套用
+    "vintage ocean naturalist plate on aged parchment: ONE ocean sunfish seen from DIRECTLY BELOW as it tilts flat at the sunlit surface — a huge round grey BODY like one giant flat millstone seen face-on, a near-circular slab filling the frame, and from its top and bottom edges stick ONLY two single oar-blade fins, one tall pointed fin rowing above and one exactly alike below like the two blades of a drawing compass — absolutely NO stream-lined fish body NO pointed nose NO side-view torpedo NO flowing forked tail, for where a tail should be there is only a short smooth rounded fan-folded edge like the clasp of a purse, the skin rough slate-grey, one small round eye and a tiny O-shaped mouth on the blunt face peeking over the rim, pale deep-water wash below and bright surface glimmer above, ink stippling, no text no letters no labels",
   "Misgurnus anguillicaudatus":
     "vintage naturalist plate on aged parchment: ONE pond loach lying calm and straight in a shallow white dish — a slender slippery body as thick as a chopstick and long as a hand, plain warm brown with soft cloudy darker patches, a small blunt head with tiny dark eyes, the mouth a small opening on the UNDERSIDE of the chin ringed by five pairs of short whiskers like a frayed paintbrush tip, one small rounded paddle-shaped tail fin, smooth slimy skin throughout, plain grey dish with a water sheen, ink stippling, no text no letters no labels",
   "Ophiophagus hannah":
@@ -412,7 +415,8 @@ const SPECIFIC_PROMPT: Record<string, string> = {
   "Panthera uncia":
     "vintage zoological plate on aged parchment: ONE snow leopard walking along a pale ledge like a living hearth-rug of smoke-grey fur, its dense coat pale grey-white patterned with dark OPEN ROSETTES — hollow black-edged rings without central dots like ink rings stamped on felt — the head small and round with short rounded ears, the paws huge and furred like snowshoes, and the tail THICK AND NEARLY AS LONG AS THE BODY trailing behind — absolutely NO solid round spots NO tear-marks NO brown lion tone NO mane NO spots with dots inside, soft cold wash, ink stippling, no text no letters no labels",
   "Neofelis nebulosa":
-    "vintage zoological plate on aged parchment: ONE clouded leopard resting along a thick mossy branch — a compact golden-amber cat whose coat is marked with six or seven very LARGE HOLLOW CLOUD shapes: irregular soft-edged patches OUTLINED in dark black-grey ink with the golden-amber coat showing through inside each one, like large open ink-blot clouds drifting on the fur — absolutely NO solid filled round spots NO small rosette rings of dots NO cheetah pattern, only big open cloud outlines the size of a spread hand, small solid black dots only on the legs and head, the tail extremely long and thick with dark ring bands hanging below the branch, short sturdy legs and broad paws, soft forest-shadow wash, ink stippling, no text no letters no labels",
+    // v22(E43):v18 树上侧卧仍画实心豹斑——改倒挂构图+地图海岸线隐喻,打破标准豹模板
+    "vintage zoological plate on aged parchment: ONE clouded leopard hanging upside-down beneath a thick mossy branch, forepaws hooked over the branch — a compact golden-amber cat whose coat is marked like an old MAP: six or seven very LARGE patches shaped like irregular island coastlines, each patch outlined in dark black-grey ink with the golden-amber coat showing plainly inside — big open outlined shapes the size of a spread hand drifting across the flank — absolutely NO solid filled round dots NO small rosette rings NO cheetah tear-lines NO tiger stripes, small solid black flecks only on the legs, paws and face, the tail extremely long and thick, banded with dark rings, hanging down past the branch, short sturdy legs, soft forest-shadow wash, ink stippling, no text no letters no labels",
   "Lynx lynx":
     "vintage zoological plate on aged parchment: ONE Eurasian lynx in profile like a sturdy grey-brown cat built of deep chest and short legs, its rump standing higher than its shoulders, tufts of long BLACK hair sprouting from the tips of its tall ears like two small brushes, a ruff of grey fur drooping from the cheeks, the tail a mere stub dipped in black, huge snowshoe paws — absolutely NO long tail NO body-length neck NO stripes NO spotted rosette rings NO tawny savanna look, soft wintry parchment wash, ink stippling, no text no letters no labels",
   "Ursus arctos":
@@ -464,7 +468,8 @@ const SPECIFIC_PROMPT: Record<string, string> = {
   "Symbiodinium microadriaticum":
     "antique microscope field-of-view plate on aged parchment: a scatter of round golden-brown cells like glossy bronze pearls or polished drops of amber about ten micrometers across, each packed inside with fine stacked discs like a roll of coins seen edge-on, one or two cells shown with faint armor plates and thin thread tails — absolutely NO worm shape NO green leaf NO spines NO mane of long flagella NO shell coils NO spiral, round double-line lens border with vignette, ink stippling, no text no letters no labels",
   "Tetrahymena pyriformis":
-    "antique microscope slide plate on aged parchment, one round field of view, VERY high power: ONE single dead ciliate specimen pressed flat and stained amber-brown under the cover glass — a soft PEAR-SHAPED blot of dye shaped like a plump teardrop or a small guitar-pick, widest at the blunt round front and tapering smoothly to a soft point at the rear, the stain fading in faint lengthwise streaks like combed velvet nap, one small darker round spot inside marking the nucleus and one tiny notch at the front edge where the mouth was — absolutely NO legs NO bristle limbs NO jointed appendages NO shell NO eyes NO antennae NO segmentation of any kind, only one smooth soft stained blob with streaky edges, round lens vignette, ink stippling, no text no letters no labels",
+    // v22(E43):v18 染色压片仍画甲虫——改暗场发光细胞(纯黑虚空),与「纸上甲虫标本」先验彻底冲突
+    "dark-field photomicrograph rendered as an antique plate: ONE single microscopic cell drifting alone in a pure black void — a soft translucent PEAR-SHAPED lantern of pale amber light, glowing gently like a grain of stained glass shaped like a plump teardrop, blunt and rounded at the front, tapering smoothly to a soft point behind, its smooth body filled with a faint milky glow, one small brighter round bead of light inside marking the nucleus, and fringing the whole outline a fine halo of hundreds of hair-thin cilia catching the light like frost on a window edge — absolutely NO insect NO beetle NO legs NO jointed appendages NO antennae NO shell NO wings NO paper NO slide frame NO pins NO background objects, only this one glowing soft pear-shaped blob afloat in blackness, ink stippling, no text no letters no labels",
   "Candida albicans":
     "antique microscope field-of-view plate on aged parchment: a cluster of plump oval yeast cells like pale translucent grapes or drops of thick cream, several with small round daughter buds pinching off one side like a soap bubble mid-blow, a few drawn out into linked chains of sausage shapes forming false threads, all tinted faintly rose-white — absolutely NO mold filaments branching NO mushroom cap NO bacterial rods NO spore sacs NO flagella NO spiral hyphae, round lens border with soft vignette, ink stippling, no text no letters no labels",
   "Aspergillus fumigatus":
@@ -520,7 +525,8 @@ const SPECIFIC_PROMPT: Record<string, string> = {
   "Samia cynthia":
     "vintage lepidoptery plate of the ailanthus silkmoth Samia cynthia (樗蚕): ONE large moth with wings spread flat in the classic pinned museum pose, each of the four broad wings coloured olive-brown like worn leather, and in the centre of every wing one neat crescent moon-shaped translucent spot — a little clear window edged with fine white and black borders and a flush of rose pink — one bold blush-pink band sweeping across all four wings, the forewing tips hooked outward and marked with a pink stripe, the antennae feathered like double eyelash brushes, a thick woolly body in creamy fur, absolutely NO butterfly day-colours NO long streaming tails NO bright blue eyespots, copperplate engraving with watercolor tinting on aged parchment, no text no letters no labels",
   "Acyrthosiphon pisum":
-    "antique entomology specimen plate on aged parchment: ONE single pea aphid pinned as a museum specimen, hugely enlarged, lying sideways on cream paper beside a pin — a soft plump PEAR-SHAPED body like a swollen pale-green jelly bean or a grain of rice bent slightly at the middle, smooth matte pea-green all over, a small round head with two long thin pale antennae sweeping back like single hairs longer than the body, six slender hair-fine legs, and near the rear two small dark chimney stacks standing up like little inkwells — absolutely NO hard shell NO wing cases NO striped beetle back NO pinching claws NO fat round ladybug shape, only one soft plain bean, ink stippling with watercolor tinting, no text no letters no labels",
+    // v22(E43):v18 针插标本仍画甲虫——改活体豌豆苗微距+「煮熟米粒」核心隐喻,去标本/针插语境
+    "extreme macro study rendered as an antique botanical plate: ONE plump soft pea aphid standing on a tender young green pea shoot — the insect no more than a grain of cooked rice given six hair-fine legs, its whole body one smooth pale-green grain of rice slightly bent at the middle, matte and soft with no armour, a small round head with two very long thin pale antennae sweeping back like single horse-hairs, a pair of small dark compound eyes, and near the tail-end two small dark chimney-pipe stacks standing upright like little inkwells — absolutely NO hard shiny shell NO wing cases NO striped beetle back NO pinching mandibles NO fat round ladybug dome NO long tail filaments, one soft plain rice-grain of an insect on a green stem, watercolour tinting with ink stippling, no text no letters no labels",
   "Oncomelania hupensis":
     "vintage medical conchology plate on aged parchment: ONE tiny amphibious snail drawn much enlarged beside a rice grain for scale — its shell a slender smooth cone of five to eight flat whorls like a small pointed thimble of cinnamon-brown, the surface with fine coarse vertical ribs running down the whorls like corrugated grooves, the shell mouth a small oval opening rimmed with a narrow frame of jet black, a thin amber operculum lid drawn beside like a tiny fingernail, copperplate engraving with watercolor tinting on aged parchment, no text no letters no labels",
   "Araneus diadematus":
@@ -1329,6 +1335,37 @@ const AUDIT_HINTS: Record<string, string> = {
   "Eunice aphroditois":
     // v14(E44):五触角一画就节肢化(十代实证)——闸门降级:头部细节允许藏于盘绕/穴中不显,核心只守「软体蠕虫无节肢」硬闸门
     "①主体必须为长条形软体蠕虫(无骨无壳无硬外骨骼无关节步足),严禁虾/蟹/蜈蚣/蝎子等节肢动物形态;②侧部疣足与鳃为微观结构,允许因侧视角度/入穴而不清晰或不可见,不作为否决理由;③盘绕标本瓶/穴口伏击构图均完全可接受,头部触角允许简化或藏于穴中;④体表紫绿虹彩有更佳,非必需",
+  // —— E43 v22 闸门工程:五顽固+虎凤蝶+姥鲨+寄生虫群(连环拒审),中华鲎 v5 同款「特征严格+构图宽容」模式 ——
+  "Drosera rotundifolia":
+    "①必须为茅膏菜类粘虫植物:叶为圆形粘虫垫密布带粘珠的红色腺毛,严禁捕蝇草式双叶铰链夹/猪笼草瓶状笼;②构图宽容:单片叶特写/整株莲座/带花茎均可;③叶面粘珠为最硬特征;④苔藓温地背景为佳非必需",
+  "Mola mola":
+    "①体形必须为钝圆厚盘状(体高大于体长),严禁流线型纺锤体/分叉鱼尾/尖吻;②构图宽容:仰视/侧视/正面均可;③背鳍与臀鳍为两片对称桨状鳍;④尾仅为短钝波状缘;⑤画成鲨鱼/金枪鱼/普通鱼即否",
+  "Neofelis nebulosa":
+    "①体纹必须为大块空心云状斑(深色描边内部露金色皮毛),严禁普通豹实心圆点/猎豹实心斑/虎条纹;②构图宽容:树上侧卧/倒挂/地面均可;③尾极长具黑环为辅助特征;④腿足头部的小实心点允许;⑤画成雪豹/金钱豹即否",
+  "Tetrahymena pyriformis":
+    "①必须为单细胞梨形软体(前端钝圆后端渐尖),严禁任何节肢动物形态(腿/壳/翅/触角/分节/复眼);②构图宽容:暗场发光/染色压片/水彩晕染均可;③体缘纤毛允许表现为细毛晕或光晕;④口器/核为微观结构允许简化或不可见;⑤画成甲虫/虾/任何昆虫即否",
+  "Acyrthosiphon pisum":
+    "①体形必须为柔软梨形/米粒状(无硬壳无鞘翅无分节背板),严禁甲虫形态;②腹管(体后部两根短竖管)为关键特征;③触角细长向后扫;④六足细如发丝;⑤构图宽容:活体在植株上/标本均可;⑥画成瓢虫/叶甲/任何甲虫即否",
+  "Luehdorfia chinensis":
+    "①前翅必须黄底黑虎纹横带,后翅具红橙色缘斑列;②尾突必须短钝(严禁长飘带状凤蝶尾);③严禁大型蓝斑/眼斑;④构图宽容:展翅标本/停栖侧面均可;⑤画成金凤蝶(蓝斑+长尾飘带)/青凤蝶即否",
+  "Cetorhinus maximus":
+    "①鳃裂五条且极长(围绕头腹),此为最硬特征;②口张开巨大且内部无牙(滤食性);③体表无斑纹,吻端钝圆;④构图宽容:头像特写/全身侧视/滤食姿态均可;⑤画出鲨鱼利牙即否(姥鲨是滤食鲨,不是大白鲨)",
+  "Hirudo nipponia":
+    "①体为细长蠕虫状具细密体环,背面具黑绿纵纹,严禁通体红色;②前后各一吸盘,前端小后端大;③三锯齿颚为微观结构,允许以插图/剖面小图或不可见;④构图宽容:水中游动/瓷皿静置均可;⑤画成蚯蚓/蛇即否",
+  "Whitmania pigra":
+    "①体为宽扁皮革状(非细长圆条),背面橄榄褐色+金黄纵带,严禁红色;②眼点五对为微观结构允许简化;③前后吸盘;④构图宽容:湿润瓷盘/水面均可;⑤画成蚯蚓/蛇/细长医蛭即否",
+  "Echinococcus granulosus":
+    "①成虫仅 3-4 节微小(米粒大),头具小钩冠+四吸盘;②幼虫为囊泡状结构(水囊);③构图宽容:成虫/幼虫双联图或单画均可;④画成长带状大型绦虫即否(成虫极小)",
+  "Echinococcus multilocularis":
+    "①成虫极小(芝麻大)仅 3-5 节;②幼虫为蜂窝状多小泡聚集(非单一大囊);③构图宽容:双联图或单画幼虫均可;④画成单一大圆囊(那是细粒棘球)或长带虫即否",
+  "Hymenolepis nana":
+    "①虫体细如缝线(微小膜壳绦虫),头小球形带一圈小钩+四吸盘;②卵近圆形具极丝(两端细丝)为关键特征;③构图宽容:虫+卵双联图或单画虫均可;④画成大型宽带虫/蛔虫/线虫即否",
+  "Diphyllobothrium latum":
+    "①节片宽大于长(关键鉴别!);②头节为指状具两条纵吸沟(非四个圆吸盘);③构图宽容:盘绕折叠/部分展开均可;④画成四圆吸盘头/节片长大于宽即否",
+  "Oratosquilla oratoria":
+    "①第二对掠肢为折刀状捕肢(收折如杰克折刀),此为最硬特征;②眼大具柄可独立转动;③腹部长具横条纹,尾扇展开;④严禁大型圆钳(龙虾/蟹钳形态);⑤构图:侧视平展/尾扇展开均可;⑥画成对虾(无折刀捕肢)即否",
+  "Spongilla fragilis":
+    "①群体为淡水海绵的分枝结壳状(非深海大型桶状海绵);②翠绿色(共生藻)为关键特征;③表面具小出水孔;④构图宽容:整群体/局部特写均可;⑤画成珊瑚/海藻/植物即否",
 };
 
 /** E29-c:从中文档案提炼关键鉴别特征注入 prompt(防止张冠李戴)。
