@@ -22,9 +22,9 @@ function slugToLatin(slug: string): { latin: string; chinese: string; profile: s
   const db = new Database("db/custom.db", { readonly: true });
   // slug 约定 = latinName 小写 + 空格转连字符;反查用 LIKE 双向
   const guess = slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-  const row = db
+  let row: any = db
     .query("SELECT latinName, chineseName, description, morphology FROM Taxon WHERE lower(replace(latinName,' ','')) = lower(replace(?,' ','')) AND rank='species'")
-    .get(guess) as any;
+    .get(guess);
   if (!row) {
     const row2 = db
       .query("SELECT latinName, chineseName, description, morphology FROM Taxon WHERE lower(latinName) = ? AND rank='species'")
